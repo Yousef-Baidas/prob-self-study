@@ -4,7 +4,42 @@ import { ch01Generators } from '../../../src/engine/generators/ch01';
 
 import { mulberry32 } from '../../../src/engine/rng';
 
-import { mean, median, sampleStdDev } from '../../../src/engine/mathx';
+// Recomputed independently of `src/engine/mathx` (plain inline arithmetic)
+// so a bug in mathx cannot corrupt both sides of the comparison identically.
+
+const independentMean = (xs: number[]): number => {
+  let sum = 0;
+
+  for (const x of xs) sum += x;
+
+  return sum / xs.length;
+};
+
+const independentMedian = (xs: number[]): number => {
+  const sorted = [...xs].sort((a, b) => a - b);
+
+  const n = sorted.length;
+
+  const mid = Math.floor(n / 2);
+
+  return n % 2 === 1 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+const independentSampleStdDev = (xs: number[]): number => {
+  const n = xs.length;
+
+  let sum = 0;
+
+  for (const x of xs) sum += x;
+
+  const xBar = sum / n;
+
+  let sumSquaredDiff = 0;
+
+  for (const x of xs) sumSquaredDiff += (x - xBar) ** 2;
+
+  return Math.sqrt(sumSquaredDiff / (n - 1));
+};
 
 const byId = (id: string) => {
   const t = ch01Generators.find((g) => g.id === id);
@@ -32,13 +67,17 @@ describe('ch01 descriptiveSummary', () => {
       expect(meanPart.kind).toBe('numeric');
 
       if (meanPart.kind === 'numeric') {
-        expect(Math.abs(meanPart.answer - mean(data))).toBeLessThanOrEqual(meanPart.tol);
+        expect(Math.abs(meanPart.answer - independentMean(data))).toBeLessThanOrEqual(
+          meanPart.tol,
+        );
       }
 
       expect(medianPart.kind).toBe('numeric');
 
       if (medianPart.kind === 'numeric') {
-        expect(Math.abs(medianPart.answer - median(data))).toBeLessThanOrEqual(medianPart.tol);
+        expect(Math.abs(medianPart.answer - independentMedian(data))).toBeLessThanOrEqual(
+          medianPart.tol,
+        );
       }
     }
   });
@@ -58,7 +97,9 @@ describe('ch01 sampleStdDev', () => {
       expect(part.kind).toBe('numeric');
 
       if (part.kind === 'numeric') {
-        expect(Math.abs(part.answer - sampleStdDev(data))).toBeLessThanOrEqual(part.tol);
+        expect(Math.abs(part.answer - independentSampleStdDev(data))).toBeLessThanOrEqual(
+          part.tol,
+        );
       }
     }
   });
