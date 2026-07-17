@@ -20,7 +20,7 @@ describe('gradePart', () => {
   });
 
   it('mcq: exact index match', () => {
-    const part = { kind: 'mcq', choices: ['a', 'b', 'c'], answer: 1 } as const;
+    const part = { kind: 'mcq' as const, choices: ['a', 'b', 'c'], answer: 1 };
 
     expect(gradePart(part, 1)).toBe(true);
 
