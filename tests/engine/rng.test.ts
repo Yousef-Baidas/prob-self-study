@@ -60,4 +60,49 @@ describe('mulberry32', () => {
 
     for (let i = 0; i < 100; i++) expect(arr).toContain(rng.pick(arr));
   });
+
+  it('bool() is deterministic: same seed yields the same sequence', () => {
+    const a = mulberry32(13);
+
+    const b = mulberry32(13);
+
+    const seqA = [a.bool(), a.bool(), a.bool(), a.bool(), a.bool()];
+
+    const seqB = [b.bool(), b.bool(), b.bool(), b.bool(), b.bool()];
+
+    expect(seqA).toEqual(seqB);
+  });
+
+  it('bool(0) is always false and bool(1) is always true', () => {
+    const rng = mulberry32(17);
+
+    for (let i = 0; i < 500; i++) expect(rng.bool(0)).toBe(false);
+
+    for (let i = 0; i < 500; i++) expect(rng.bool(1)).toBe(true);
+  });
+
+  it('bool() with default p=0.5 is roughly balanced over many draws', () => {
+    const rng = mulberry32(123);
+
+    let trueCount = 0;
+
+    let falseCount = 0;
+
+    const draws = 2000;
+
+    for (let i = 0; i < draws; i++) {
+      if (rng.bool()) trueCount++;
+      else falseCount++;
+    }
+
+    expect(trueCount).toBeGreaterThan(0);
+
+    expect(falseCount).toBeGreaterThan(0);
+
+    const trueRate = trueCount / draws;
+
+    expect(trueRate).toBeGreaterThanOrEqual(0.4);
+
+    expect(trueRate).toBeLessThanOrEqual(0.6);
+  });
 });
