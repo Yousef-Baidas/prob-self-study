@@ -19,7 +19,13 @@ export type SolutionStep = {
   text: string;
 };
 
-/** A concrete question a mode can display and grade. */
+/**
+ * A concrete question a mode can display and grade.
+ *
+ * This is a read-only view-model — consumers (modes/widgets) must not mutate
+ * it in place. Book templates may return a shared instance across draws, so
+ * an in-place mutation would corrupt future draws.
+ */
 export type QuestionInstance = {
   prompt: string; // KaTeX-enabled markdown
 

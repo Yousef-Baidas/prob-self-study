@@ -6,7 +6,7 @@ import { generatedQuestion } from '../authoring';
 
 import { mean, median, sampleStdDev, round } from '../mathx';
 
-/** A small random integer dataset, printed as "$$a, b, c, …$$" in prompts. */
+/** A small random integer dataset, printed as bold markdown "**a, b, c, …**" in prompts. */
 function sampleData(rng: SeededRng, n: number, lo: number, hi: number): number[] {
   return Array.from({ length: n }, () => rng.int(lo, hi));
 }
