@@ -44,6 +44,12 @@ export function sampleStdDev(xs: number[]): number {
   return Math.sqrt(sampleVariance(xs));
 }
 
+/**
+ * Rounds half-way values toward +∞ (`Math.round`'s convention), but `x * f`
+ * is computed in binary floating point, so a decimal that looks exactly
+ * half-way is not always represented that way: `round(1.005, 2)` yields `1`,
+ * not `1.01`, because `1.005 * 100 === 100.49999999999999` (verified).
+ */
 export function round(x: number, dp: number): number {
   const f = 10 ** dp;
 
