@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   factorial, nPr, nCr, mean, median,
   sampleVariance, populationVariance, sampleStdDev,
-  round, normalCdf,
+  round, normalCdf, erf,
 } from '../../src/engine/mathx';
 
 describe('combinatorics', () => {
@@ -56,12 +56,24 @@ describe('round', () => {
   });
 });
 
+describe('erf', () => {
+  it('matches known reference values', () => {
+    expect(erf(0)).toBeCloseTo(0, 6);
+
+    expect(erf(0.5)).toBeCloseTo(0.5204998778, 4);
+
+    expect(erf(1)).toBeCloseTo(0.8427007929, 4);
+
+    expect(erf(2)).toBeCloseTo(0.9953222650, 4);
+  });
+});
+
 describe('normalCdf', () => {
   it('Φ(0) = 0.5', () => expect(normalCdf(0)).toBeCloseTo(0.5, 6));
 
-  it('Φ(1.96) ≈ 0.975', () => expect(normalCdf(1.96)).toBeCloseTo(0.975, 3));
+  it('Φ(1.96) ≈ 0.975', () => expect(normalCdf(1.96)).toBeCloseTo(0.975, 4));
 
-  it('Φ(-1.96) ≈ 0.025', () => expect(normalCdf(-1.96)).toBeCloseTo(0.025, 3));
+  it('Φ(-1.96) ≈ 0.025', () => expect(normalCdf(-1.96)).toBeCloseTo(0.025, 4));
 
   it('is symmetric: Φ(z) + Φ(-z) = 1', () => {
     for (const z of [0.3, 1.0, 2.2]) {
