@@ -4,7 +4,23 @@ import { ch02Generators } from '../../../src/engine/generators/ch02';
 
 import { mulberry32 } from '../../../src/engine/rng';
 
-import { nPr, nCr } from '../../../src/engine/mathx';
+// Recomputed independently of `src/engine/mathx` (no factorials) so a bug in
+// mathx's factorial-based nPr/nCr cannot corrupt both sides identically.
+const independentNPr = (n: number, r: number): number => {
+  let p = 1;
+
+  for (let i = 0; i < r; i++) p *= n - i;
+
+  return p;
+};
+
+const independentNCr = (n: number, r: number): number => {
+  let c = 1;
+
+  for (let i = 1; i <= r; i++) c = (c * (n - r + i)) / i;
+
+  return Math.round(c);
+};
 
 const byId = (id: string) => {
   const t = ch02Generators.find((g) => g.id === id);
@@ -28,7 +44,7 @@ describe('ch02 permutations', () => {
 
       expect(part.kind).toBe('numeric');
 
-      if (part.kind === 'numeric') expect(part.answer).toBe(nPr(n, r));
+      if (part.kind === 'numeric') expect(part.answer).toBe(independentNPr(n, r));
     }
   });
 });
@@ -46,7 +62,7 @@ describe('ch02 combinations', () => {
 
       expect(part.kind).toBe('numeric');
 
-      if (part.kind === 'numeric') expect(part.answer).toBe(nCr(n, r));
+      if (part.kind === 'numeric') expect(part.answer).toBe(independentNCr(n, r));
     }
   });
 });
