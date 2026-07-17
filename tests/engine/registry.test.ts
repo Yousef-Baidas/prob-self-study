@@ -32,6 +32,8 @@ describe('registry', () => {
   it('filters by chapter and difficulty together', () => {
     const res = selectTemplates({ chapter: 'probability', difficulty: 'hard' });
 
+    expect(res.length).toBeGreaterThan(0);
+
     expect(res.every((t) => t.chapter === 'probability' && t.difficulty === 'hard')).toBe(true);
   });
 

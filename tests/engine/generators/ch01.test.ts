@@ -29,9 +29,13 @@ describe('ch01 descriptiveSummary', () => {
 
       const medianPart = inst.parts[1];
 
+      expect(meanPart.kind).toBe('numeric');
+
       if (meanPart.kind === 'numeric') {
         expect(Math.abs(meanPart.answer - mean(data))).toBeLessThanOrEqual(meanPart.tol);
       }
+
+      expect(medianPart.kind).toBe('numeric');
 
       if (medianPart.kind === 'numeric') {
         expect(Math.abs(medianPart.answer - median(data))).toBeLessThanOrEqual(medianPart.tol);
@@ -50,6 +54,8 @@ describe('ch01 sampleStdDev', () => {
       const data = inst.params!.data as number[];
 
       const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
 
       if (part.kind === 'numeric') {
         expect(Math.abs(part.answer - sampleStdDev(data))).toBeLessThanOrEqual(part.tol);

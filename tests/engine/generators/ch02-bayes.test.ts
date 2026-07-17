@@ -33,6 +33,8 @@ describe('ch02 bayesTwoBranch', () => {
 
       const part = inst.parts[0];
 
+      expect(part.kind).toBe('numeric');
+
       if (part.kind === 'numeric') expect(Math.abs(part.answer - expected)).toBeLessThanOrEqual(part.tol);
     }
   });
@@ -52,6 +54,8 @@ describe('ch02 conditionalTwoWay', () => {
       const expected = aAndB / b; // P(A|B) = n(A∩B) / n(B)
 
       const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
 
       if (part.kind === 'numeric') expect(Math.abs(part.answer - expected)).toBeLessThanOrEqual(part.tol);
     }

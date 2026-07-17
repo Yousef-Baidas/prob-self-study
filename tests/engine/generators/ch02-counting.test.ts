@@ -26,6 +26,8 @@ describe('ch02 permutations', () => {
 
       const part = inst.parts[0];
 
+      expect(part.kind).toBe('numeric');
+
       if (part.kind === 'numeric') expect(part.answer).toBe(nPr(n, r));
     }
   });
@@ -41,6 +43,8 @@ describe('ch02 combinations', () => {
       const { n, r } = inst.params as Record<string, number>;
 
       const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
 
       if (part.kind === 'numeric') expect(part.answer).toBe(nCr(n, r));
     }
