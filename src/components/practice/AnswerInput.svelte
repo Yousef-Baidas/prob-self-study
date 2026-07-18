@@ -5,6 +5,8 @@
 
   let { part, value = $bindable(), disabled = false }:
     { part: AnswerPart; value: GivenAnswer; disabled?: boolean } = $props();
+
+  const uid = $props.id();
 </script>
 
 {#if part.kind === 'numeric'}
@@ -17,7 +19,7 @@
     {#each part.choices as choice, i}
       <li>
         <label>
-          <input type="radio" name={'mcq-' + part.label} value={i} bind:group={value} {disabled} />
+          <input type="radio" name={uid} value={i} bind:group={value} {disabled} />
           <MathMarkdown text={choice} />
         </label>
       </li>
@@ -25,8 +27,8 @@
   </ul>
 {:else if part.kind === 'tf'}
   <span class="answer-tf">
-    <label><input type="radio" name={'tf-' + part.label} value={true} bind:group={value} {disabled} /> True</label>
-    <label><input type="radio" name={'tf-' + part.label} value={false} bind:group={value} {disabled} /> False</label>
+    <label><input type="radio" name={uid} value={true} bind:group={value} {disabled} /> True</label>
+    <label><input type="radio" name={uid} value={false} bind:group={value} {disabled} /> False</label>
   </span>
 {:else if part.kind === 'short'}
   <input class="answer-short" type="text" bind:value {disabled} aria-label={part.label ?? 'answer'} />

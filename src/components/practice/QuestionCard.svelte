@@ -78,10 +78,6 @@
     color: #6bbf8a;
   }
 
-  :global(:root[data-theme='dark']) .mark.bad {
-    color: var(--color-accent);
-  }
-
   .solution {
     padding-top: var(--space-md);
     border-top: 1px solid var(--color-border);
