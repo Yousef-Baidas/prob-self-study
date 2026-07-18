@@ -40,7 +40,7 @@ export const chapters: Chapter[] = [
 
     topics: ['Descriptive statistics', 'Types of data', 'Populations and samples'],
 
-    status: 'coming-soon',
+    status: 'available',
   },
 
   {
@@ -52,7 +52,7 @@ export const chapters: Chapter[] = [
 
     topics: ['Counting techniques', 'Conditional probability', 'Bayes theorem'],
 
-    status: 'coming-soon',
+    status: 'available',
   },
 ];
 

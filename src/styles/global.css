@@ -30,6 +30,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+main {
+  padding-block-end: var(--space-2xl);
+}
+
 a {
   color: var(--color-accent);
 

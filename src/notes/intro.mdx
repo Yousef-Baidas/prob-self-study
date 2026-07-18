@@ -1,0 +1,98 @@
+## Descriptive statistics
+
+**Descriptive statistics** summarise a sample with single numbers that capture its
+centre, its spread, and the general shape of the data — as opposed to **inferential**
+statistics, which uses the sample to draw conclusions about the wider population.
+
+### Measures of location
+
+- **Sample mean** $\bar{x}$ — the arithmetic average; the *centroid* (balance point) of the data.
+- **Sample median** $\tilde{x}$ — the middle value of the sorted data; unaffected by extreme values.
+
+$$
+\bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i,
+\qquad
+\tilde{x} =
+\begin{cases}
+x_{(n+1)/2} & n \text{ odd} \\[4pt]
+\tfrac{1}{2}\!\left(x_{n/2} + x_{n/2+1}\right) & n \text{ even}
+\end{cases}
+$$
+
+Here $x_1,\dots,x_n$ are the observations ($x_i$ the $i$-th one), sorted in increasing
+order for the median, and $n$ is the sample size.
+
+> **Mean vs. median.** For the data $2,\ 4,\ 5,\ 6,\ 100$ the mean is
+> $\bar{x} = \tfrac{117}{5} = 23.4$, but the median is $\tilde{x} = 5$. The single large
+> value drags the mean far from the bulk of the data, while the median still reflects
+> the centre — the median **resists outliers**.
+
+### Measures of variability
+
+- **Sample range** — the crudest measure of spread, $R = x_{\max} - x_{\min}$.
+- **Sample variance** $s^2$ and **sample standard deviation** $s$ — the standard measures.
+
+$$
+s^2 = \frac{1}{n-1}\sum_{i=1}^{n}\left(x_i - \bar{x}\right)^2,
+\qquad
+s = \sqrt{s^2}
+$$
+
+The divisor $n-1$ is the **degrees of freedom**: because the deviations always satisfy
+$\sum_{i=1}^{n}(x_i - \bar{x}) = 0$, only $n-1$ of them are free to vary. Variance is in
+*squared* units; the standard deviation is back in the original units of the data.
+
+> **Worked example — pH‑meter readings** (Walpole §1.4, Example 1.4). Ten readings:
+>
+> $$
+> 7.07,\ 7.00,\ 7.10,\ 6.97,\ 7.00,\ 7.03,\ 7.01,\ 7.01,\ 6.98,\ 7.08.
+> $$
+>
+> The mean is $\bar{x} = \dfrac{70.25}{10} = 7.025$; the variance is
+> $s^2 = \dfrac{1}{9}\big[(7.07-7.025)^2 + \dots + (7.08-7.025)^2\big] = 0.001939$; and the
+> standard deviation is $s = \sqrt{0.001939} = 0.044$, on $n-1 = 9$ degrees of freedom.
+
+## Types of data
+
+Data are described along two independent axes.
+
+| Axis | Kinds | Examples |
+| --- | --- | --- |
+| **Nature** | **categorical** (qualitative) — sorts items into classes | pass / fail, colour |
+| | **numerical** (quantitative) — counts or measurements | number of defects, weight |
+| **Values** | **discrete** — countable, isolated values | arrivals per day |
+| | **continuous** — any value in an interval | yield in grams |
+
+For **binary** (two‑category) data, if $x$ of $n$ units fall in the first category the
+**sample proportion** is
+
+$$
+\hat{p} = \frac{x}{n}.
+$$
+
+Because each unit is coded $1$ or $0$, this proportion is itself just a sample mean of
+ones and zeros.
+
+> **Worked example.** In a trial of $n = 50$ patients, $x = 20$ improve. The sample
+> proportion that improved is $\hat{p} = \tfrac{20}{50} = 0.4$.
+
+## Populations and samples
+
+- **Population** — the collection of *all* individuals or items of a particular type
+  (every board the firm will ever make, every possible measurement of a process).
+- **Sample** — the subset of observations actually collected from the population.
+- **Statistical inference** — using the sample to draw conclusions about the population.
+  The reasoning runs from the specific to the general, so it is **inductive** and carries
+  uncertainty; the elements of probability let us quantify that uncertainty.
+- **Parameter vs. statistic** — a fixed number describing the *population* (e.g. the
+  population mean) is a **parameter**; a number computed from the *sample* (e.g. $\bar{x}$)
+  is a **statistic**, used as an **estimate** of the parameter.
+- **Simple random sample** — one chosen so that every sample of the same size is equally
+  likely to be selected. A sample that systematically misses part of the population is a
+  **biased sample**.
+
+> **Why probability comes first.** Suppose a process is acceptable when it produces no
+> more than 5% defectives. If a random sample of 100 items contains 10 or more defectives —
+> an outcome whose probability under an acceptable process is only about $0.028$ — that is
+> strong evidence the process is *not* acceptable. Probability turns sample data into an
+> inferential conclusion (Walpole §1.1, Example 1.1).

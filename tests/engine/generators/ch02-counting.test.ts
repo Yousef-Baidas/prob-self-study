@@ -6,6 +6,7 @@ import { mulberry32 } from '../../../src/engine/rng';
 
 // Recomputed independently of `src/engine/mathx` (no factorials) so a bug in
 // mathx's factorial-based nPr/nCr cannot corrupt both sides identically.
+
 const independentNPr = (n: number, r: number): number => {
   let p = 1;
 

@@ -1,9 +1,17 @@
 ---
+import 'katex/dist/katex.min.css';
+
 import Layout from '../../layouts/Layout.astro';
 
 import ComingSoon from '../../components/ComingSoon.astro';
 
+import ChapterNotes from '../../components/ChapterNotes.astro';
+
 import { chapters } from '../../lib/site';
+
+import IntroNotes from '../../notes/intro.mdx';
+
+import ProbabilityNotes from '../../notes/probability.mdx';
 
 import type { InferGetStaticPropsType } from 'astro';
 
@@ -14,8 +22,24 @@ export function getStaticPaths() {
 type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { chapter } = Astro.props;
+
+const notesBySlug: Record<string, typeof IntroNotes> = {
+  intro: IntroNotes,
+
+  probability: ProbabilityNotes,
+};
+
+const Notes = notesBySlug[chapter.slug];
 ---
 
-<Layout title={`${chapter.title} — prob·web`}>
-  <ComingSoon title={`Chapter ${chapter.number}: ${chapter.title}`} note="Chapter notes, diagrams, and embedded widgets are coming in a later update." />
+<Layout title={`${chapter.title} — prob·web`} description={`Summary notes for ${chapter.title} — GJU IE0121 (Walpole 9e): ${chapter.topics.join(', ')}.`}>
+  {
+    Notes ? (
+      <ChapterNotes chapter={chapter}>
+        <Notes />
+      </ChapterNotes>
+    ) : (
+      <ComingSoon title={`Chapter ${chapter.number}: ${chapter.title}`} note="Chapter notes, diagrams, and embedded widgets are coming in a later update." />
+    )
+  }
 </Layout>

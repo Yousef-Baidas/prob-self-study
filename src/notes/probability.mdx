@@ -1,0 +1,125 @@
+## Foundations
+
+- **Sample space** $S$ — the set of *all* possible outcomes of an experiment. It is
+  **discrete** when its outcomes are finite or countably infinite, and **continuous**
+  when it contains an interval of real numbers.
+- **Event** — any subset of $S$. The **complement** $A'$ is everything in $S$ not in $A$;
+  the **intersection** $A \cap B$ is the outcomes in *both*; the **union** $A \cup B$ is the
+  outcomes in *either*. Events are **mutually exclusive** (disjoint) when $A \cap B = \varnothing$.
+
+For a sample space of $N$ **equally likely** outcomes, $n$ of which lie in $A$,
+
+$$
+P(A) = \frac{n}{N},
+\qquad 0 \le P(A) \le 1,
+\qquad P(\varnothing) = 0,
+\qquad P(S) = 1.
+$$
+
+**Additive rule** and its consequences:
+
+$$
+P(A \cup B) = P(A) + P(B) - P(A \cap B),
+\qquad
+P(A) + P(A') = 1.
+$$
+
+When $A$ and $B$ are mutually exclusive the overlap vanishes, so $P(A \cup B) = P(A) + P(B)$.
+
+> **Worked example** (Walpole §2.5, Example 2.29). With $P(A) = 0.8$, $P(B) = 0.6$ and
+> $P(A \cap B) = 0.5$: $\;P(A \cup B) = 0.8 + 0.6 - 0.5 = 0.9$.
+
+## Counting techniques
+
+When outcomes are equally likely, probability reduces to counting. Pick the right tool:
+
+- **Multiplication rule** — a sequence of $k$ operations performable in $n_1, n_2, \dots, n_k$
+  ways can be done together in $\,n_1 n_2 \cdots n_k\,$ ways.
+- **Permutations** — *ordered* arrangements. All $n$ objects: $n!$. Taking $r$ of $n$:
+
+$$
+{}_{n}P_{r} = \frac{n!}{(n-r)!},
+\qquad n! = n(n-1)\cdots(2)(1), \quad 0! = 1.
+$$
+
+- **Non‑distinct objects** — arrangements of $n$ items, $n_i$ of kind $i$:
+  $\;\dfrac{n!}{n_1!\,n_2! \cdots n_k!}$.
+- **Combinations** — *unordered* selections of $r$ from $n$ (order does **not** matter):
+
+$$
+\binom{n}{r} = \frac{n!}{r!\,(n-r)!}.
+$$
+
+Here $n$ is the number of objects available and $r$ the number arranged or chosen.
+
+> **Worked examples.**
+> - A committee of $3$ is chosen from $10$ people (order irrelevant):
+>   $\;\binom{10}{3} = \dfrac{10!}{3!\,7!} = 120$ ways.
+> - Distinct arrangements of the letters in **STATISTICS** (S, T each ×3, I ×2, A, C ×1):
+>   $\;\dfrac{10!}{3!\,3!\,2!\,1!\,1!} = 50{,}400$.
+
+## Conditional probability and independence
+
+The **conditional probability** of $B$ given that $A$ has occurred is
+
+$$
+P(B \mid A) = \frac{P(A \cap B)}{P(A)}, \qquad P(A) > 0.
+$$
+
+Rearranging gives the **product (multiplicative) rule** $\,P(A \cap B) = P(A)\,P(B \mid A)$.
+Two events are **independent** when knowing one tells you nothing about the other —
+equivalently $P(B \mid A) = P(B)$ — in which case the product rule collapses to
+
+$$
+P(A \cap B) = P(A)\,P(B).
+$$
+
+> **Worked example — dependent draw.** A box holds $20$ fuses, $5$ defective; two are drawn
+> *without replacement*. The probability both are defective is
+>
+> $$
+> P(A \cap B) = P(A)\,P(B \mid A) = \frac{5}{20}\cdot\frac{4}{19} = \frac{1}{19}.
+> $$
+
+> **Worked example — conditioning shrinks the sample space.** Two fair dice are rolled.
+> *Given* that the sum is $7$, find $P(\text{first die} = 4)$. The sum $7$ occurs in $6$
+> equally likely ways $\{(1,6),\dots,(6,1)\}$, and only $(4,3)$ has a $4$ first:
+>
+> $$
+> P(\text{first}=4 \mid \text{sum}=7) = \frac{P(\text{first}=4 \,\cap\, \text{sum}=7)}{P(\text{sum}=7)} = \frac{1/36}{6/36} = \frac{1}{6}.
+> $$
+
+## Bayes' theorem
+
+Let $B_1, B_2, \dots, B_k$ be a **partition** of $S$ — mutually exclusive events that
+together cover everything, each with $P(B_i) \neq 0$. For any event $A$, the **theorem of
+total probability** assembles $P(A)$ from the pieces:
+
+$$
+P(A) = \sum_{i=1}^{k} P(B_i)\,P(A \mid B_i).
+$$
+
+**Bayes' rule** then reverses the conditioning — from the *likelihoods* $P(A \mid B_i)$ back
+to the *posterior* $P(B_r \mid A)$:
+
+$$
+P(B_r \mid A) = \frac{P(B_r)\,P(A \mid B_r)}{\displaystyle\sum_{i=1}^{k} P(B_i)\,P(A \mid B_i)}.
+$$
+
+Think of the $B_i$ as competing **causes** and $A$ as the **evidence**: Bayes weighs each
+cause by how probable it was ($P(B_i)$) *and* how well it explains the evidence
+($P(A \mid B_i)$).
+
+> **Worked example** (Walpole §2.7, Examples 2.41–2.42). Machines $B_1, B_2, B_3$ make
+> $30\%$, $45\%$, $25\%$ of output, with defect rates $2\%$, $3\%$, $2\%$. A product is found
+> defective ($A$).
+>
+> $$
+> P(A) = (0.30)(0.02) + (0.45)(0.03) + (0.25)(0.02) = 0.0245.
+> $$
+>
+> The chance it came from machine $B_3$ is
+>
+> $$
+> P(B_3 \mid A) = \frac{(0.25)(0.02)}{0.0245} = \frac{0.005}{0.0245} \approx 0.204.
+> $$

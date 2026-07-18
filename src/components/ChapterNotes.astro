@@ -1,0 +1,259 @@
+---
+import { joinBase } from '../lib/withBase';
+
+import type { Chapter } from '../lib/site';
+
+interface Props {
+  chapter: Chapter;
+}
+
+const { chapter } = Astro.props;
+
+const examHref = joinBase(import.meta.env.BASE_URL, `exam?chapter=${chapter.slug}`);
+
+const chaptersHref = joinBase(import.meta.env.BASE_URL, 'chapters');
+---
+
+<article class="notes">
+  <header class="notes-head">
+    <p class="eyebrow">Chapter {chapter.number} · Walpole 9e</p>
+
+    <h1>{chapter.title}</h1>
+
+    <ul class="topic-chips">
+      {chapter.topics.map((t) => <li>{t}</li>)}
+    </ul>
+
+    <a class="practice-cta" href={examHref}>Practice this chapter →</a>
+  </header>
+
+  <div class="prose">
+    <slot />
+  </div>
+
+  <nav class="notes-foot">
+    <a href={chaptersHref}>← All chapters</a>
+  </nav>
+
+  <style>
+    .notes {
+      width: 100%;
+
+      max-width: 760px;
+
+      margin-inline: auto;
+
+      padding-inline: var(--space-lg);
+
+      padding-block-start: var(--space-2xl);
+    }
+
+    .notes-head {
+      padding-bottom: var(--space-lg);
+
+      margin-bottom: var(--space-xl);
+
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .notes-head h1 {
+      font-size: var(--font-size-display);
+
+      margin-block: var(--space-xs) 0;
+    }
+
+    .topic-chips {
+      display: flex;
+
+      flex-wrap: wrap;
+
+      gap: var(--space-sm);
+
+      list-style: none;
+
+      padding: 0;
+
+      margin-block: var(--space-md);
+    }
+
+    .topic-chips li {
+      font-family: var(--font-mono);
+
+      font-size: var(--font-size-micro);
+
+      letter-spacing: 0.04em;
+
+      text-transform: uppercase;
+
+      color: var(--color-text-muted);
+
+      background: var(--color-accent-soft);
+
+      padding: 4px 10px;
+
+      border-radius: var(--radius-pill);
+    }
+
+    .practice-cta {
+      display: inline-block;
+
+      margin-top: var(--space-xs);
+
+      padding: var(--space-sm) var(--space-lg);
+
+      background: var(--color-accent);
+
+      color: var(--color-accent-ink);
+
+      border-radius: var(--radius-pill);
+
+      font-weight: var(--font-weight-semibold);
+
+      font-size: var(--font-size-label);
+    }
+
+    .practice-cta:hover {
+      background: var(--color-accent-hover);
+
+      color: var(--color-accent-ink);
+    }
+
+    .notes-foot {
+      margin-top: var(--space-2xl);
+
+      padding-top: var(--space-lg);
+
+      border-top: 1px solid var(--color-border);
+
+      font-size: var(--font-size-label);
+    }
+
+    /* Prose — styles the MDX-rendered note body (headings, math, callouts). */
+    .prose :global(h2) {
+      font-size: var(--font-size-display);
+
+      margin-block: var(--space-2xl) var(--space-md);
+
+      padding-bottom: var(--space-sm);
+
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .prose :global(h2:first-child) {
+      margin-top: 0;
+    }
+
+    .prose :global(h3) {
+      font-size: var(--font-size-heading);
+
+      margin-block: var(--space-lg) var(--space-sm);
+    }
+
+    .prose :global(p) {
+      margin-block: var(--space-md);
+    }
+
+    .prose :global(ul),
+    .prose :global(ol) {
+      margin-block: var(--space-md);
+
+      padding-left: var(--space-lg);
+    }
+
+    .prose :global(li) {
+      margin-block: var(--space-xs);
+    }
+
+    .prose :global(li > ul) {
+      margin-block: var(--space-xs);
+    }
+
+    .prose :global(strong) {
+      font-weight: var(--font-weight-semibold);
+
+      color: var(--color-text);
+    }
+
+    .prose :global(a) {
+      text-decoration: underline;
+
+      text-underline-offset: 2px;
+    }
+
+    .prose :global(blockquote) {
+      margin-block: var(--space-lg);
+
+      padding: var(--space-md) var(--space-lg);
+
+      background: var(--color-surface);
+
+      border-left: 3px solid var(--color-accent);
+
+      border-radius: var(--radius-sm);
+    }
+
+    .prose :global(blockquote p) {
+      margin-block: var(--space-xs);
+    }
+
+    .prose :global(code) {
+      font-family: var(--font-mono);
+
+      font-size: 0.9em;
+
+      background: var(--color-accent-soft);
+
+      padding: 2px 6px;
+
+      border-radius: var(--radius-sm);
+    }
+
+    .prose :global(hr) {
+      border: 0;
+
+      border-top: 1px solid var(--color-border);
+
+      margin-block: var(--space-2xl);
+    }
+
+    .prose :global(table) {
+      width: 100%;
+
+      border-collapse: collapse;
+
+      margin-block: var(--space-lg);
+
+      font-size: var(--font-size-label);
+    }
+
+    .prose :global(th),
+    .prose :global(td) {
+      text-align: left;
+
+      padding: var(--space-sm) var(--space-md);
+
+      border-bottom: 1px solid var(--color-border);
+
+      vertical-align: top;
+    }
+
+    .prose :global(th) {
+      border-bottom-width: 2px;
+
+      color: var(--color-text);
+
+      font-weight: var(--font-weight-semibold);
+    }
+
+    /* Wide display equations scroll inside their own box instead of the page. */
+    .prose :global(.katex-display) {
+      margin-block: var(--space-md);
+
+      padding-block: var(--space-xs);
+
+      overflow-x: auto;
+
+      overflow-y: hidden;
+    }
+  </style>
+</article>

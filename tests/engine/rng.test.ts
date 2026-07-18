@@ -95,10 +95,6 @@ describe('mulberry32', () => {
       else falseCount++;
     }
 
-    expect(trueCount).toBeGreaterThan(0);
-
-    expect(falseCount).toBeGreaterThan(0);
-
     const trueRate = trueCount / draws;
 
     expect(trueRate).toBeGreaterThanOrEqual(0.4);
