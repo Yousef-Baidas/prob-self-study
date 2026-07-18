@@ -5,9 +5,13 @@ import ComingSoon from '../../components/ComingSoon.astro';
 
 import { chapters } from '../../lib/site';
 
+import type { InferGetStaticPropsType } from 'astro';
+
 export function getStaticPaths() {
   return chapters.map((c) => ({ params: { slug: c.slug }, props: { chapter: c } }));
 }
+
+type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { chapter } = Astro.props;
 ---
