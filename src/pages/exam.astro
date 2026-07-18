@@ -1,11 +1,11 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ExamRunner from '../islands/ExamRunner.svelte';
-// ExamSetup arrives in Task 9; until then drive the run via URL params directly.
+import ExamSetup from '../components/practice/ExamSetup.astro';
 ---
 <Layout title="Exam — prob·web">
-  <!-- Static setup slot; ExamSetup.astro fills it in Task 9. Hidden before paint when a run is requested. -->
-  <div id="exam-setup"></div>
+  <!-- Static setup slot. Hidden before paint when a run is requested. -->
+  <div id="exam-setup"><ExamSetup /></div>
   <ExamRunner client:load />
   <script is:inline>
     if (new URLSearchParams(location.search).has('chapter')) {

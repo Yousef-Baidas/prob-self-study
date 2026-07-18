@@ -67,15 +67,11 @@
   }
 
   .mark.ok {
-    color: #3f7d4a;
+    color: var(--color-success);
   }
 
   .mark.bad {
-    color: var(--color-accent);
-  }
-
-  :global(:root[data-theme='dark']) .mark.ok {
-    color: #6bbf8a;
+    color: var(--color-error);
   }
 
   .solution {

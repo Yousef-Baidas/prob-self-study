@@ -1,0 +1,128 @@
+---
+import { chapters } from '../../lib/site';
+import { joinBase } from '../../lib/withBase';
+const action = joinBase(import.meta.env.BASE_URL, 'exam');
+---
+<form class="exam-setup" method="get" action={action}>
+  <h1>Start an exam</h1>
+  <label>Chapter
+    <select name="chapter">
+      {chapters.map((c) => <option value={c.slug}>{`Ch ${c.number} — ${c.title}`}</option>)}
+    </select>
+  </label>
+  <label>Questions
+    <input type="number" name="count" value="10" min="1" max="50" />
+  </label>
+  <fieldset>
+    <legend>Source</legend>
+    <label><input type="radio" name="source" value="both" checked /> Both</label>
+    <label><input type="radio" name="source" value="book" /> Book</label>
+    <label><input type="radio" name="source" value="generated" /> Randomized</label>
+  </fieldset>
+  <p class="last-score" hidden></p>
+  <button type="submit">Start exam</button>
+</form>
+<script is:inline>
+  // surface the last score for the currently-selected chapter (best-effort)
+  (function () {
+    const form = document.currentScript.previousElementSibling;
+    const sel = form.querySelector('select[name=chapter]');
+    const out = form.querySelector('.last-score');
+    function refresh() {
+      try {
+        const raw = localStorage.getItem('prob-exam:lastScore:' + sel.value);
+        if (!raw) { out.hidden = true; return; }
+        const s = JSON.parse(raw);
+        out.textContent = `Last: ${s.score} / ${s.total}`;
+        out.hidden = false;
+      } catch { out.hidden = true; }
+    }
+    sel.addEventListener('change', refresh);
+    refresh();
+  })();
+</script>
+
+<style>
+  .exam-setup {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    max-width: 40ch;
+    margin-inline: auto;
+    padding: var(--space-lg);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  h1 {
+    font-size: var(--font-size-display);
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+    color: var(--color-text);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  select,
+  input[type='number'] {
+    font: inherit;
+    color: var(--color-text);
+    background: var(--color-surface-raised);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-sm);
+  }
+
+  select:focus-visible,
+  input[type='number']:focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  fieldset {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+    padding: var(--space-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+  }
+
+  legend {
+    padding-inline: var(--space-xs);
+    color: var(--color-text-muted);
+    font-size: var(--font-size-label);
+  }
+
+  fieldset label {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-sm);
+    font-weight: var(--font-weight-regular);
+  }
+
+  .last-score {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-label);
+  }
+
+  button[type='submit'] {
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--color-accent);
+    color: var(--color-accent-ink);
+    border: none;
+    border-radius: var(--radius-pill);
+    font: inherit;
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+  }
+
+  button[type='submit']:hover {
+    background: var(--color-accent-hover);
+  }
+</style>
