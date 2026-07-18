@@ -1,13 +1,104 @@
 ---
 import Layout from '../layouts/Layout.astro';
+
+import Hero from '../components/Hero.astro';
+
+import ModeCard from '../components/ModeCard.astro';
+
+import ChapterCard from '../components/ChapterCard.astro';
+
+import { chapters } from '../lib/site';
+
+const modeCards = [
+  { title: 'Exam', description: '10 questions, graded at the end. Shareable seed.', href: 'exam' },
+
+  { title: 'Worksheet', description: 'Worked solutions inline. Printable.', href: 'worksheet' },
+
+  { title: 'Drill', description: 'Endless, one topic — never repeats.', href: 'drill' },
+];
+
+const features = [
+  { label: 'Generated', text: 'Procedural questions — never the same twice.' },
+
+  { label: 'Worked solutions', text: 'Every answer computed in code, step by step.' },
+
+  { label: 'Interactive curves', text: 'Drag parameters, watch the distribution move.' },
+];
 ---
 
 <Layout>
-  <section class="container" style="padding-block: var(--space-3xl);">
-    <p class="eyebrow">Shell online</p>
+  <Hero />
 
-    <h1>prob·web shell</h1>
+  <section class="container block">
+    <h2>Practice</h2>
 
-    <p>Landing content lands in Task 7.</p>
+    <div class="grid-3">
+      {modeCards.map((m) => <ModeCard title={m.title} description={m.description} href={m.href} />)}
+    </div>
   </section>
+
+  <section class="container block">
+    <div class="grid-3">
+      {
+        features.map((f) => (
+          <div class="feature">
+            <span class="eyebrow">{f.label}</span>
+
+            <p>{f.text}</p>
+          </div>
+        ))
+      }
+    </div>
+  </section>
+
+  <section class="container block">
+    <h2>Chapters</h2>
+
+    <div class="grid-2">
+      {chapters.map((c) => <ChapterCard chapter={c} />)}
+    </div>
+  </section>
+
+  <style>
+    .block {
+      padding-block: var(--space-xl);
+    }
+
+    .block h2 {
+      font-size: var(--font-size-display);
+
+      margin-bottom: var(--space-lg);
+    }
+
+    .grid-3 {
+      display: grid;
+
+      grid-template-columns: repeat(3, 1fr);
+
+      gap: var(--space-md);
+    }
+
+    .grid-2 {
+      display: grid;
+
+      grid-template-columns: repeat(2, 1fr);
+
+      gap: var(--space-md);
+    }
+
+    .feature p {
+      margin-top: var(--space-xs);
+
+      color: var(--color-text-muted);
+
+      font-size: var(--font-size-label);
+    }
+
+    @media (max-width: 720px) {
+      .grid-3,
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </Layout>
