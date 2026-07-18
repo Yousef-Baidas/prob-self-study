@@ -45,4 +45,20 @@ describe('drawTemplates', () => {
     expect(r.delivered).toBe(0);
     expect(r.capped).toBe(true);
   });
+
+  it('both fill-to-N never duplicates a book template (probability, pool 6 < count 10)', () => {
+    const r = drawTemplates('probability', 'both', 10);
+    expect(r.delivered).toBe(10);
+    const bookIds = r.templates.filter((t) => t.source === 'book').map((t) => t.id);
+    const distinctBookIds = new Set(bookIds);
+    expect(distinctBookIds.size).toBe(bookIds.length);
+  });
+
+  it('both fill-to-N never duplicates a book template (intro, pool 4 < count 10)', () => {
+    const r = drawTemplates('intro', 'both', 10);
+    expect(r.delivered).toBe(10);
+    const bookIds = r.templates.filter((t) => t.source === 'book').map((t) => t.id);
+    const distinctBookIds = new Set(bookIds);
+    expect(distinctBookIds.size).toBe(bookIds.length);
+  });
 });

@@ -16,6 +16,7 @@
   let answers = $state<GivenAnswer[][]>([]);
   let phase = $state<'attempt' | 'graded'>('attempt');
   let result = $state<ExamResult | null>(null);
+  let copied = $state(false);
 
   function start(seed: number) {
     const parsed = parseExamSpec(raw, seed);
@@ -55,6 +56,13 @@
     start(seed); // rebuild with the fresh seed
   }
 
+  function copyLink() {
+    navigator.clipboard?.writeText(window.location.href).then(() => {
+      copied = true;
+      setTimeout(() => { copied = false; }, 2000);
+    }).catch(() => {});
+  }
+
   onMount(() => {
     const params = new URLSearchParams(window.location.search);
     if (!params.has('chapter')) return; // no run requested → static setup stays visible, island idle
@@ -84,13 +92,15 @@
   </div>
 {:else if session}
   {#if phase === 'attempt'}
-    <section class="exam-run" aria-live="polite">
+    <section class="exam-run">
       {#if session.capped && session.spec.source === 'book'}
         <p class="notice">This chapter has {session.delivered} book question{session.delivered === 1 ? '' : 's'}.</p>
       {/if}
-      <p class="progress">Question {index + 1} / {session.questions.length}</p>
+      <div class="exam-live" aria-live="polite">
+        <p class="progress">Question {index + 1} / {session.questions.length}</p>
 
-      <QuestionCard instance={session.questions[index].instance} bind:answers={answers[index]} />
+        <QuestionCard instance={session.questions[index].instance} bind:answers={answers[index]} />
+      </div>
 
       <nav class="pager">
         <button type="button" onclick={() => (index -= 1)} disabled={atFirst}>‹ Prev</button>
@@ -123,7 +133,7 @@
       <div class="review-actions">
         <button type="button" onclick={retrySame}>Retry (same seed)</button>
         <button type="button" onclick={rollNew}>New questions</button>
-        <button type="button" onclick={() => navigator.clipboard?.writeText(window.location.href)}>Copy share link</button>
+        <button type="button" onclick={copyLink}>{copied ? 'Copied!' : 'Copy share link'}</button>
       </div>
     </section>
   {/if}
@@ -156,6 +166,12 @@
     gap: var(--space-md);
     max-width: 60ch;
     margin-inline: auto;
+  }
+
+  .exam-live {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
   }
 
   .notice {
