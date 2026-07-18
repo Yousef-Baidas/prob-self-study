@@ -41,6 +41,11 @@ const links = navItems.flatMap((item) =>
 
   const overlay = document.getElementById('mnav');
 
+  // The header's backdrop-filter makes it the containing block for this
+  // position:fixed overlay, collapsing it to the header's height. Portaling the
+  // overlay to <body> lets inset:0 resolve against the viewport instead.
+  if (overlay) document.body.appendChild(overlay);
+
   const panel = overlay?.querySelector<HTMLElement>('.mnav-panel');
 
   const open = () => {
