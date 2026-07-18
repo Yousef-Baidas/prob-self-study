@@ -1,9 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
-
-import ComingSoon from '../components/ComingSoon.astro';
+import ExamRunner from '../islands/ExamRunner.svelte';
+// ExamSetup arrives in Task 9; until then drive the run via URL params directly.
 ---
-
 <Layout title="Exam — prob·web">
-  <ComingSoon title="Exam" note="Graded 10-question runs with shareable seeds are coming in the next update." />
+  <!-- Static setup slot; ExamSetup.astro fills it in Task 9. Hidden before paint when a run is requested. -->
+  <div id="exam-setup"></div>
+  <ExamRunner client:load />
+  <script is:inline>
+    if (new URLSearchParams(location.search).has('chapter')) {
+      const el = document.getElementById('exam-setup');
+      if (el) el.hidden = true;
+    }
+  </script>
 </Layout>
