@@ -1,0 +1,45 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+import ChapterCard from '../../components/ChapterCard.astro';
+
+import { chapters } from '../../lib/site';
+---
+
+<Layout title="Chapters — prob·web">
+  <section class="container block">
+    <p class="eyebrow">Walpole 9e</p>
+
+    <h1>Chapters</h1>
+
+    <div class="grid-2">
+      {chapters.map((c) => <ChapterCard chapter={c} />)}
+    </div>
+  </section>
+
+  <style>
+    .block {
+      padding-block: var(--space-2xl);
+    }
+
+    .block h1 {
+      font-size: var(--font-size-display);
+
+      margin-bottom: var(--space-lg);
+    }
+
+    .grid-2 {
+      display: grid;
+
+      grid-template-columns: repeat(2, 1fr);
+
+      gap: var(--space-md);
+    }
+
+    @media (max-width: 720px) {
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</Layout>

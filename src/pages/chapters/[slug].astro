@@ -1,0 +1,17 @@
+---
+import Layout from '../../layouts/Layout.astro';
+
+import ComingSoon from '../../components/ComingSoon.astro';
+
+import { chapters } from '../../lib/site';
+
+export function getStaticPaths() {
+  return chapters.map((c) => ({ params: { slug: c.slug }, props: { chapter: c } }));
+}
+
+const { chapter } = Astro.props;
+---
+
+<Layout title={`${chapter.title} — prob·web`}>
+  <ComingSoon title={`Chapter ${chapter.number}: ${chapter.title}`} note="Chapter notes, diagrams, and embedded widgets are coming in a later update." />
+</Layout>
