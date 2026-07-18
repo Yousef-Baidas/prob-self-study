@@ -1,0 +1,78 @@
+---
+import '../styles/tokens.css';
+
+import '../styles/global.css';
+
+import '@fontsource-variable/inter';
+
+import '@fontsource/jetbrains-mono';
+
+import Header from '../components/Header.astro';
+
+import Footer from '../components/Footer.astro';
+
+import { joinBase } from '../lib/withBase';
+
+interface Props {
+  title?: string;
+
+  description?: string;
+}
+
+const {
+  title = 'prob·web — Probability & Statistics',
+
+  description = 'Generated practice, worked solutions, and interactive curves for GJU IE0121 (Walpole 9e).',
+} = Astro.props;
+
+const faviconHref = joinBase(import.meta.env.BASE_URL, 'favicon.svg');
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="icon" type="image/svg+xml" href={faviconHref} />
+
+    <meta name="description" content={description} />
+
+    <title>{title}</title>
+
+    <script is:inline>
+      (function () {
+        var allowed = ['light', 'dark'];
+
+        var stored = null;
+
+        try {
+          stored = localStorage.getItem('prob-theme');
+        } catch (e) {
+          stored = null;
+        }
+
+        var theme =
+          allowed.indexOf(stored) !== -1
+            ? stored
+            : window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <Header />
+
+    <main id="main">
+      <slot />
+    </main>
+
+    <Footer />
+  </body>
+</html>

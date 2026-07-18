@@ -1,0 +1,57 @@
+---
+import Github from './icons/Github.astro';
+---
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p><span class="eyebrow">GJU IE0121</span> Probability &amp; Statistics — Walpole 9e.</p>
+
+    <a class="gh" href="https://github.com/Yousef-Baidas/prob-self-study" aria-label="Source on GitHub">
+      <Github /> <span>Source</span>
+    </a>
+  </div>
+
+  <style>
+    .site-footer {
+      border-top: 1px solid var(--color-border);
+
+      color: var(--color-text-muted);
+
+      font-size: var(--font-size-label);
+    }
+
+    .footer-inner {
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: var(--space-md);
+
+      padding-block: var(--space-lg);
+    }
+
+    .footer-inner p {
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: var(--space-sm);
+    }
+
+    .gh {
+      display: inline-flex;
+
+      align-items: center;
+
+      gap: var(--space-xs);
+
+      color: var(--color-text-muted);
+    }
+
+    .gh:hover {
+      color: var(--color-accent);
+    }
+  </style>
+</footer>
