@@ -14,7 +14,7 @@ export function parseSeed(raw: string | null): number | null {
 }
 
 export function coerceCount(raw: string | null, fallback = 10, max = 50): number {
-  if (raw == null) return fallback;
+  if (raw == null || !/^\d+$/.test(raw)) return fallback;
   const n = Number(raw);
   if (!Number.isInteger(n)) return fallback;
   if (n < 1) return 1;

@@ -21,6 +21,11 @@ describe('coerceCount', () => {
     expect(coerceCount('0')).toBe(1);
     expect(coerceCount('999')).toBe(50);
   });
+  it('defaults on non-decimal or empty input', () => {
+    expect(coerceCount('')).toBe(10);
+    expect(coerceCount('0x10')).toBe(10);
+    expect(coerceCount('1e1')).toBe(10);
+  });
 });
 
 describe('rollSeed', () => {
