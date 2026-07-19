@@ -3,9 +3,10 @@
   import type { GivenAnswer } from '../../engine/grade';
   import MathMarkdown from './MathMarkdown.svelte';
   import AnswerInput from './AnswerInput.svelte';
+  import SolutionSteps from './SolutionSteps.svelte';
 
-  let { instance, answers = $bindable(), graded = null, disabled = false, showSolution = false }:
-    { instance: QuestionInstance; answers: GivenAnswer[]; graded?: (boolean | null)[] | null; disabled?: boolean; showSolution?: boolean } = $props();
+  let { instance, answers = $bindable([]), graded = null, disabled = false, showSolution = false, answerable = true, solutionOpen = true }:
+    { instance: QuestionInstance; answers?: GivenAnswer[]; graded?: (boolean | null)[] | null; disabled?: boolean; showSolution?: boolean; answerable?: boolean; solutionOpen?: boolean } = $props();
 
   const mark = (v: boolean | null) => (v === true ? '✓' : v === false ? '✗' : '—');
 </script>
@@ -16,17 +17,17 @@
   {#each instance.parts as part, i}
     <div class="part">
       {#if part.label}<span class="part-label"><MathMarkdown text={part.label} /></span>{/if}
-      <AnswerInput {part} bind:value={answers[i]} {disabled} />
-      {#if graded}<span class="mark" class:ok={graded[i] === true} class:bad={graded[i] === false}>{mark(graded[i])}</span>{/if}
+      {#if answerable}
+        <AnswerInput {part} bind:value={answers[i]} {disabled} />
+        {#if graded}<span class="mark" class:ok={graded[i] === true} class:bad={graded[i] === false}>{mark(graded[i])}</span>{/if}
+      {/if}
     </div>
   {/each}
 
   {#if showSolution}
-    <details class="solution" open>
+    <details class="solution" open={solutionOpen}>
       <summary>Worked solution</summary>
-      {#each instance.solution as step}
-        <p><MathMarkdown text={step.text} /></p>
-      {/each}
+      <SolutionSteps steps={instance.solution} />
     </details>
   {/if}
 </article>
