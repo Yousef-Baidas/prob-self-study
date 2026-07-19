@@ -148,4 +148,16 @@ h3 {
   .worksheet.print-key-only .solution-bank { display: block !important; }
   .worksheet.print-with-key .solution-bank { break-before: page; }
   .worksheet.print-key-only .worksheet-questions { display: none !important; }
+
+  /* Print dark-on-white regardless of the active theme: browsers drop dark
+     backgrounds when printing, which would leave a dark-mode user's light text
+     unreadable on white paper. Force a white page and a legible sheet in every
+     theme (the white page also holds if the user enables "background graphics"). */
+  html, body { background: #fff !important; }
+  .worksheet, .worksheet * {
+    color: #111 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: #ccc !important;
+  }
 }
