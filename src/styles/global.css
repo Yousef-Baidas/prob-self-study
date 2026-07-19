@@ -129,3 +129,23 @@ h3 {
 .skip-link:focus {
   top: var(--space-md);
 }
+
+/* --- worksheet print: question sheet + separable solution bank --- */
+.worksheet .solution-bank { display: none; }
+
+@media print {
+  header,
+  footer,
+  .skip-link,
+  .no-print { display: none !important; }
+  main { padding: 0 !important; }
+
+  /* inline per-question solutions are a screen study aid — never printed */
+  .worksheet-questions details.solution { display: none !important; }
+
+  /* the bank is the print vehicle for answers */
+  .worksheet.print-with-key .solution-bank,
+  .worksheet.print-key-only .solution-bank { display: block !important; }
+  .worksheet.print-with-key .solution-bank { break-before: page; }
+  .worksheet.print-key-only .worksheet-questions { display: none !important; }
+}

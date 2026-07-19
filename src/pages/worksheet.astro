@@ -1,9 +1,16 @@
 ---
 import Layout from '../layouts/Layout.astro';
-
-import ComingSoon from '../components/ComingSoon.astro';
+import WorksheetRunner from '../islands/WorksheetRunner.svelte';
+import WorksheetSetup from '../components/practice/WorksheetSetup.astro';
 ---
-
 <Layout title="Worksheet — prob·web">
-  <ComingSoon title="Worksheet" note="Printable worksheets with inline worked solutions are coming in the next update." />
+  <div id="worksheet-setup"><WorksheetSetup /></div>
+  <noscript><p>Building a worksheet needs JavaScript enabled.</p></noscript>
+  <WorksheetRunner client:load />
+  <script is:inline>
+    if (new URLSearchParams(location.search).has('chapter')) {
+      const el = document.getElementById('worksheet-setup');
+      if (el) el.hidden = true;
+    }
+  </script>
 </Layout>

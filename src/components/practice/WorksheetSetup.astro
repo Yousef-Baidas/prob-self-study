@@ -1,0 +1,69 @@
+---
+import { chapters } from '../../lib/site';
+import { joinBase } from '../../lib/withBase';
+const action = joinBase(import.meta.env.BASE_URL, 'worksheet');
+---
+<form class="ws-setup" method="get" action={action}>
+  <h1>Build a worksheet</h1>
+  <label>Chapter
+    <select name="chapter" id="ws-chapter">
+      {chapters.map((c) => <option value={c.slug} data-topics={c.topics.join('|')}>{`Ch ${c.number} — ${c.title}`}</option>)}
+    </select>
+  </label>
+  <label>Topic
+    <select name="topic" id="ws-topic"><option value="">All topics</option></select>
+  </label>
+  <label>Questions
+    <input type="number" name="count" value="8" min="1" max="50" />
+  </label>
+  <fieldset>
+    <legend>Source</legend>
+    <label><input type="radio" name="source" value="both" checked /> Both</label>
+    <label><input type="radio" name="source" value="book" /> Book</label>
+    <label><input type="radio" name="source" value="generated" /> Randomized</label>
+  </fieldset>
+  <button type="submit">Build worksheet</button>
+</form>
+<script is:inline>
+  (function () {
+    var chapterSel = document.getElementById('ws-chapter');
+    var topicSel = document.getElementById('ws-topic');
+    function refresh() {
+      var opt = chapterSel.options[chapterSel.selectedIndex];
+      var topics = (opt.getAttribute('data-topics') || '').split('|').filter(Boolean);
+      topicSel.innerHTML = '<option value="">All topics</option>';
+      topics.forEach(function (t) {
+        var o = document.createElement('option');
+        o.value = t;
+        o.textContent = t;
+        topicSel.appendChild(o);
+      });
+    }
+    chapterSel.addEventListener('change', refresh);
+    refresh();
+  })();
+</script>
+<style>
+  .ws-setup {
+    display: flex; flex-direction: column; gap: var(--space-md);
+    max-width: 40ch; margin-inline: auto; padding: var(--space-lg);
+    background: var(--color-surface); border: 1px solid var(--color-border);
+    border-radius: var(--radius-md); box-shadow: var(--shadow-sm);
+  }
+  h1 { font-size: var(--font-size-display); }
+  label { display: flex; flex-direction: column; gap: var(--space-xs); color: var(--color-text); font-weight: var(--font-weight-semibold); }
+  select, input[type='number'] {
+    font: inherit; color: var(--color-text); background: var(--color-surface-raised);
+    border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: var(--space-sm);
+  }
+  select { width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  select:focus-visible, input[type='number']:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  fieldset { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
+  legend { padding-inline: var(--space-xs); color: var(--color-text-muted); font-size: var(--font-size-label); }
+  fieldset label { flex-direction: row; align-items: center; gap: var(--space-sm); font-weight: var(--font-weight-regular); }
+  button[type='submit'] {
+    padding: var(--space-sm) var(--space-lg); background: var(--color-accent); color: var(--color-accent-ink);
+    border: none; border-radius: var(--radius-pill); font: inherit; font-weight: var(--font-weight-semibold); cursor: pointer;
+  }
+  button[type='submit']:hover { background: var(--color-accent-hover); }
+</style>
