@@ -61,4 +61,16 @@ describe('drawTemplates', () => {
     const distinctBookIds = new Set(bookIds);
     expect(distinctBookIds.size).toBe(bookIds.length);
   });
+
+  it('topic narrows the pool to that topic only', () => {
+    const r = drawTemplates('probability', 'both', 10, 'Counting techniques');
+    expect(r.templates.length).toBeGreaterThan(0);
+    expect(r.templates.every((t) => t.topic === 'Counting techniques')).toBe(true);
+  });
+
+  it('omitting topic is unchanged (regression)', () => {
+    const withUndef = drawTemplates('intro', 'generated', 10, undefined).templates.map((t) => t.id);
+    const without = drawTemplates('intro', 'generated', 10).templates.map((t) => t.id);
+    expect(withUndef).toEqual(without);
+  });
 });
