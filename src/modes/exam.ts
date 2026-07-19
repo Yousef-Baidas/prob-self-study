@@ -33,6 +33,7 @@ export function gradeExamSession(session: ExamSession, answers: GivenAnswer[][])
 }
 
 const VALID_SOURCES: readonly ExamSource[] = ['book', 'generated', 'both'];
+const DEFAULT_SOURCE: ExamSource = 'both';
 
 export type ParseSpecResult =
   | { ok: true; spec: ExamSpec }
@@ -43,6 +44,9 @@ export function parseExamSpec(
   seed: number,
 ): ParseSpecResult {
   if (!raw.chapter || !chapters.some((c) => c.slug === raw.chapter)) return { ok: false, reason: 'chapter' };
-  if (!raw.source || !VALID_SOURCES.includes(raw.source as ExamSource)) return { ok: false, reason: 'source' };
-  return { ok: true, spec: { chapter: raw.chapter, source: raw.source as ExamSource, count: coerceCount(raw.count), seed } };
+  // An omitted source means "no preference" and takes the default, like count does.
+  // Only a source that was supplied and is unrecognised is an error.
+  const source = raw.source == null ? DEFAULT_SOURCE : (raw.source as ExamSource);
+  if (!VALID_SOURCES.includes(source)) return { ok: false, reason: 'source' };
+  return { ok: true, spec: { chapter: raw.chapter, source, count: coerceCount(raw.count), seed } };
 }

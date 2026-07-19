@@ -35,4 +35,8 @@ describe('parseExamSpec', () => {
   it('rejects a bad source', () => {
     expect(parseExamSpec({ chapter: 'intro', source: 'nonsense', count: '10' }, 1)).toEqual({ ok: false, reason: 'source' });
   });
+  it('falls back to both when source is omitted', () => {
+    const r = parseExamSpec({ chapter: 'intro', source: null, count: null }, 77);
+    expect(r).toEqual({ ok: true, spec: { chapter: 'intro', source: 'both', count: 10, seed: 77 } });
+  });
 });
