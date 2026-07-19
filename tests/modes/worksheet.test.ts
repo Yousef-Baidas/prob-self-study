@@ -38,4 +38,27 @@ describe('parseWorksheetSpec', () => {
     expect(r.ok).toBe(true);
     if (r.ok) expect(r.spec.topic).toBeUndefined();
   });
+
+  it('rejects an unknown chapter', () => {
+    const r = parseWorksheetSpec({ chapter: 'nope', topic: null, source: 'both', count: '8' }, 1);
+    expect(r).toEqual({ ok: false, reason: 'chapter' });
+  });
+
+  it('rejects an invalid source', () => {
+    const r = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'bogus', count: '8' }, 1);
+    expect(r).toEqual({ ok: false, reason: 'source' });
+  });
+
+  it('clamps an out-of-range count', () => {
+    const hi = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'both', count: '999' }, 1);
+    const lo = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'both', count: '0' }, 1);
+    expect(hi.ok && hi.spec.count).toBe(50);
+    expect(lo.ok && lo.spec.count).toBe(1);
+  });
+
+  it('normalizes an empty-string topic to undefined (all topics)', () => {
+    const r = parseWorksheetSpec({ chapter: 'intro', topic: '', source: 'both', count: '8' }, 1);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.spec.topic).toBeUndefined();
+  });
 });
