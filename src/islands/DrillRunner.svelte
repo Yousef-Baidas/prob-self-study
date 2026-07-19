@@ -78,7 +78,17 @@
       chapter = c ?? null;
       topic = t ?? null;
     }
-    if (!chapter || !topic) return; // nothing requested → static setup stays
+    if (!chapter || !topic) {
+      // A run was requested via the URL but couldn't be resolved into a
+      // chapter+topic (e.g. a malformed/hand-edited tk). drill.astro already
+      // hid the setup panel, so show the error panel instead of a blank page.
+      // With no params at all, nothing was requested → the static setup stays.
+      if (tk || params.has('chapter') || params.has('topic')) {
+        error = 'topic';
+        document.getElementById('drill-setup')?.remove();
+      }
+      return;
+    }
     const seed = parseSeed(params.get('seed')) ?? rollSeed();
     const parsed = parseDrillSpec({ chapter, topic }, seed);
     if (!parsed.ok) { error = parsed.reason; document.getElementById('drill-setup')?.remove(); return; }
