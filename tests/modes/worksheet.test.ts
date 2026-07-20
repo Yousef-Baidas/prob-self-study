@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildWorksheetSession, parseWorksheetSpec, type WorksheetSpec } from '../../src/modes/worksheet';
+import { buildWorksheetSession, type WorksheetSpec } from '../../src/modes/worksheet';
 
 const spec = (over: Partial<WorksheetSpec> = {}): WorksheetSpec =>
   ({ chapter: 'probability', source: 'both', count: 8, seed: 2026, ...over });
@@ -22,43 +22,3 @@ describe('buildWorksheetSession', () => {
   });
 });
 
-describe('parseWorksheetSpec', () => {
-  it('accepts a valid chapter/topic/source', () => {
-    const r = parseWorksheetSpec({ chapter: 'probability', topic: 'Bayes theorem', source: 'both', count: '8' }, 1);
-    expect(r.ok).toBe(true);
-  });
-
-  it('rejects a topic not in the chapter', () => {
-    const r = parseWorksheetSpec({ chapter: 'intro', topic: 'Bayes theorem', source: 'both', count: '8' }, 1);
-    expect(r).toEqual({ ok: false, reason: 'topic' });
-  });
-
-  it('treats a missing topic as all-topics (ok, topic undefined)', () => {
-    const r = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'both', count: '8' }, 1);
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.spec.topic).toBeUndefined();
-  });
-
-  it('rejects an unknown chapter', () => {
-    const r = parseWorksheetSpec({ chapter: 'nope', topic: null, source: 'both', count: '8' }, 1);
-    expect(r).toEqual({ ok: false, reason: 'chapter' });
-  });
-
-  it('rejects an invalid source', () => {
-    const r = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'bogus', count: '8' }, 1);
-    expect(r).toEqual({ ok: false, reason: 'source' });
-  });
-
-  it('clamps an out-of-range count', () => {
-    const hi = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'both', count: '999' }, 1);
-    const lo = parseWorksheetSpec({ chapter: 'intro', topic: null, source: 'both', count: '0' }, 1);
-    expect(hi.ok && hi.spec.count).toBe(50);
-    expect(lo.ok && lo.spec.count).toBe(1);
-  });
-
-  it('normalizes an empty-string topic to undefined (all topics)', () => {
-    const r = parseWorksheetSpec({ chapter: 'intro', topic: '', source: 'both', count: '8' }, 1);
-    expect(r.ok).toBe(true);
-    if (r.ok) expect(r.spec.topic).toBeUndefined();
-  });
-});

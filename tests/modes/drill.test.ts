@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { drillTopics, drillPool, buildDrillQuestion, parseDrillSpec } from '../../src/modes/drill';
+import { drillTopics, drillPool, buildDrillQuestion } from '../../src/modes/drill';
 
 describe('drillTopics', () => {
   it('returns exactly the generator-backed topics', () => {
@@ -41,12 +41,3 @@ describe('buildDrillQuestion', () => {
   });
 });
 
-describe('parseDrillSpec', () => {
-  it('accepts a generator-backed topic', () => {
-    expect(parseDrillSpec({ chapter: 'probability', topic: 'Bayes theorem' }, 5).ok).toBe(true);
-  });
-
-  it('rejects a book-only topic', () => {
-    expect(parseDrillSpec({ chapter: 'intro', topic: 'Types of data' }, 5)).toEqual({ ok: false, reason: 'topic' });
-  });
-});

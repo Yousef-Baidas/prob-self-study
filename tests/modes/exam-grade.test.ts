@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildExamSession, gradeExamSession, parseExamSpec } from '../../src/modes/exam';
+import { buildExamSession, gradeExamSession } from '../../src/modes/exam';
 import type { GivenAnswer } from '../../src/engine/grade';
 
 describe('gradeExamSession', () => {
@@ -24,19 +24,3 @@ describe('gradeExamSession', () => {
   });
 });
 
-describe('parseExamSpec', () => {
-  it('accepts real slugs and sources', () => {
-    const r = parseExamSpec({ chapter: 'probability', source: 'both', count: '12' }, 8412);
-    expect(r).toEqual({ ok: true, spec: { chapter: 'probability', source: 'both', count: 12, seed: 8412 } });
-  });
-  it('rejects a bad chapter', () => {
-    expect(parseExamSpec({ chapter: 'ch2', source: 'both', count: '10' }, 1)).toEqual({ ok: false, reason: 'chapter' });
-  });
-  it('rejects a bad source', () => {
-    expect(parseExamSpec({ chapter: 'intro', source: 'nonsense', count: '10' }, 1)).toEqual({ ok: false, reason: 'source' });
-  });
-  it('falls back to both when source is omitted', () => {
-    const r = parseExamSpec({ chapter: 'intro', source: null, count: null }, 77);
-    expect(r).toEqual({ ok: true, spec: { chapter: 'intro', source: 'both', count: 10, seed: 77 } });
-  });
-});

@@ -2,9 +2,7 @@ import { mulberry32 } from '../engine/rng';
 import { drawTemplates } from './select';
 import type { ExamSpec, ExamSession } from './types';
 import { gradeInstance, type GivenAnswer } from '../engine/grade';
-import { chapters } from '../lib/site';
-import { coerceCount } from '../lib/seed';
-import type { ExamSource, ExamResult } from './types';
+import type { ExamResult } from './types';
 
 const MAX_SEED = 0xffffffff;
 
@@ -32,21 +30,5 @@ export function gradeExamSession(session: ExamSession, answers: GivenAnswer[][])
   return { score: perQuestion.filter((r) => r.correct).length, total: session.questions.length, perQuestion };
 }
 
-const VALID_SOURCES: readonly ExamSource[] = ['book', 'generated', 'both'];
-const DEFAULT_SOURCE: ExamSource = 'both';
-
-export type ParseSpecResult =
-  | { ok: true; spec: ExamSpec }
-  | { ok: false; reason: 'chapter' | 'source' };
-
-export function parseExamSpec(
-  raw: { chapter: string | null; source: string | null; count: string | null },
-  seed: number,
-): ParseSpecResult {
-  if (!raw.chapter || !chapters.some((c) => c.slug === raw.chapter)) return { ok: false, reason: 'chapter' };
-  // An omitted source means "no preference" and takes the default, like count does.
-  // Only a source that was supplied and is unrecognised is an error.
-  const source = raw.source == null ? DEFAULT_SOURCE : (raw.source as ExamSource);
-  if (!VALID_SOURCES.includes(source)) return { ok: false, reason: 'source' };
-  return { ok: true, spec: { chapter: raw.chapter, source, count: coerceCount(raw.count), seed } };
-}
+// Reading a spec out of a practice link is lifecycle, not compute — it lives in
+// src/run/exam.ts alongside seeding and the rest of the run.

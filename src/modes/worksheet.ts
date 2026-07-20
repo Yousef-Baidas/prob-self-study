@@ -1,8 +1,6 @@
 import { drawTemplates } from './select';
 import { deriveQuestionSeeds } from './exam';
 import { mulberry32 } from '../engine/rng';
-import { chapters } from '../lib/site';
-import { coerceCount } from '../lib/seed';
 import type { ExamSource, ExamQuestion } from './types';
 
 export interface WorksheetSpec {
@@ -32,20 +30,5 @@ export function buildWorksheetSession(spec: WorksheetSpec): WorksheetSession {
   return { spec, questions, requested: draw.requested, delivered: draw.delivered, capped: draw.capped };
 }
 
-const VALID_SOURCES: readonly ExamSource[] = ['book', 'generated', 'both'];
-
-export type ParseWorksheetResult =
-  | { ok: true; spec: WorksheetSpec }
-  | { ok: false; reason: 'chapter' | 'source' | 'topic' };
-
-export function parseWorksheetSpec(
-  raw: { chapter: string | null; topic: string | null; source: string | null; count: string | null },
-  seed: number,
-): ParseWorksheetResult {
-  const chapter = chapters.find((c) => c.slug === raw.chapter);
-  if (!chapter) return { ok: false, reason: 'chapter' };
-  if (!raw.source || !VALID_SOURCES.includes(raw.source as ExamSource)) return { ok: false, reason: 'source' };
-  const topic = raw.topic || undefined;
-  if (topic && !chapter.topics.includes(topic)) return { ok: false, reason: 'topic' };
-  return { ok: true, spec: { chapter: chapter.slug, topic, source: raw.source as ExamSource, count: coerceCount(raw.count), seed } };
-}
+// Reading a spec out of a practice link is lifecycle, not compute — it lives in
+// src/run/worksheet.ts alongside seeding and the rest of the run.

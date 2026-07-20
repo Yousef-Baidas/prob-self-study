@@ -39,15 +39,5 @@ export function buildDrillQuestion(chapter: string, topic: string, seed: number,
   return { template, seed: qSeed, instance: template.generate(mulberry32(qSeed)) };
 }
 
-export type ParseDrillResult =
-  | { ok: true; spec: DrillSpec }
-  | { ok: false; reason: 'topic' };
-
-export function parseDrillSpec(
-  raw: { chapter: string | null; topic: string | null },
-  seed: number,
-): ParseDrillResult {
-  const ok = drillTopics().some((d) => d.chapter === raw.chapter && d.topic === raw.topic);
-  if (!ok) return { ok: false, reason: 'topic' };
-  return { ok: true, spec: { chapter: raw.chapter as string, topic: raw.topic as string, seed } };
-}
+// Reading a spec out of a practice link — including decoding the topic key —
+// is lifecycle, not compute. It lives in src/run/drill.ts.
