@@ -59,6 +59,16 @@ describe('startExamRun', () => {
     });
   });
 
+  test('leaves the address bar alone when the run is rejected', () => {
+    // A rejected run is not a run. It has no seed worth remembering, so the
+    // error state carries no url and the island has nothing to stamp — the
+    // visitor keeps the link they actually typed. The islands used to rewrite
+    // the address bar with a resolved seed before validating anything, so a
+    // rejected url quietly grew a `seed=` it never asked for.
+    const run = startExamRun('?chapter=probability&source=vibes', { roll: roll(42) });
+    expect(run).not.toHaveProperty('url');
+  });
+
   test('writes the resolved seed into the url', () => {
     const run = startExamRun('?chapter=probability', { roll: roll(42) });
     if (run.status !== 'ready') throw new Error('expected ready');

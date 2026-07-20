@@ -53,6 +53,12 @@ describe('startWorksheetRun', () => {
     });
   });
 
+  test('leaves the address bar alone when the run is rejected', () => {
+    // See the matching test in exam.test.ts: only a ready run carries a url.
+    const run = startWorksheetRun('?chapter=probability&source=vibes', { roll: roll(42) });
+    expect(run).not.toHaveProperty('url');
+  });
+
   test('treats the form’s "All topics" option as no topic filter', () => {
     // That option submits an empty value, which means "everything", not "invalid".
     const run = startWorksheetRun('?chapter=probability&topic=', { roll: roll(42) });

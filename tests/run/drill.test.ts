@@ -55,6 +55,11 @@ describe('startDrillRun', () => {
     });
   });
 
+  test('leaves the address bar alone when the run is rejected', () => {
+    // See the matching test in exam.test.ts: only a ready run carries a url.
+    expect(startDrillRun('?tk=garbage', { roll: roll(42) })).not.toHaveProperty('url');
+  });
+
   test('trades the topic key for explicit parameters in the url', () => {
     const run = ready();
     expect(run.url).toContain('chapter=probability');
