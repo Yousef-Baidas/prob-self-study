@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { rollSeed, parseSeed, coerceCount } from '../../src/lib/seed';
+import { rollSeed, parseSeed } from '../../src/lib/seed';
 
 describe('parseSeed', () => {
   it('parses a valid uint32', () => expect(parseSeed('8412')).toBe(8412));
@@ -11,22 +11,6 @@ describe('parseSeed', () => {
   });
 });
 
-describe('coerceCount', () => {
-  it('parses in range', () => expect(coerceCount('10')).toBe(10));
-  it('defaults on garbage/null', () => {
-    expect(coerceCount('abc')).toBe(10);
-    expect(coerceCount(null)).toBe(10);
-  });
-  it('clamps to [1,50]', () => {
-    expect(coerceCount('0')).toBe(1);
-    expect(coerceCount('999')).toBe(50);
-  });
-  it('defaults on non-decimal or empty input', () => {
-    expect(coerceCount('')).toBe(10);
-    expect(coerceCount('0x10')).toBe(10);
-    expect(coerceCount('1e1')).toBe(10);
-  });
-});
 
 describe('rollSeed', () => {
   it('returns an integer in [0, 2^32)', () => {

@@ -13,11 +13,5 @@ export function parseSeed(raw: string | null): number | null {
   return Number.isInteger(n) && n >= 0 && n <= MAX_SEED ? n : null;
 }
 
-export function coerceCount(raw: string | null, fallback = 10, max = 50): number {
-  if (raw == null || !/^\d+$/.test(raw)) return fallback;
-  const n = Number(raw);
-  if (!Number.isInteger(n)) return fallback;
-  if (n < 1) return 1;
-  if (n > max) return max;
-  return n;
-}
+// Count coercion lives in src/run/params.ts as optionalInt, alongside the other
+// query-parameter primitives — clamping a count is parameter parsing, not seeding.
