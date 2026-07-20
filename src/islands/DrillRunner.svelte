@@ -10,7 +10,7 @@
   } from '../run/drill';
   import { applyUrl, reconcileSetup, readStoredNumber, writeStored } from '../run/effects';
   import QuestionCard from '../components/practice/QuestionCard.svelte';
-  import { joinBase } from '../lib/withBase';
+  import { route } from '../lib/routes';
 
   // The whole drill lifecycle — topic key, seeding, streak and accuracy — lives
   // in src/run/drill.ts. This island renders it and performs the effects it
@@ -42,7 +42,7 @@
 {#if run.status === 'error'}
   <div class="drill-error">
     <p>{run.reason === 'topic' ? 'That topic isn’t available for drilling yet.' : 'No questions match this topic.'}</p>
-    <a href={joinBase(import.meta.env.BASE_URL, 'drill')}>Back to setup</a>
+    <a href={route('drill')}>Back to setup</a>
   </div>
 {:else if run.status === 'ready'}
   <section class="drill">

@@ -10,7 +10,7 @@
   import { applyUrl, reconcileSetup } from '../run/effects';
   import QuestionCard from '../components/practice/QuestionCard.svelte';
   import SolutionSteps from '../components/practice/SolutionSteps.svelte';
-  import { joinBase } from '../lib/withBase';
+  import { route } from '../lib/routes';
 
   // Building the sheet lives in src/run/worksheet.ts. What stays here is genuinely
   // presentational: which parts to print, and expanding the solution disclosures.
@@ -53,7 +53,7 @@
       {:else if run.reason === 'source'}That question source isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>
-    <a href={joinBase(import.meta.env.BASE_URL, 'worksheet')}>Back to setup</a>
+    <a href={route('worksheet')}>Back to setup</a>
   </div>
 {:else if run.status === 'ready'}
   <section

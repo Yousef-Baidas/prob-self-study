@@ -11,7 +11,7 @@
     type ReadyExamRun,
   } from '../run/exam';
   import QuestionCard from '../components/practice/QuestionCard.svelte';
-  import { joinBase } from '../lib/withBase';
+  import { route } from '../lib/routes';
   import { applyUrl, reconcileSetup, writeStored } from '../run/effects';
 
   // No props: the site is statically generated, so Astro cannot pass query
@@ -63,7 +63,7 @@
       {:else if run.reason === 'source'}That question source isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>
-    <a href={joinBase(import.meta.env.BASE_URL, 'exam')}>Back to setup</a>
+    <a href={route('exam')}>Back to setup</a>
   </div>
 {:else if run.status === 'ready'}
   {@const capped = run.session.capped && run.session.spec.source === 'book'}

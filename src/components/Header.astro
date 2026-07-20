@@ -1,5 +1,5 @@
 ---
-import { joinBase } from '../lib/withBase';
+import { route } from '../lib/routes';
 
 import { navItems } from '../lib/site';
 
@@ -8,13 +8,11 @@ import Sun from './icons/Sun.astro';
 import Moon from './icons/Moon.astro';
 
 import MobileNav from './MobileNav.astro';
-
-const base = import.meta.env.BASE_URL;
 ---
 
 <header class="site-header">
   <div class="container header-inner">
-    <a class="brand" href={joinBase(base, '')} aria-label="prob·web home">prob<span class="dot">·</span>web</a>
+    <a class="brand" href={route()} aria-label="prob·web home">prob<span class="dot">·</span>web</a>
 
     <nav class="desktop-nav" aria-label="Primary">
       {
@@ -25,12 +23,12 @@ const base = import.meta.env.BASE_URL;
 
               <div class="menu">
                 {item.children.map((c) => (
-                  <a href={joinBase(base, c.href)}>{c.label}</a>
+                  <a href={route(c.href)}>{c.label}</a>
                 ))}
               </div>
             </details>
           ) : (
-            <a class="nav-link" href={joinBase(base, item.href ?? '')}>
+            <a class="nav-link" href={route(item.href ?? '')}>
               {item.label}
             </a>
           ),
