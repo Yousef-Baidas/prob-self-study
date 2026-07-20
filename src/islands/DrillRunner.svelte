@@ -1,135 +1,71 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { parseSeed, rollSeed } from '../lib/seed';
-  import { parseDrillSpec, buildDrillQuestion, drillPool } from '../modes/drill';
-  import type { DrillSpec, DrillQuestion } from '../modes/drill';
-  import { gradeInstance, type GivenAnswer } from '../engine/grade';
+  import { rollSeed } from '../lib/seed';
+  import {
+    checkDrillAnswer,
+    nextDrillQuestion,
+    startDrillRun,
+    type DrillRunState,
+    type ReadyDrillRun,
+  } from '../run/drill';
+  import { applyUrl, reconcileSetup, readStoredNumber, writeStored } from '../run/effects';
   import QuestionCard from '../components/practice/QuestionCard.svelte';
   import { joinBase } from '../lib/withBase';
 
-  let spec = $state<DrillSpec | null>(null);
-  let index = $state(0);
-  let current = $state<DrillQuestion | null>(null);
-  let answers = $state<GivenAnswer[]>([]);
-  let graded = $state<(boolean | null)[] | null>(null);
-  let checked = $state(false);
-  let error = $state<'topic' | 'empty' | null>(null);
+  // The whole drill lifecycle — topic key, seeding, streak and accuracy — lives
+  // in src/run/drill.ts. This island renders it and performs the effects it
+  // returns; it holds no rules of its own.
+  let run = $state<DrillRunState>({ status: 'idle' });
 
-  let streak = $state(0);
-  let best = $state(0);
-  let answered = $state(0);
-  let correctCount = $state(0);
-  const accuracy = $derived(answered === 0 ? 0 : Math.round((correctCount / answered) * 100));
+  const bestKey = (chapter: string, topic: string) => `prob-drill:best:${chapter}:${topic}`;
+  const ready = () => run as ReadyDrillRun;
 
-  function bestKey(): string {
-    return spec ? `prob-drill:best:${spec.chapter}:${spec.topic}` : '';
-  }
-  function loadBest() {
-    try { best = Number(localStorage.getItem(bestKey())) || 0; } catch { best = 0; }
-  }
-  function saveBest() {
-    try { localStorage.setItem(bestKey(), String(best)); } catch { /* private mode */ }
-  }
-
-  function loadQuestion(i: number) {
-    if (!spec) return;
-    const q = buildDrillQuestion(spec.chapter, spec.topic, spec.seed, i);
-    current = q;
-    answers = q.instance.parts.map(() => null);
-    graded = null;
-    checked = false;
-  }
-
-  function start(s: DrillSpec) {
-    if (drillPool(s.chapter, s.topic).length === 0) { error = 'empty'; return; }
-    spec = s;
-    index = 0;
-    loadBest();
-    loadQuestion(0);
-  }
-
-  function check() {
-    if (!current || checked) return;
-    const g = gradeInstance(current.instance, answers);
-    graded = g.parts;
-    checked = true;
-    answered += 1;
-    if (g.correct) {
-      correctCount += 1;
-      streak += 1;
-      if (streak > best) { best = streak; saveBest(); }
-    } else {
-      streak = 0;
+  function apply(next: DrillRunState) {
+    run = next;
+    if (next.status !== 'ready') return;
+    applyUrl(next.url);
+    if (next.storeBest !== undefined) {
+      writeStored(bestKey(next.spec.chapter, next.spec.topic), String(next.storeBest));
     }
-  }
-
-  function next() {
-    index += 1;
-    loadQuestion(index);
   }
 
   onMount(() => {
-    const params = new URLSearchParams(window.location.search);
-    let chapter = params.get('chapter');
-    let topic = params.get('topic');
-    const tk = params.get('tk');
-    if (tk && (!chapter || !topic)) {
-      const [c, t] = tk.split('::');
-      chapter = c ?? null;
-      topic = t ?? null;
-    }
-    if (!chapter || !topic) {
-      // A run was requested via the URL but couldn't be resolved into a
-      // chapter+topic (e.g. a malformed/hand-edited tk). drill.astro already
-      // hid the setup panel, so show the error panel instead of a blank page.
-      // With no params at all, nothing was requested → the static setup stays.
-      if (tk || params.has('chapter') || params.has('topic')) {
-        error = 'topic';
-        document.getElementById('drill-setup')?.remove();
-      }
-      return;
-    }
-    const seed = parseSeed(params.get('seed')) ?? rollSeed();
-    const parsed = parseDrillSpec({ chapter, topic }, seed);
-    if (!parsed.ok) { error = parsed.reason; document.getElementById('drill-setup')?.remove(); return; }
-    const url = new URL(window.location.href);
-    url.searchParams.delete('tk');
-    url.searchParams.set('chapter', chapter);
-    url.searchParams.set('topic', topic);
-    url.searchParams.set('seed', String(seed));
-    history.replaceState(null, '', url);
-    document.getElementById('drill-setup')?.remove();
-    start(parsed.spec);
+    const started = startDrillRun(window.location.search, {
+      roll: rollSeed,
+      readBest: (chapter, topic) => readStoredNumber(bestKey(chapter, topic)),
+    });
+    reconcileSetup('drill-setup', started.status);
+    apply(started);
   });
 </script>
 
-{#if error}
+{#if run.status === 'error'}
   <div class="drill-error">
-    <p>{error === 'topic' ? 'That topic isn’t available for drilling yet.' : 'No questions match this topic.'}</p>
+    <p>{run.reason === 'topic' ? 'That topic isn’t available for drilling yet.' : 'No questions match this topic.'}</p>
     <a href={joinBase(import.meta.env.BASE_URL, 'drill')}>Back to setup</a>
   </div>
-{:else if spec && current}
+{:else if run.status === 'ready'}
   <section class="drill">
     <header class="drill-stats" aria-live="polite">
-      <span>Streak <strong>{streak}</strong></span>
-      <span>Best <strong>{best}</strong></span>
-      <span>Answered <strong>{answered}</strong></span>
-      <span>Accuracy <strong>{accuracy}%</strong></span>
+      <span>Streak <strong>{run.streak}</strong></span>
+      <span>Best <strong>{run.best}</strong></span>
+      <span>Answered <strong>{run.answered}</strong></span>
+      <span>Accuracy <strong>{run.accuracy}%</strong></span>
     </header>
 
     <QuestionCard
-      instance={current.instance}
-      bind:answers
-      graded={checked ? graded : null}
-      disabled={checked}
-      showSolution={checked}
+      instance={run.current.instance}
+      bind:answers={run.answers}
+      graded={run.checked ? run.graded : null}
+      disabled={run.checked}
+      showSolution={run.checked}
     />
 
     <nav class="drill-actions">
-      {#if !checked}
-        <button type="button" class="primary" onclick={check}>Check</button>
+      {#if !run.checked}
+        <button type="button" class="primary" onclick={() => apply(checkDrillAnswer(ready(), ready().answers))}>Check</button>
       {:else}
-        <button type="button" class="primary" onclick={next}>Next question ›</button>
+        <button type="button" class="primary" onclick={() => apply(nextDrillQuestion(ready()))}>Next question ›</button>
       {/if}
     </nav>
   </section>

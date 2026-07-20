@@ -1,7 +1,11 @@
 ---
 import { chapters } from '../../lib/site';
 import { joinBase } from '../../lib/withBase';
+import { COUNT_MAX, COUNT_MIN, EXAM_DEFAULTS, SOURCES } from '../../run/defaults';
 const action = joinBase(import.meta.env.BASE_URL, 'exam');
+// The same constants the parser falls back to, so a bare exam link behaves
+// exactly like submitting this form.
+const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', generated: 'Randomized' };
 ---
 <form class="exam-setup" method="get" action={action}>
   <h1>Start an exam</h1>
@@ -11,13 +15,13 @@ const action = joinBase(import.meta.env.BASE_URL, 'exam');
     </select>
   </label>
   <label>Questions
-    <input type="number" name="count" value="10" min="1" max="50" />
+    <input type="number" name="count" value={EXAM_DEFAULTS.count} min={COUNT_MIN} max={COUNT_MAX} />
   </label>
   <fieldset>
     <legend>Source</legend>
-    <label><input type="radio" name="source" value="both" checked /> Both</label>
-    <label><input type="radio" name="source" value="book" /> Book</label>
-    <label><input type="radio" name="source" value="generated" /> Randomized</label>
+    {SOURCES.map((s) => (
+      <label><input type="radio" name="source" value={s} checked={s === EXAM_DEFAULTS.source} /> {sourceLabels[s]}</label>
+    ))}
   </fieldset>
   <p class="last-score" hidden></p>
   <button type="submit">Start exam</button>

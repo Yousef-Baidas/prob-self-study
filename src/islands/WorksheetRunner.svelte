@@ -1,45 +1,34 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { parseSeed, rollSeed } from '../lib/seed';
-  import { parseWorksheetSpec, buildWorksheetSession } from '../modes/worksheet';
-  import type { WorksheetSession } from '../modes/worksheet';
+  import { rollSeed } from '../lib/seed';
+  import {
+    rerollWorksheet,
+    startWorksheetRun,
+    type ReadyWorksheetRun,
+    type WorksheetRunState,
+  } from '../run/worksheet';
+  import { applyUrl, reconcileSetup } from '../run/effects';
   import QuestionCard from '../components/practice/QuestionCard.svelte';
   import SolutionSteps from '../components/practice/SolutionSteps.svelte';
   import { joinBase } from '../lib/withBase';
 
-  let session = $state<WorksheetSession | null>(null);
-  let error = $state<'chapter' | 'source' | 'topic' | 'empty' | null>(null);
+  // Building the sheet lives in src/run/worksheet.ts. What stays here is genuinely
+  // presentational: which parts to print, and expanding the solution disclosures.
+  let run = $state<WorksheetRunState>({ status: 'idle' });
   let printMode = $state<'questions' | 'both' | 'key'>('both');
   let copied = $state(false);
 
-  function start(seed: number) {
-    const params = new URLSearchParams(window.location.search);
-    const raw = {
-      chapter: params.get('chapter'),
-      topic: params.get('topic'),
-      source: params.get('source'),
-      count: params.get('count'),
-    };
-    const parsed = parseWorksheetSpec(raw, seed);
-    if (!parsed.ok) { error = parsed.reason; return; }
-    const s = buildWorksheetSession(parsed.spec);
-    if (s.delivered === 0) { error = 'empty'; return; }
-    session = s;
+  const ready = () => run as ReadyWorksheetRun;
+
+  function apply(next: WorksheetRunState) {
+    run = next;
+    if (next.status === 'ready') applyUrl(next.url);
   }
 
   function revealAll(open: boolean) {
     document
       .querySelectorAll<HTMLDetailsElement>('.worksheet-questions details.solution')
       .forEach((d) => (d.open = open));
-  }
-
-  function rollNew() {
-    const seed = rollSeed();
-    const url = new URL(window.location.href);
-    url.searchParams.set('seed', String(seed));
-    history.replaceState(null, '', url);
-    session = null; error = null;
-    start(seed);
   }
 
   function copyLink() {
@@ -50,28 +39,23 @@
   }
 
   onMount(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('chapter')) return;
-    const seed = parseSeed(params.get('seed')) ?? rollSeed();
-    const url = new URL(window.location.href);
-    url.searchParams.set('seed', String(seed));
-    history.replaceState(null, '', url);
-    document.getElementById('worksheet-setup')?.remove();
-    start(seed);
+    const started = startWorksheetRun(window.location.search, { roll: rollSeed });
+    reconcileSetup('worksheet-setup', started.status);
+    apply(started);
   });
 </script>
 
-{#if error}
+{#if run.status === 'error'}
   <div class="ws-error">
     <p>
-      {#if error === 'chapter'}That chapter isn’t available yet.
-      {:else if error === 'topic'}That topic isn’t in this chapter.
-      {:else if error === 'source'}That question source isn’t valid.
+      {#if run.reason === 'chapter'}That chapter isn’t available yet.
+      {:else if run.reason === 'topic'}That topic isn’t in this chapter.
+      {:else if run.reason === 'source'}That question source isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>
     <a href={joinBase(import.meta.env.BASE_URL, 'worksheet')}>Back to setup</a>
   </div>
-{:else if session}
+{:else if run.status === 'ready'}
   <section
     class="worksheet"
     class:print-questions-only={printMode === 'questions'}
@@ -89,16 +73,16 @@
         </select>
       </label>
       <button type="button" onclick={() => window.print()}>Print</button>
-      <button type="button" onclick={rollNew}>New questions</button>
+      <button type="button" onclick={() => apply(rerollWorksheet(ready(), rollSeed))}>New questions</button>
       <button type="button" onclick={copyLink}>{copied ? 'Copied!' : 'Copy link'}</button>
     </div>
 
-    {#if session.capped && session.spec.source === 'book'}
-      <p class="notice no-print">This selection has {session.delivered} book question{session.delivered === 1 ? '' : 's'}.</p>
+    {#if run.session.capped && run.session.spec.source === 'book'}
+      <p class="notice no-print">This selection has {run.session.delivered} book question{run.session.delivered === 1 ? '' : 's'}.</p>
     {/if}
 
     <ol class="worksheet-questions">
-      {#each session.questions as q}
+      {#each run.session.questions as q}
         <li><QuestionCard instance={q.instance} answerable={false} showSolution={true} solutionOpen={false} /></li>
       {/each}
     </ol>
@@ -106,7 +90,7 @@
     <section class="solution-bank">
       <h2>Solutions</h2>
       <ol>
-        {#each session.questions as q}
+        {#each run.session.questions as q}
           <li><SolutionSteps steps={q.instance.solution} /></li>
         {/each}
       </ol>

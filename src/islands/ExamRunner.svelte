@@ -1,60 +1,42 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { parseSeed, rollSeed } from '../lib/seed';
-  import { parseExamSpec, buildExamSession, gradeExamSession } from '../modes/exam';
-  import type { ExamSession, ExamResult } from '../modes/types';
-  import type { GivenAnswer } from '../engine/grade';
+  import { rollSeed } from '../lib/seed';
+  import {
+    gotoExamQuestion,
+    rerollExam,
+    retryExam,
+    startExamRun,
+    submitExam,
+    type ExamRunState,
+    type ReadyExamRun,
+  } from '../run/exam';
   import QuestionCard from '../components/practice/QuestionCard.svelte';
   import { joinBase } from '../lib/withBase';
+  import { applyUrl, reconcileSetup, writeStored } from '../run/effects';
 
-  // No props: the site is statically generated, so Astro cannot pass query params in.
-  // The island reads the run spec from the URL at mount.
-  let raw = $state<{ chapter: string | null; source: string | null; count: string | null }>({ chapter: null, source: null, count: null });
-  let session = $state<ExamSession | null>(null);
-  let error = $state<'chapter' | 'source' | 'empty' | null>(null);
-  let index = $state(0);
-  let answers = $state<GivenAnswer[][]>([]);
-  let phase = $state<'attempt' | 'graded'>('attempt');
-  let result = $state<ExamResult | null>(null);
+  // No props: the site is statically generated, so Astro cannot pass query
+  // params in. Everything from "a URL arrived" to "here is what to render"
+  // lives in src/run/exam.ts; this island renders the result and performs the
+  // effects that module hands back.
+  let run = $state<ExamRunState>({ status: 'idle' });
   let copied = $state(false);
 
-  function start(seed: number) {
-    const parsed = parseExamSpec(raw, seed);
-    if (!parsed.ok) { error = parsed.reason; return; }
-    const s = buildExamSession(parsed.spec);
-    if (s.delivered === 0) { error = 'empty'; return; }
-    session = s;
-    index = 0;
-    answers = s.questions.map((q) => q.instance.parts.map(() => null));
+  function apply(next: ExamRunState) {
+    run = next;
+    if (next.status !== 'ready') return;
+    applyUrl(next.url);
+    if (next.storeScore) {
+      const { chapter, score, total, seed } = next.storeScore;
+      writeStored(`prob-exam:lastScore:${chapter}`, JSON.stringify({ score, total, seed, at: Date.now() }));
+    }
   }
 
-  function saveLastScore(chapter: string, score: number, total: number, seed: number) {
-    try {
-      localStorage.setItem(`prob-exam:lastScore:${chapter}`, JSON.stringify({ score, total, seed, at: Date.now() }));
-    } catch { /* private mode: skip persistence */ }
-  }
+  const atFirst = $derived(run.status === 'ready' && run.index === 0);
+  const atLast = $derived(
+    run.status === 'ready' && run.index === run.session.questions.length - 1,
+  );
 
-  function submit() {
-    if (!session) return;
-    result = gradeExamSession(session, answers);
-    phase = 'graded';
-    saveLastScore(session.spec.chapter, result.score, result.total, session.spec.seed);
-  }
-
-  function retrySame() {
-    if (!session) return;
-    answers = session.questions.map((q) => q.instance.parts.map(() => null));
-    index = 0; result = null; phase = 'attempt';
-  }
-
-  function rollNew() {
-    const seed = rollSeed();
-    const url = new URL(window.location.href);
-    url.searchParams.set('seed', String(seed));
-    history.replaceState(null, '', url);
-    result = null; phase = 'attempt';
-    start(seed); // rebuild with the fresh seed
-  }
+  const ready = () => run as ReadyExamRun;
 
   function copyLink() {
     navigator.clipboard?.writeText(window.location.href).then(() => {
@@ -64,66 +46,59 @@
   }
 
   onMount(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (!params.has('chapter')) return; // no run requested → static setup stays visible, island idle
-    raw = { chapter: params.get('chapter'), source: params.get('source'), count: params.get('count') };
-    const seed = parseSeed(params.get('seed')) ?? rollSeed();
-    // write the resolved seed back so the URL is shareable/reproducible
-    const url = new URL(window.location.href);
-    url.searchParams.set('seed', String(seed));
-    history.replaceState(null, '', url);
-    // ensure the static setup form is gone once we take over
-    document.getElementById('exam-setup')?.remove();
-    start(seed);
+    const started = startExamRun(window.location.search, { roll: rollSeed });
+    reconcileSetup('exam-setup', started.status);
+    apply(started);
   });
-
-  const atFirst = $derived(index === 0);
-  const atLast = $derived(!!session && index === session.questions.length - 1);
 </script>
 
-{#if error}
+{#snippet cappedNotice(delivered: number)}
+  <p class="notice">This chapter has {delivered} book question{delivered === 1 ? '' : 's'}.</p>
+{/snippet}
+
+{#if run.status === 'error'}
   <div class="exam-error">
     <p>
-      {#if error === 'chapter'}That chapter isn’t available yet.
-      {:else if error === 'source'}That question source isn’t valid.
+      {#if run.reason === 'chapter'}That chapter isn’t available yet.
+      {:else if run.reason === 'source'}That question source isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>
     <a href={joinBase(import.meta.env.BASE_URL, 'exam')}>Back to setup</a>
   </div>
-{:else if session}
-  {#if phase === 'attempt'}
+{:else if run.status === 'ready'}
+  {@const capped = run.session.capped && run.session.spec.source === 'book'}
+  {#if run.phase === 'attempt'}
     <section class="exam-run">
-      {#if session.capped && session.spec.source === 'book'}
-        <p class="notice">This chapter has {session.delivered} book question{session.delivered === 1 ? '' : 's'}.</p>
-      {/if}
+      {#if capped}{@render cappedNotice(run.session.delivered)}{/if}
       <div class="exam-live" aria-live="polite">
-        <p class="progress">Question {index + 1} / {session.questions.length}</p>
+        <p class="progress">Question {run.index + 1} / {run.session.questions.length}</p>
 
-        <QuestionCard instance={session.questions[index].instance} bind:answers={answers[index]} />
+        <QuestionCard
+          instance={run.session.questions[run.index].instance}
+          bind:answers={run.answers[run.index]}
+        />
       </div>
 
       <nav class="pager">
-        <button type="button" onclick={() => (index -= 1)} disabled={atFirst}>‹ Prev</button>
+        <button type="button" onclick={() => apply(gotoExamQuestion(ready(), ready().index - 1))} disabled={atFirst}>‹ Prev</button>
         {#if atLast}
-          <button type="button" class="submit" onclick={submit}>Submit</button>
+          <button type="button" class="submit" onclick={() => apply(submitExam(ready()))}>Submit</button>
         {:else}
-          <button type="button" onclick={() => (index += 1)}>Next ›</button>
+          <button type="button" onclick={() => apply(gotoExamQuestion(ready(), ready().index + 1))}>Next ›</button>
         {/if}
       </nav>
     </section>
-  {:else if phase === 'graded' && session && result}
+  {:else if run.result}
     <section class="exam-review">
-      <header class="score"><strong>Score: {result.score} / {result.total}</strong></header>
-      {#if session.capped && session.spec.source === 'book'}
-        <p class="notice">This chapter has {session.delivered} book question{session.delivered === 1 ? '' : 's'}.</p>
-      {/if}
+      <header class="score"><strong>Score: {run.result.score} / {run.result.total}</strong></header>
+      {#if capped}{@render cappedNotice(run.session.delivered)}{/if}
       <ol class="review-list">
-        {#each session.questions as q, i}
+        {#each run.session.questions as q, i}
           <li>
             <QuestionCard
               instance={q.instance}
-              bind:answers={answers[i]}
-              graded={result.perQuestion[i].parts}
+              bind:answers={run.answers[i]}
+              graded={run.result.perQuestion[i].parts}
               disabled={true}
               showSolution={true}
             />
@@ -131,8 +106,8 @@
         {/each}
       </ol>
       <div class="review-actions">
-        <button type="button" onclick={retrySame}>Retry (same seed)</button>
-        <button type="button" onclick={rollNew}>New questions</button>
+        <button type="button" onclick={() => apply(retryExam(ready()))}>Retry (same seed)</button>
+        <button type="button" onclick={() => apply(rerollExam(ready(), rollSeed))}>New questions</button>
         <button type="button" onclick={copyLink}>{copied ? 'Copied!' : 'Copy share link'}</button>
       </div>
     </section>

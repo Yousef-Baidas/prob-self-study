@@ -1,7 +1,11 @@
 ---
 import { chapters } from '../../lib/site';
 import { joinBase } from '../../lib/withBase';
+import { COUNT_MAX, COUNT_MIN, SOURCES, WORKSHEET_DEFAULTS } from '../../run/defaults';
 const action = joinBase(import.meta.env.BASE_URL, 'worksheet');
+// The same constants the parser falls back to, so a bare worksheet link behaves
+// exactly like submitting this form.
+const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', generated: 'Randomized' };
 ---
 <form class="ws-setup" method="get" action={action}>
   <h1>Build a worksheet</h1>
@@ -14,13 +18,13 @@ const action = joinBase(import.meta.env.BASE_URL, 'worksheet');
     <select name="topic" id="ws-topic"><option value="">All topics</option></select>
   </label>
   <label>Questions
-    <input type="number" name="count" value="8" min="1" max="50" />
+    <input type="number" name="count" value={WORKSHEET_DEFAULTS.count} min={COUNT_MIN} max={COUNT_MAX} />
   </label>
   <fieldset>
     <legend>Source</legend>
-    <label><input type="radio" name="source" value="both" checked /> Both</label>
-    <label><input type="radio" name="source" value="book" /> Book</label>
-    <label><input type="radio" name="source" value="generated" /> Randomized</label>
+    {SOURCES.map((s) => (
+      <label><input type="radio" name="source" value={s} checked={s === WORKSHEET_DEFAULTS.source} /> {sourceLabels[s]}</label>
+    ))}
   </fieldset>
   <button type="submit">Build worksheet</button>
 </form>

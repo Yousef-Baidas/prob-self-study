@@ -2,6 +2,7 @@
 import { chapters } from '../../lib/site';
 import { drillTopics } from '../../modes/drill';
 import { joinBase } from '../../lib/withBase';
+import { encodeTopicKey } from '../../run/topicKey';
 const action = joinBase(import.meta.env.BASE_URL, 'drill');
 const topics = drillTopics();
 const groups = chapters
@@ -14,7 +15,7 @@ const groups = chapters
     <select name="tk">
       {groups.map((g) => (
         <optgroup label={`Ch ${g.chapter.number} — ${g.chapter.title}`}>
-          {g.topics.map((t) => <option value={`${t.chapter}::${t.topic}`}>{t.topic}</option>)}
+          {g.topics.map((t) => <option value={encodeTopicKey(t.chapter, t.topic)}>{t.topic}</option>)}
         </optgroup>
       ))}
     </select>
