@@ -9,9 +9,7 @@ import ChapterNotes from '../../components/ChapterNotes.astro';
 
 import { chapters } from '../../lib/site';
 
-import IntroNotes from '../../notes/intro.mdx';
-
-import ProbabilityNotes from '../../notes/probability.mdx';
+import { loadChapterNotes } from '../../lib/chapterNotes';
 
 import type { InferGetStaticPropsType } from 'astro';
 
@@ -23,13 +21,7 @@ type Props = InferGetStaticPropsType<typeof getStaticPaths>;
 
 const { chapter } = Astro.props;
 
-const notesBySlug: Record<string, typeof IntroNotes> = {
-  intro: IntroNotes,
-
-  probability: ProbabilityNotes,
-};
-
-const Notes = notesBySlug[chapter.slug];
+const Notes = await loadChapterNotes(chapter.slug);
 ---
 
 <Layout title={`${chapter.title} — prob·web`} description={`Summary notes for ${chapter.title} — GJU IE0121 (Walpole 9e): ${chapter.topics.join(', ')}.`}>

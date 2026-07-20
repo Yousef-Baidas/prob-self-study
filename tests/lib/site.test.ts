@@ -15,6 +15,15 @@ describe('site.ts', () => {
     }
   });
 
+  it('takes each chapter’s topics from the engine rather than a second copy', () => {
+    // The topic list used to be typed out again here as display copy, so a new
+    // template could add a topic the chapter card never mentioned. Now the card
+    // shows whatever practice can actually serve.
+    for (const c of chapters) {
+      expect(c.topics).toEqual(topicsForChapter(c.slug));
+    }
+  });
+
   it('exposes the three practice modes as nav children', () => {
     expect(modes.map((m) => m.href)).toEqual(['exam', 'worksheet', 'drill']);
   });

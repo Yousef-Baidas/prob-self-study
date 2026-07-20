@@ -3,6 +3,8 @@ import { route } from '../lib/routes';
 
 import type { Chapter } from '../lib/site';
 
+import { chapterStatus } from '../lib/chapterNotes';
+
 interface Props {
   chapter: Chapter;
 }
@@ -10,13 +12,15 @@ interface Props {
 const { chapter } = Astro.props;
 
 const url = route(`chapters/${chapter.slug}`);
+
+const status = chapterStatus(chapter.slug);
 ---
 
 <a class="chapter-card" href={url}>
   <div class="chapter-top">
     <span class="chapter-num">Ch {chapter.number}</span>
 
-    <span class={`badge ${chapter.status}`}>{chapter.status === 'available' ? 'Available' : 'Coming soon'}</span>
+    <span class={`badge ${status}`}>{status === 'available' ? 'Available' : 'Coming soon'}</span>
   </div>
 
   <span class="chapter-title">{chapter.title}</span>

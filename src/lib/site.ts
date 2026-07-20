@@ -1,19 +1,29 @@
-// Single source for navigation + the Phase-1 chapter list. Header, footer,
-// the chapters index and the [slug] stub all build from this. Chapter slugs
-// MUST match the engine's chapter tags ('intro', 'probability') — a mismatch
-// fails the cross-check test and would 404 practice links in Plan 2b.
-export type ChapterStatus = 'available' | 'coming-soon';
+// Single source for navigation + the chapter list. Header, footer, the chapters
+// index and the [slug] page all build from this. Chapter slugs MUST match the
+// engine's chapter tags ('intro', 'probability') — a mismatch fails the
+// cross-check test and would 404 practice links.
+//
+// A chapter declares only what nothing else can know: its number, title and
+// slug. Its topics come from the templates that exist for it, so the list can
+// never quietly disagree with what practice actually serves.
+//
+// Whether a chapter has notes yet is deliberately NOT here. That question is
+// answered by the notes directory (see chapterNotes.ts), and this module is
+// reachable from the islands — importing the notes glob here would ship every
+// chapter's prose into the client bundle as dead chunks.
+import { topicsForChapter } from '../engine/registry';
 
-export type Chapter = {
+/** The part of a chapter that is written down rather than worked out. */
+export type ChapterIdentity = {
   number: number;
 
   title: string;
 
   slug: string;
+};
 
+export type Chapter = ChapterIdentity & {
   topics: string[];
-
-  status: ChapterStatus;
 };
 
 export type NavChild = {
@@ -30,17 +40,13 @@ export type NavItem = {
   children?: NavChild[];
 };
 
-export const chapters: Chapter[] = [
+const identities: ChapterIdentity[] = [
   {
     number: 1,
 
     title: 'Introduction to Statistics & Data Analysis',
 
     slug: 'intro',
-
-    topics: ['Descriptive statistics', 'Types of data', 'Populations and samples'],
-
-    status: 'available',
   },
 
   {
@@ -49,12 +55,14 @@ export const chapters: Chapter[] = [
     title: 'Probability',
 
     slug: 'probability',
-
-    topics: ['Counting techniques', 'Conditional probability', 'Bayes theorem'],
-
-    status: 'available',
   },
 ];
+
+export const chapters: Chapter[] = identities.map((c) => ({
+  ...c,
+
+  topics: topicsForChapter(c.slug),
+}));
 
 export const modes: NavChild[] = [
   { label: 'Exam', href: 'exam' },
