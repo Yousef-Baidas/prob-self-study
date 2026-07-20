@@ -54,4 +54,25 @@ describe('registry', () => {
 
     expect(topics).toContain('Counting techniques');
   });
+
+  it('ids are unique across the whole registry, not just within a bank', () => {
+    // The book bank checks its own ids, and the generators check none at all, so
+    // a collision across the two would slip through both. Everything downstream
+    // — reroll, the worksheet solution bank, the drill's "not that one again" —
+    // treats an id as the name of exactly one template.
+    const ids = allTemplates.map((t) => t.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('ids name the chapter and bank they came from', () => {
+    // ch02-gen-combinations, ch01-book-classify: the id is the only place a
+    // template says where it lives, and it is read by humans far more than by
+    // code, so a mislabelled one is worth failing over.
+    for (const t of allTemplates) {
+      const bank = t.source === 'book' ? 'book' : 'gen';
+
+      expect(t.id).toMatch(new RegExp(`^ch\\d{2}-${bank}-[a-z0-9-]+$`));
+    }
+  });
 });
