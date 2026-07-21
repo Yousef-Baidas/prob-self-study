@@ -190,6 +190,12 @@ const chaptersHref = route('chapters');
       border-left: 3px solid var(--color-accent);
 
       border-radius: var(--radius-sm);
+
+      /* A worked example can hold a table wider than the column; it scrolls
+         inside its own box rather than pushing the page sideways. */
+      overflow-x: auto;
+
+      overflow-y: hidden;
     }
 
     .prose :global(blockquote p) {
@@ -243,14 +249,6 @@ const chaptersHref = route('chapters');
       color: var(--color-text);
 
       font-weight: var(--font-weight-semibold);
-    }
-
-    /* A worked example can hold a table wider than the column; it scrolls
-       inside its own box rather than pushing the page sideways. */
-    .prose :global(blockquote) {
-      overflow-x: auto;
-
-      overflow-y: hidden;
     }
 
     /* Wide display equations scroll inside their own box instead of the page. */

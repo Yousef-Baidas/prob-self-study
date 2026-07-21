@@ -56,7 +56,7 @@ export function sampleStdDev(xs: number[]): number {
  * value, matching R's type-6 quantile, so a degenerate sample still returns
  * a number rather than forcing every caller to special-case it.
  *
- * quartile(xs, 2) is identically median(xs): L2 = (n+1)/2 is whole for odd n
+ * quartile(xs, 2) equals median(xs): L2 = (n+1)/2 is whole for odd n
  * and exactly j + 0.5 for even n, which are the two branches of the median.
  */
 export function quartile(xs: number[], k: 1 | 2 | 3): number {
