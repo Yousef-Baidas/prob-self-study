@@ -45,6 +45,44 @@ export function sampleStdDev(xs: number[]): number {
 }
 
 /**
+ * The k-th quartile by position: sort, take the position L = k(n+1)/4, and
+ * read the value at exactly that position, interpolating between neighbours
+ * when L is fractional. A position of 2.75 means three quarters of the way
+ * from x2 to x3 -- not the nearest observation, and not the median-of-halves
+ * rule, which reports a different number on the same sample.
+ *
+ * For n <= 2 the outer positions fall outside the sample (L = 0.75 when
+ * n = 2, so there is no x0 to interpolate from). Those clamp to the end
+ * value, matching R's type-6 quantile, so a degenerate sample still returns
+ * a number rather than forcing every caller to special-case it.
+ *
+ * quartile(xs, 2) is identically median(xs): L2 = (n+1)/2 is whole for odd n
+ * and exactly j + 0.5 for even n, which are the two branches of the median.
+ */
+export function quartile(xs: number[], k: 1 | 2 | 3): number {
+  const s = [...xs].sort((a, b) => a - b);
+
+  const n = s.length;
+
+  const L = (k * (n + 1)) / 4;
+
+  if (L <= 1) return s[0];
+
+  if (L >= n) return s[n - 1];
+
+  const j = Math.floor(L);
+
+  const f = L - j;
+
+  return f === 0 ? s[j - 1] : s[j - 1] + f * (s[j] - s[j - 1]);
+}
+
+/** Spread as the width of the middle half of the sample: Q3 - Q1. */
+export function iqr(xs: number[]): number {
+  return quartile(xs, 3) - quartile(xs, 1);
+}
+
+/**
  * Rounds half-way values toward +∞ (`Math.round`'s convention), but `x * f`
  * is computed in binary floating point, so a decimal that looks exactly
  * half-way is not always represented that way: `round(1.005, 2)` yields `1`,
