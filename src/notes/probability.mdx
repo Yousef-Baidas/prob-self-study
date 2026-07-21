@@ -1,11 +1,20 @@
 ## Foundations
 
-- **Sample space** $S$ — the set of *all* possible outcomes of an experiment. It is
-  **discrete** when its outcomes are finite or countably infinite, and **continuous**
-  when it contains an interval of real numbers.
-- **Event** — any subset of $S$. The **complement** $A'$ is everything in $S$ not in $A$;
-  the **intersection** $A \cap B$ is the outcomes in *both*; the **union** $A \cup B$ is the
-  outcomes in *either*. Events are **mutually exclusive** (disjoint) when $A \cap B = \varnothing$.
+- **Sample space** $S$ — the set of *all* possible outcomes of an experiment. Write it by
+  **listing** its outcomes inside braces: $S = \{H, T\}$ for one toss of a coin, and
+  $S = \{1, 2, 3, 4, 5, 6\}$ for one roll of a die. The order you list them in carries no
+  meaning, and no outcome appears twice. When an outcome has several parts, list it as an
+  **ordered pair** — rolling two dice gives $S = \{(1,1), (1,2), \dots, (6,6)\}$, all $36$
+  of them, where $(2,5)$ and $(5,2)$ are *different* outcomes. When listing everything is
+  impractical, give the **rule** the outcomes satisfy instead,
+  $S = \{x \mid x \text{ is a city with over a million people}\}$, read "the set of all $x$
+  such that ...". $S$ is **discrete** when its outcomes are finite or countably infinite,
+  and **continuous** when it contains an interval of real numbers.
+- **Event** — any subset of $S$, written the same way: "the roll is even" is the event
+  $A = \{2, 4, 6\}$. The **complement** $A'$ is everything in $S$ not in $A$, here
+  $A' = \{1, 3, 5\}$; the **intersection** $A \cap B$ is the outcomes in *both*; the
+  **union** $A \cup B$ is the outcomes in *either*. Events are **mutually exclusive**
+  (disjoint) when $A \cap B = \varnothing$.
 
 For a sample space of $N$ **equally likely** outcomes, $n$ of which lie in $A$,
 
@@ -15,6 +24,9 @@ P(A) = \frac{n}{N},
 \qquad P(\varnothing) = 0,
 \qquad P(S) = 1.
 $$
+
+Both counts are just lengths of the lists above: the even-roll event $A = \{2, 4, 6\}$ holds
+$n = 3$ of the $N = 6$ outcomes in $S = \{1, 2, 3, 4, 5, 6\}$, so $P(A) = \tfrac{3}{6} = \tfrac{1}{2}$.
 
 **Additive rule** and its consequences:
 
