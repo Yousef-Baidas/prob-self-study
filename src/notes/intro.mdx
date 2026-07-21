@@ -52,6 +52,63 @@ $\sum_{i=1}^{n}(x_i - \bar{x}) = 0$, only $n-1$ of them are free to vary. Varian
 > $s^2 = \dfrac{1}{9}\big[(7.07-7.025)^2 + \dots + (7.08-7.025)^2\big] = 0.001939$; and the
 > standard deviation is $s = \sqrt{0.001939} = 0.044$, on $n-1 = 9$ degrees of freedom.
 
+### Quartiles and the interquartile range
+
+The **quartiles** $Q_1, Q_2, Q_3$ cut the sorted data into four equal parts: a quarter of
+the observations lie below $Q_1$, half below $Q_2$ (which is just the median), and three
+quarters below $Q_3$. The **interquartile range** measures spread as the width of the
+middle half of the data,
+
+$$
+\mathrm{IQR} = Q_3 - Q_1.
+$$
+
+Unlike the range, the IQR ignores both tails, so no single extreme value can inflate it —
+it **resists outliers** for the same reason the median does.
+
+Sort the data first, then locate $Q_k$ by its **position** in the sorted list:
+
+$$
+L_k = \frac{k(n+1)}{4}, \qquad k = 1, 2, 3.
+$$
+
+$L_k$ is a position, not a value. If it is a whole number $j$, the quartile is that
+observation, $Q_k = x_j$. If it is fractional, write $L_k = j + f$ with $j$ whole and
+$0 < f < 1$; the quartile then sits a fraction $f$ of the way from $x_j$ to the next
+observation:
+
+$$
+Q_k = x_j + f\left(x_{j+1} - x_j\right).
+$$
+
+So a position of $2.75$ means *three quarters of the way from the 2nd observation to the
+3rd*, and you report that exact point — **not** whichever observation happens to be
+nearest.
+
+> **Worked example.** Ten observations, already sorted:
+>
+> $$
+> 1,\ 5,\ 6,\ 7,\ 9,\ 12,\ 14,\ 15,\ 18,\ 22 \qquad (n = 10)
+> $$
+>
+> | | position $L_k$ | falls between | quartile |
+> | --- | --- | --- | --- |
+> | $Q_1$ | $\tfrac{11}{4} = 2.75$ | $x_2 = 5,\ x_3 = 6$ | $5 + 0.75(6-5) = 5.75$ |
+> | $Q_2$ | $\tfrac{22}{4} = 5.5$ | $x_5 = 9,\ x_6 = 12$ | $9 + 0.5(12-9) = 10.5$ |
+> | $Q_3$ | $\tfrac{33}{4} = 8.25$ | $x_8 = 15,\ x_9 = 18$ | $15 + 0.25(18-15) = 15.75$ |
+>
+> The middle half of the data is therefore $10$ units wide:
+> $\mathrm{IQR} = 15.75 - 5.75 = 10$.
+>
+> **Check $Q_2$ against the median.** With $n = 10$ even, the median formula above gives
+> $\tilde{x} = \tfrac{1}{2}(x_5 + x_6) = \tfrac{1}{2}(9 + 12) = 10.5$ — the same number.
+> $Q_2$ and $\tilde{x}$ always agree, so computing both is a free check on your arithmetic.
+
+> **Careful — other methods give other answers.** Splitting the data at the median and
+> taking the median of each half (the rule taught in school), or a calculator's default
+> percentile function, would report $Q_1 = 6$ for the data above instead of $5.75$. Use
+> the position-and-interpolate rule here.
+
 ## Types of data
 
 Data are described along two independent axes.
