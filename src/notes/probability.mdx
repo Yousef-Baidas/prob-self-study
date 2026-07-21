@@ -47,26 +47,29 @@ When outcomes are equally likely, probability reduces to counting. Pick the righ
 
 - **Multiplication rule** — a sequence of $k$ operations performable in $n_1, n_2, \dots, n_k$
   ways can be done together in $\,n_1 n_2 \cdots n_k\,$ ways.
-- **Permutations** — *ordered* arrangements. All $n$ objects: $n!$. Taking $r$ of $n$:
+- **Permutations** — *ordered* arrangements. All $n$ objects: $n!$. Taking $r$ of $n$,
+  written ${}_{n}P_{r}$ or $P(n, r)$:
 
 $$
-{}_{n}P_{r} = \frac{n!}{(n-r)!},
+{}_{n}P_{r} = P(n, r) = \frac{n!}{(n-r)!},
 \qquad n! = n(n-1)\cdots(2)(1), \quad 0! = 1.
 $$
 
 - **Non‑distinct objects** — arrangements of $n$ items, $n_i$ of kind $i$:
   $\;\dfrac{n!}{n_1!\,n_2! \cdots n_k!}$.
-- **Combinations** — *unordered* selections of $r$ from $n$ (order does **not** matter):
+- **Combinations** — *unordered* selections of $r$ from $n$ (order does **not** matter).
+  The same number is written three ways — ${}_{n}C_{r}$, $C(n, r)$ and $\binom{n}{r}$ —
+  and all three are read "$n$ choose $r$":
 
 $$
-\binom{n}{r} = \frac{n!}{r!\,(n-r)!}.
+{}_{n}C_{r} = C(n, r) = \binom{n}{r} = \frac{n!}{r!\,(n-r)!}.
 $$
 
 Here $n$ is the number of objects available and $r$ the number arranged or chosen.
 
 > **Worked examples.**
 > - A committee of $3$ is chosen from $10$ people (order irrelevant):
->   $\;\binom{10}{3} = \dfrac{10!}{3!\,7!} = 120$ ways.
+>   $\;{}_{10}C_{3} = \binom{10}{3} = \dfrac{10!}{3!\,7!} = 120$ ways.
 > - Distinct arrangements of the letters in **STATISTICS** (S, T each ×3, I ×2, A, C ×1):
 >   $\;\dfrac{10!}{3!\,3!\,2!\,1!\,1!} = 50{,}400$.
 
