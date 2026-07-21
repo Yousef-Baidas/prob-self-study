@@ -245,6 +245,14 @@ const chaptersHref = route('chapters');
       font-weight: var(--font-weight-semibold);
     }
 
+    /* A worked example can hold a table wider than the column; it scrolls
+       inside its own box rather than pushing the page sideways. */
+    .prose :global(blockquote) {
+      overflow-x: auto;
+
+      overflow-y: hidden;
+    }
+
     /* Wide display equations scroll inside their own box instead of the page. */
     .prose :global(.katex-display) {
       margin-block: var(--space-md);
