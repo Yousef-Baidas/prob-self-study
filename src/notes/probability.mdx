@@ -5,11 +5,12 @@
   $S = \{1, 2, 3, 4, 5, 6\}$ for one roll of a die. The order you list them in carries no
   meaning, and no outcome appears twice. When an outcome has several parts, list it as an
   **ordered pair** — rolling two dice gives $S = \{(1,1), (1,2), \dots, (6,6)\}$, all $36$
-  of them, where $(2,5)$ and $(5,2)$ are *different* outcomes. When listing everything is
-  impractical, give the **rule** the outcomes satisfy instead,
+  of them, where $(2,5)$ and $(5,2)$ are *different* outcomes: the order *within* an
+  outcome carries meaning even though the order you list outcomes in does not. When
+  listing everything is impractical, give the **rule** the outcomes satisfy instead,
   $S = \{x \mid x \text{ is a city with over a million people}\}$, read "the set of all $x$
-  such that ...". $S$ is **discrete** when its outcomes are finite or countably infinite,
-  and **continuous** when it contains an interval of real numbers.
+  such that …". $S$ is **discrete** when its outcomes are finite or countably infinite, and
+  **continuous** when it contains an interval of real numbers.
 - **Event** — any subset of $S$, written the same way: "the roll is even" is the event
   $A = \{2, 4, 6\}$. The **complement** $A'$ is everything in $S$ not in $A$, here
   $A' = \{1, 3, 5\}$; the **intersection** $A \cap B$ is the outcomes in *both*; the
@@ -48,7 +49,7 @@ When outcomes are equally likely, probability reduces to counting. Pick the righ
 - **Multiplication rule** — a sequence of $k$ operations performable in $n_1, n_2, \dots, n_k$
   ways can be done together in $\,n_1 n_2 \cdots n_k\,$ ways.
 - **Permutations** — *ordered* arrangements. All $n$ objects: $n!$. Taking $r$ of $n$,
-  written ${}_{n}P_{r}$ or $P(n, r)$:
+  written ${}_{n}P_{r}$ or $P(n, r)$ — the two-argument $P$ is a count, not a probability:
 
 $$
 {}_{n}P_{r} = P(n, r) = \frac{n!}{(n-r)!},
