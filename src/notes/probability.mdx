@@ -1,4 +1,4 @@
-## Foundations
+## 2.1 Sample space
 
 - **Sample space** $S$ — the set of *all* possible outcomes of an experiment. Write it by
   **listing** its outcomes inside braces: $S = \{H, T\}$ for one toss of a coin, and
@@ -11,38 +11,31 @@
   $S = \{x \mid x \text{ is a city with over a million people}\}$, read "the set of all $x$
   such that …". $S$ is **discrete** when its outcomes are finite or countably infinite, and
   **continuous** when it contains an interval of real numbers.
+- **Tree diagram** — when an experiment runs in stages, a tree lists sample points
+  systematically: branch once per stage, and each root-to-tip path spells out one sample
+  point. Flip a coin, and flip again only if it lands heads — otherwise roll a die once —
+  gives $S = \{HH, HT, T1, T2, T3, T4, T5, T6\}$, one outcome per path.
+
+## 2.2 Events
+
 - **Event** — any subset of $S$, written the same way: "the roll is even" is the event
   $A = \{2, 4, 6\}$. The **complement** $A'$ is everything in $S$ not in $A$, here
   $A' = \{1, 3, 5\}$; the **intersection** $A \cap B$ is the outcomes in *both*; the
   **union** $A \cup B$ is the outcomes in *either*. Events are **mutually exclusive**
-  (disjoint) when $A \cap B = \varnothing$.
-
-For a sample space of $N$ **equally likely** outcomes, $n$ of which lie in $A$,
-
-$$
-P(A) = \frac{n}{N},
-\qquad 0 \le P(A) \le 1,
-\qquad P(\varnothing) = 0,
-\qquad P(S) = 1.
-$$
-
-Both counts are just lengths of the lists above: the even-roll event $A = \{2, 4, 6\}$ holds
-$n = 3$ of the $N = 6$ outcomes in $S = \{1, 2, 3, 4, 5, 6\}$, so $P(A) = \tfrac{3}{6} = \tfrac{1}{2}$.
-
-**Additive rule** and its consequences:
+  (disjoint) when $A \cap B = \varnothing$ — they share no outcomes, so at most one of
+  them can occur on a given trial.
+- Event combinations follow ordinary set algebra: unions and intersections commute and
+  distribute over each other, and **De Morgan's laws** turn a complement of a union or
+  intersection into the complement of the pieces:
 
 $$
-P(A \cup B) = P(A) + P(B) - P(A \cap B),
-\qquad
-P(A) + P(A') = 1.
+(A \cup B)' = A' \cap B', \qquad (A \cap B)' = A' \cup B'.
 $$
 
-When $A$ and $B$ are mutually exclusive the overlap vanishes, so $P(A \cup B) = P(A) + P(B)$.
+  These are the go-to move whenever a question is phrased as a complement of a compound
+  event — "neither $A$ nor $B$" is $(A \cup B)' = A' \cap B'$.
 
-> **Worked example** (Walpole §2.5, Example 2.29). With $P(A) = 0.8$, $P(B) = 0.6$ and
-> $P(A \cap B) = 0.5$: $\;P(A \cup B) = 0.8 + 0.6 - 0.5 = 0.9$.
-
-## Counting techniques
+## 2.3 Counting sample points
 
 When outcomes are equally likely, probability reduces to counting. Pick the right tool:
 
@@ -74,7 +67,81 @@ Here $n$ is the number of objects available and $r$ the number arranged or chose
 > - Distinct arrangements of the letters in **STATISTICS** (S, T each ×3, I ×2, A, C ×1):
 >   $\;\dfrac{10!}{3!\,3!\,2!\,1!\,1!} = 50{,}400$.
 
-## Conditional probability and independence
+## 2.4 Probability of an event
+
+- Assigning a **probability** to an experiment means giving every sample point a weight
+  between $0$ and $1$ so that the weights across all of $S$ sum to $1$ — matching the
+  intuitive **relative frequency** of that outcome across many repetitions. The
+  probability of an event $A$ is the sum of the weights of the sample points inside it,
+  written $P(A)$, and it obeys the basic rules:
+
+$$
+0 \le P(A) \le 1,
+\qquad P(\varnothing) = 0,
+\qquad P(S) = 1.
+$$
+
+- If $A_1, A_2, A_3, \dots$ is a sequence of **mutually exclusive** events, probabilities
+  add straight across the whole sequence:
+
+$$
+P(A_1 \cup A_2 \cup A_3 \cup \cdots) = P(A_1) + P(A_2) + P(A_3) + \cdots.
+$$
+
+- When the $N$ outcomes of $S$ are **equally likely** and $n$ of them lie in $A$,
+
+$$
+P(A) = \frac{n}{N}.
+$$
+
+  The even-roll event $A = \{2, 4, 6\}$ holds $n = 3$ of the $N = 6$ outcomes in
+  $S = \{1, 2, 3, 4, 5, 6\}$, so $P(A) = \tfrac{3}{6} = \tfrac{1}{2}$.
+
+> **Worked example** (Walpole §2.4, Example 2.24). A coin is tossed twice:
+> $S = \{HH, HT, TH, TT\}$. If the coin is fair, each outcome carries weight $\tfrac14$.
+> The event "at least $1$ head" is $A = \{HH, HT, TH\}$, so
+> $P(A) = \tfrac14 + \tfrac14 + \tfrac14 = \tfrac34$.
+
+## 2.5 Additive rules
+
+- **Rule 1** — for any two events $A$ and $B$:
+
+$$
+P(A \cup B) = P(A) + P(B) - P(A \cap B).
+$$
+
+  Subtracting $P(A \cap B)$ undoes the double-count of the overlap; when $A$ and $B$ are
+  mutually exclusive the overlap vanishes and $P(A \cup B) = P(A) + P(B)$.
+- **Rule 2** extends this to three events, subtracting each pairwise overlap and then
+  restoring the triple overlap that got subtracted three times over:
+
+$$
+P(A \cup B \cup C) = P(A) + P(B) + P(C) - P(A \cap B) - P(A \cap C) - P(B \cap C) + P(A \cap B \cap C).
+$$
+
+- A collection $\{A_1, \dots, A_k\}$ is a **partition** of $S$ when the $A_i$ are mutually
+  exclusive and their union is all of $S$; their probabilities then add to $1$.
+- **Rule 3 (complement rule)** — $A$ and $A'$ partition $S$ into two pieces, so
+
+$$
+P(A) + P(A') = 1.
+$$
+
+  It is the fastest route to "at least one" / "none" questions: find the easy side,
+  subtract from $1$.
+
+> **Worked examples.**
+> - (Walpole §2.5, Example 2.29.) With $P(A) = 0.8$, $P(B) = 0.6$ and
+>   $P(A \cap B) = 0.5$: $\;P(A \cup B) = 0.8 + 0.6 - 0.5 = 0.9$.
+> - **Three-event overlap.** In a class, $P(C) = \tfrac{25}{60}$ of students take
+>   Calculus, $P(P) = \tfrac{30}{60}$ take Physics, $P(H) = \tfrac{20}{60}$ take
+>   Chemistry; $P(C \cap P) = \tfrac{10}{60}$, $P(C \cap H) = \tfrac{8}{60}$,
+>   $P(P \cap H) = \tfrac{5}{60}$, and $P(C \cap P \cap H) = \tfrac{3}{60}$. By Rule 2,
+>   $$
+>   P(C \cup P \cup H) = \frac{25 + 30 + 20 - 10 - 8 - 5 + 3}{60} = \frac{55}{60} = \frac{11}{12} \approx 0.917.
+>   $$
+
+## 2.6 Conditional probability, independence, and the product rule
 
 The **conditional probability** of $B$ given that $A$ has occurred is
 
@@ -82,13 +149,37 @@ $$
 P(B \mid A) = \frac{P(A \cap B)}{P(A)}, \qquad P(A) > 0.
 $$
 
-Rearranging gives the **product (multiplicative) rule** $\,P(A \cap B) = P(A)\,P(B \mid A)$.
-Two events are **independent** when knowing one tells you nothing about the other —
-equivalently $P(B \mid A) = P(B)$ — in which case the product rule collapses to
+**Multiplication (product) rule.** The probability that both $A$ *and* $B$ occur is the
+probability of the first, times the probability of the second *given* the first has
+occurred — the standard tool for a sequence of dependent steps, such as drawing items
+one after another without replacement:
 
 $$
-P(A \cap B) = P(A)\,P(B).
+P(A \cap B) = P(A)\,P(B \mid A) = P(B)\,P(A \mid B).
 $$
+
+(This is the same identity as the conditional-probability definition above, rearranged —
+but it is worth keeping as its own reflex: whenever a problem reads "first this happens,
+then that happens," multiply. Do not confuse it with the *counting* multiplication rule
+of §2.3, which multiplies counts of ways rather than probabilities.)
+
+**Independence.** Two events are **independent** when knowing one occurred tells you
+nothing about the other; any one of the following equivalent statements confirms it:
+
+$$
+P(A \mid B) = P(A), \qquad P(B \mid A) = P(B), \qquad P(A \cap B) = P(A)\,P(B).
+$$
+
+Independence extends to several events at once: $E_1, \dots, E_k$ are independent when
+$P(E_{i_1} \cap \cdots \cap E_{i_k}) = P(E_{i_1}) \cdots P(E_{i_k})$ for *every* subset of
+them, not just pairwise.
+
+> **Mutually exclusive is not the same as independent — the two are commonly confused.**
+> Mutually exclusive events are the most *dependent* pair possible: if
+> $A \cap B = \varnothing$, then knowing $A$ occurred tells you for certain $B$ did not,
+> so $P(B \mid A) = 0 \neq P(B)$ whenever $P(B) > 0$. Independent events, by contrast,
+> must have $P(A \cap B) = P(A)\,P(B) > 0$ whenever $P(A), P(B) > 0$ — so two events with
+> positive probability can never be both mutually exclusive and independent.
 
 > **Worked example — dependent draw.** A box holds $20$ fuses, $5$ defective; two are drawn
 > *without replacement*. The probability both are defective is
@@ -105,7 +196,15 @@ $$
 > P(\text{first}=4 \mid \text{sum}=7) = \frac{P(\text{first}=4 \,\cap\, \text{sum}=7)}{P(\text{sum}=7)} = \frac{1/36}{6/36} = \frac{1}{6}.
 > $$
 
-## Bayes' theorem
+> **Worked example — independence.** A town's fire engine is available when needed with
+> probability $0.98$, and its ambulance with probability $0.92$, the two operating
+> independently. The probability that *both* are available for a given emergency is
+>
+> $$
+> P(A \cap B) = P(A)\,P(B) = (0.98)(0.92) = 0.9016.
+> $$
+
+## 2.7 Bayes' rule
 
 Let $B_1, B_2, \dots, B_k$ be a **partition** of $S$ — mutually exclusive events that
 together cover everything, each with $P(B_i) \neq 0$. For any event $A$, the **theorem of
@@ -139,3 +238,28 @@ cause by how probable it was ($P(B_i)$) *and* how well it explains the evidence
 > $$
 > P(B_3 \mid A) = \frac{(0.25)(0.02)}{0.0245} = \frac{0.005}{0.0245} \approx 0.204.
 > $$
+
+## 2.8 Potential misconceptions and hazards
+
+Mistakes this chapter actually punishes, gathered in one place:
+
+- **Mutually exclusive is not independent.** §2.6 covers this in full; the short version is
+  worth repeating: two events with positive probability can never be both. Treating
+  disjoint events as independent (or vice versa) is the most common conceptual slip in
+  the chapter.
+- **Equally likely is an assumption, not a default.** $P(A) = n/N$ (§2.4) only holds when
+  every sample point genuinely carries the same weight. A loaded die, a biased coin, or a
+  sample space built from unequal groups breaks it — check the assumption before you
+  start counting, don't reach for it out of habit.
+- **$P(A \mid B) \neq P(B \mid A)$.** Swapping the conditioning event silently swaps cause
+  and evidence. Bayes' rule (§2.7) exists precisely to convert one into the other
+  correctly — the error shows up when someone assumes they're already equal instead of
+  running the conversion.
+- **The additive rule needs the overlap subtracted.** $P(A \cup B) = P(A) + P(B) - P(A \cap B)$
+  (§2.5): dropping the $-P(A \cap B)$ term double-counts the overlap. The opposite slip —
+  subtracting an overlap for events that are already mutually exclusive, where it is
+  already $0$ — is just as common.
+- **Draws without replacement are not independent.** Removing an item shrinks the sample
+  space for every draw after it, so $P(B \mid A) \neq P(B)$ in general (§2.6). Use the
+  product rule with a genuinely conditional second factor; reaching for $P(A)P(B)$ here
+  quietly assumes independence the setup doesn't have.
