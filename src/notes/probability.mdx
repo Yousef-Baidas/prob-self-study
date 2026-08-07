@@ -1,79 +1,155 @@
+import Notation from '../components/notes/Notation.astro';
+import Figure from '../components/notes/Figure.astro';
+import Venn from '../components/notes/ch02/Venn.astro';
+import DiceGrid from '../components/notes/ch02/DiceGrid.astro';
+import ProbTree from '../components/notes/ch02/ProbTree.astro';
+
 ## 2.1 Sample space
 
-- **Sample space** $S$ — the set of *all* possible outcomes of an experiment. Write it by
-  **listing** its outcomes inside braces: $S = \{H, T\}$ for one toss of a coin, and
-  $S = \{1, 2, 3, 4, 5, 6\}$ for one roll of a die. The order you list them in carries no
-  meaning, and no outcome appears twice. When an outcome has several parts, list it as an
-  **ordered pair** — rolling two dice gives $S = \{(1,1), (1,2), \dots, (6,6)\}$, all $36$
-  of them, where $(2,5)$ and $(5,2)$ are *different* outcomes: the order *within* an
-  outcome carries meaning even though the order you list outcomes in does not. When
-  listing everything is impractical, give the **rule** the outcomes satisfy instead,
-  $S = \{x \mid x \text{ is a city with over a million people}\}$, read "the set of all $x$
-  such that …". $S$ is **discrete** when its outcomes are finite or countably infinite, and
-  **continuous** when it contains an interval of real numbers.
-- **Tree diagram** — when an experiment runs in stages, a tree lists sample points
-  systematically: branch once per stage, and each root-to-tip path spells out one sample
-  point. Flip a coin, and flip again only if it lands heads — otherwise roll a die once —
-  gives $S = \{HH, HT, T1, T2, T3, T4, T5, T6\}$, one outcome per path.
+Toss a coin once. Before you toss it, you can write down every result that could happen:
+heads, or tails — nothing else is possible. That full list of possible results is the
+**sample space** for the experiment.
+
+<Notation rows={[
+  { name: 'the outcome list (one coin toss)', symbol: 'S = \\{H, T\\}' },
+  { name: 'the outcome list (one die roll)', symbol: 'S = \\{1, 2, 3, 4, 5, 6\\}' },
+]} />
+
+Two rules govern how you write a sample space down: the order you list outcomes in carries
+no meaning, and no outcome appears twice.
+
+When one outcome has several parts, list it as an **ordered pair**. Roll two dice, and each
+outcome is "what the first die showed" paired with "what the second die showed" — 36
+outcomes in all, from $(1,1)$ up to $(6,6)$. The order *within* an outcome matters even
+though the order you list outcomes in doesn't: rolling a 2 then a 5 is a different outcome
+from rolling a 5 then a 2.
+
+<Figure caption="36 equally likely outcomes. (2, 5) and (5, 2) are different cells — which die showed which number matters, even though the order you list outcomes in doesn't.">
+  <DiceGrid
+    title="6 by 6 grid of two-dice outcomes, with (2,5) and (5,2) ringed as distinct outcomes"
+    emphasize={[[2, 5], [5, 2]]}
+  />
+</Figure>
+
+When listing every outcome is impractical, give the rule they satisfy instead:
+$S = \{x \mid x \text{ is a city with over a million people}\}$, read "the set of all $x$
+such that …". A sample space is **discrete** when its outcomes are finite or countably
+infinite, and **continuous** when it contains an interval of real numbers.
+
+**Tree diagram.** When an experiment runs in stages, a tree lists sample points
+systematically: branch once per stage, and each root-to-tip path spells out one sample
+point. Flip a coin, and flip again only if it lands heads — otherwise roll a die once —
+gives $S = \{HH, HT, T1, T2, T3, T4, T5, T6\}$, one outcome per path.
 
 ## 2.2 Events
 
-- **Event** — any subset of $S$, written the same way: "the roll is even" is the event
-  $A = \{2, 4, 6\}$. The **complement** $A'$ is everything in $S$ not in $A$, here
-  $A' = \{1, 3, 5\}$; the **intersection** $A \cap B$ is the outcomes in *both*; the
-  **union** $A \cup B$ is the outcomes in *either*. Events are **mutually exclusive**
-  (disjoint) when $A \cap B = \varnothing$ — they share no outcomes, so at most one of
-  them can occur on a given trial.
-- Event combinations follow ordinary set algebra: unions and intersections commute and
-  distribute over each other, and **De Morgan's laws** turn a complement of a union or
-  intersection into the complement of the pieces:
+You care whether a die roll comes up even, and whether it comes up 4 or higher. Call the
+first `evenRoll`, the second `highRoll`. Any such subset of the sample space is called an
+**event**.
+
+<Notation rows={[
+  { name: 'evenRoll', symbol: 'A = \\{2, 4, 6\\}' },
+  { name: 'highRoll', symbol: 'B = \\{4, 5, 6\\}' },
+  { name: 'everything not evenRoll', symbol: "A'", note: 'the complement' },
+  { name: 'evenRoll and highRoll together', symbol: 'A \\cap B', note: 'the intersection — outcomes in both' },
+  { name: 'evenRoll or highRoll, or both', symbol: 'A \\cup B', note: 'the union — outcomes in either' },
+]} />
+
+Three ways to combine events show up constantly, now that each has a name to go with its
+symbol:
+
+- **The complement** — everything in $S$ that isn't in evenRoll — is $A' = \{1, 3, 5\}$.
+- **The intersection** — everything in both evenRoll and highRoll — is $A \cap B = \{4, 6\}$.
+- **The union** — everything in evenRoll or highRoll, or both — is $A \cup B = \{2, 4, 5, 6\}$.
+
+<Figure caption="The union: every outcome that's even, at least 4, or both.">
+  <Venn labelA="evenRoll" labelB="highRoll" shade="union" title="Venn diagram of evenRoll union highRoll, both circles shaded" />
+</Figure>
+
+<Figure caption="The intersection: only the outcomes the two events share.">
+  <Venn labelA="evenRoll" labelB="highRoll" shade="intersection" title="Venn diagram of evenRoll intersect highRoll, only the overlap shaded" />
+</Figure>
+
+<Figure caption="The complement of evenRoll: everything left once evenRoll is ruled out.">
+  <Venn labelA="evenRoll" labelB="highRoll" shade="complementA" title="Venn diagram of the complement of evenRoll, everything outside the evenRoll circle shaded" />
+</Figure>
+
+Two events are **mutually exclusive** (disjoint) when they share no outcomes at all,
+$A \cap B = \varnothing$ — so at most one of them can happen on a given trial. `evenRoll`
+and "the roll is odd" are mutually exclusive: a single roll can't be both.
+
+Event combinations follow ordinary set algebra: unions and intersections commute and
+distribute over each other, and **De Morgan's laws** turn a complement of a union or
+intersection into the complement of the pieces:
 
 $$
 (A \cup B)' = A' \cap B', \qquad (A \cap B)' = A' \cup B'.
 $$
 
-  These are the go-to move whenever a question is phrased as a complement of a compound
-  event — "neither $A$ nor $B$" is $(A \cup B)' = A' \cap B'$.
+These are the go-to move whenever a question is phrased as a complement of a compound
+event — "neither evenRoll nor highRoll" is $(A \cup B)' = A' \cap B'$.
 
 ## 2.3 Counting sample points
 
-When outcomes are equally likely, probability reduces to counting. Pick the right tool:
+Suppose a club has 10 members and needs to pick a 3-person committee. How many different
+committees are possible? Questions like this — every outcome equally likely, nothing left
+to do but count them — need a counting tool, not a probability formula. Four tools cover
+almost every case.
 
-- **Multiplication rule** — a sequence of $k$ operations performable in $n_1, n_2, \dots, n_k$
-  ways can be done together in $\,n_1 n_2 \cdots n_k\,$ ways.
-- **Permutations** — *ordered* arrangements. All $n$ objects: $n!$. Taking $r$ of $n$,
-  written ${}_{n}P_{r}$ or $P(n, r)$ — the two-argument $P$ is a count, not a probability:
+**Multiplication rule** — a sequence of $k$ operations, performable in $n_1, n_2, \dots,
+n_k$ ways respectively, can be done together in $n_1 n_2 \cdots n_k$ ways.
+
+**Permutations** count *ordered* arrangements, where swapping two chosen items gives a
+different outcome. Arranging all $n$ objects can be done in $n!$ ways. Arranging $r$ of
+them, order mattering, is called `arrangementsOf(n, r)`:
+
+<Notation rows={[
+  { name: 'arrangementsOf(n, r)', symbol: '{}_{n}P_{r} = P(n, r) = \\dfrac{n!}{(n-r)!}', note: 'ordered — swapping two chosen items counts as a different arrangement' },
+  { name: 'n factorial', symbol: 'n! = n(n-1)\\cdots(2)(1), \\quad 0! = 1' },
+]} />
+
+The two-argument $P(n, r)$ is a count of arrangements, not a probability — don't confuse
+this use of the letter $P$ with the probability $P(A)$ from §2.4.
+
+**Non-distinct objects.** Arranging $n$ items where $n_i$ of them are identical copies of
+kind $i$ gives fewer distinct arrangements, since swapping two identical items changes
+nothing:
 
 $$
-{}_{n}P_{r} = P(n, r) = \frac{n!}{(n-r)!},
-\qquad n! = n(n-1)\cdots(2)(1), \quad 0! = 1.
+\frac{n!}{n_1!\, n_2! \cdots n_k!}.
 $$
 
-- **Non‑distinct objects** — arrangements of $n$ items, $n_i$ of kind $i$:
-  $\;\dfrac{n!}{n_1!\,n_2! \cdots n_k!}$.
-- **Combinations** — *unordered* selections of $r$ from $n$ (order does **not** matter).
-  The same number is written three ways — ${}_{n}C_{r}$, $C(n, r)$ and $\binom{n}{r}$ —
-  and all three are read "$n$ choose $r$":
+**Combinations** count *unordered* selections of $r$ from $n$ — the committee question,
+where who's picked matters but not the order they were picked in. Call it
+`choicesOf(n, r)`, written three equivalent ways and read "$n$ choose $r$":
 
-$$
-{}_{n}C_{r} = C(n, r) = \binom{n}{r} = \frac{n!}{r!\,(n-r)!}.
-$$
+<Notation rows={[
+  { name: 'choicesOf(n, r)', symbol: '{}_{n}C_{r} = C(n, r) = \\binom{n}{r} = \\dfrac{n!}{r!\\,(n-r)!}', note: 'unordered' },
+]} />
 
 Here $n$ is the number of objects available and $r$ the number arranged or chosen.
 
 > **Worked examples.**
-> - A committee of $3$ is chosen from $10$ people (order irrelevant):
+> - The committee of 3 from 10 people, order irrelevant:
 >   $\;{}_{10}C_{3} = \binom{10}{3} = \dfrac{10!}{3!\,7!} = 120$ ways.
 > - Distinct arrangements of the letters in **STATISTICS** (S, T each ×3, I ×2, A, C ×1):
 >   $\;\dfrac{10!}{3!\,3!\,2!\,1!\,1!} = 50{,}400$.
 
 ## 2.4 Probability of an event
 
-- Assigning a **probability** to an experiment means giving every sample point a weight
-  between $0$ and $1$ so that the weights across all of $S$ sum to $1$ — matching the
-  intuitive **relative frequency** of that outcome across many repetitions. The
-  probability of an event $A$ is the sum of the weights of the sample points inside it,
-  written $P(A)$, and it obeys the basic rules:
+Toss a fair coin twice. Four things could happen: $HH$, $HT$, $TH$, $TT$. Since the coin is
+fair, each of the four is equally likely — none is favoured over the others.
+
+Assigning a **probability** to an experiment means giving every outcome a weight between 0
+and 1, so the weights across the whole sample space sum to 1 — matching how often that
+outcome would actually turn up across many repetitions (its **relative frequency**). Call
+the weight of an event its `chance`:
+
+<Notation rows={[
+  { name: 'chance of event A', symbol: 'P(A)' },
+]} />
+
+`chance` obeys three basic rules, whatever the experiment:
 
 $$
 0 \le P(A) \le 1,
@@ -81,93 +157,142 @@ $$
 \qquad P(S) = 1.
 $$
 
-- If $A_1, A_2, A_3, \dots$ is a sequence of **mutually exclusive** events, probabilities
-  add straight across the whole sequence:
+**Why do mutually exclusive events matter here?** Because their chances add straight
+across, with nothing to subtract. If $A_1, A_2, A_3, \dots$ never overlap,
 
 $$
 P(A_1 \cup A_2 \cup A_3 \cup \cdots) = P(A_1) + P(A_2) + P(A_3) + \cdots.
 $$
 
-- When the $N$ outcomes of $S$ are **equally likely** and $n$ of them lie in $A$,
+**When every outcome is equally likely,** `chance` collapses to counting: if the sample
+space has $N$ outcomes and $n$ of them lie in event $A$,
 
 $$
 P(A) = \frac{n}{N}.
 $$
 
-  The even-roll event $A = \{2, 4, 6\}$ holds $n = 3$ of the $N = 6$ outcomes in
-  $S = \{1, 2, 3, 4, 5, 6\}$, so $P(A) = \tfrac{3}{6} = \tfrac{1}{2}$.
+`evenRoll` from §2.2 holds $n = 3$ of the $N = 6$ outcomes in $S = \{1, 2, 3, 4, 5, 6\}$, so
+$P(\text{evenRoll}) = \tfrac{3}{6} = \tfrac{1}{2}$.
 
-> **Worked example** (Walpole §2.4, Example 2.24). A coin is tossed twice:
-> $S = \{HH, HT, TH, TT\}$. If the coin is fair, each outcome carries weight $\tfrac14$.
-> The event "at least $1$ head" is $A = \{HH, HT, TH\}$, so
-> $P(A) = \tfrac14 + \tfrac14 + \tfrac14 = \tfrac34$.
+> **Worked example** (Walpole §2.4, Example 2.24). Back to the two coin tosses:
+> $S = \{HH, HT, TH, TT\}$, each outcome weighted $\tfrac14$. The event "at least 1 head"
+> is $\{HH, HT, TH\}$, so its chance is
+> $P(\text{at least 1 head}) = \tfrac14 + \tfrac14 + \tfrac14 = \tfrac34$.
 
 ## 2.5 Additive rules
 
-- **Rule 1** — for any two events $A$ and $B$:
+A hospital finds that 80% of its patients need medication, 60% need therapy, and 50% need
+both. What fraction need medication or therapy, or both? Call the two events `needsMed` and
+`needsTherapy`.
+
+<Notation rows={[
+  { name: 'needsMed', symbol: 'A', note: 'P(A) = 0.8' },
+  { name: 'needsTherapy', symbol: 'B', note: 'P(B) = 0.6' },
+]} />
+
+**Rule 1** answers it for any two events $A$ and $B$:
 
 $$
 P(A \cup B) = P(A) + P(B) - P(A \cap B).
 $$
 
-  Subtracting $P(A \cap B)$ undoes the double-count of the overlap; when $A$ and $B$ are
-  mutually exclusive the overlap vanishes and $P(A \cup B) = P(A) + P(B)$.
-- **Rule 2** extends this to three events, subtracting each pairwise overlap and then
-  restoring the triple overlap that got subtracted three times over:
+<Figure caption="Adding P(needsMed) and P(needsTherapy) counts the overlap twice — subtracting P(needsMed ∩ needsTherapy) undoes that double-count.">
+  <Venn labelA="needsMed" labelB="needsTherapy" shade="union" title="Venn diagram of needsMed union needsTherapy" />
+</Figure>
+
+Here $P(A \cup B) = 0.8 + 0.6 - 0.5 = 0.9$ (Walpole §2.5, Example 2.29): 90% of patients
+need at least one of the two. Subtracting $P(A \cap B)$ undoes the double-count of the
+overlap; when the two events are mutually exclusive the overlap vanishes and
+$P(A \cup B) = P(A) + P(B)$.
+
+**Rule 2** extends this to three events, subtracting each pairwise overlap and then
+restoring the triple overlap that got subtracted three times over:
 
 $$
 P(A \cup B \cup C) = P(A) + P(B) + P(C) - P(A \cap B) - P(A \cap C) - P(B \cap C) + P(A \cap B \cap C).
 $$
 
-- A collection $\{A_1, \dots, A_k\}$ is a **partition** of $S$ when the $A_i$ are mutually
-  exclusive and their union is all of $S$; their probabilities then add to $1$.
-- **Rule 3 (complement rule)** — $A$ and $A'$ partition $S$ into two pieces, so
+> **Worked example — three-event overlap.** In a class, $P(C) = \tfrac{25}{60}$ of students
+> take Calculus, $P(P) = \tfrac{30}{60}$ take Physics, $P(H) = \tfrac{20}{60}$ take
+> Chemistry; $P(C \cap P) = \tfrac{10}{60}$, $P(C \cap H) = \tfrac{8}{60}$,
+> $P(P \cap H) = \tfrac{5}{60}$, and $P(C \cap P \cap H) = \tfrac{3}{60}$. By Rule 2,
+>
+> $$
+> P(C \cup P \cup H) = \frac{25 + 30 + 20 - 10 - 8 - 5 + 3}{60} = \frac{55}{60} = \frac{11}{12} \approx 0.917.
+> $$
+
+A collection $\{A_1, \dots, A_k\}$ is a **partition** of $S$ when the pieces are mutually
+exclusive and their union is all of $S$; their probabilities then add to 1.
+
+`evenRoll` and its complement partition $S$ into two pieces — every outcome is one or the
+other, never both — which gives **Rule 3, the complement rule**:
 
 $$
 P(A) + P(A') = 1.
 $$
 
-  It is the fastest route to "at least one" / "none" questions: find the easy side,
-  subtract from $1$.
+<Figure caption="evenRoll and its complement split S with nothing left over and nothing shared, so their chances must add to 1.">
+  <Venn labelA="evenRoll" labelB="highRoll" shade="complementA" title="Venn diagram of the complement of evenRoll" />
+</Figure>
 
-> **Worked examples.**
-> - (Walpole §2.5, Example 2.29.) With $P(A) = 0.8$, $P(B) = 0.6$ and
->   $P(A \cap B) = 0.5$: $\;P(A \cup B) = 0.8 + 0.6 - 0.5 = 0.9$.
-> - **Three-event overlap.** In a class, $P(C) = \tfrac{25}{60}$ of students take
->   Calculus, $P(P) = \tfrac{30}{60}$ take Physics, $P(H) = \tfrac{20}{60}$ take
->   Chemistry; $P(C \cap P) = \tfrac{10}{60}$, $P(C \cap H) = \tfrac{8}{60}$,
->   $P(P \cap H) = \tfrac{5}{60}$, and $P(C \cap P \cap H) = \tfrac{3}{60}$. By Rule 2,
->   $$
->   P(C \cup P \cup H) = \frac{25 + 30 + 20 - 10 - 8 - 5 + 3}{60} = \frac{55}{60} = \frac{11}{12} \approx 0.917.
->   $$
+The complement rule is the fastest route to "at least one" / "none" questions: find the
+easy side, subtract from 1.
 
 ## 2.6 Conditional probability, independence, and the product rule
 
-The **conditional probability** of $B$ given that $A$ has occurred is
+A box holds 20 fuses, 5 of them defective. You draw one fuse and set it aside, then draw a
+second. Call the first draw `firstDefective` and the second `secondDefective`.
 
-$$
-P(B \mid A) = \frac{P(A \cap B)}{P(A)}, \qquad P(A) > 0.
-$$
+Once `firstDefective` has happened, you are no longer drawing from the original box of 20.
+You're drawing from what's left: 19 fuses, only 4 of them defective. The chance
+`secondDefective` happens *given that* `firstDefective` already did is a chance computed
+inside that smaller, 19-fuse population — a different number from the chance a fuse drawn
+at random from the full box is defective. That "given that" chance, worked out inside the
+shrunken population, is the **conditional probability**:
 
-**Multiplication (product) rule.** The probability that both $A$ *and* $B$ occur is the
-probability of the first, times the probability of the second *given* the first has
-occurred — the standard tool for a sequence of dependent steps, such as drawing items
-one after another without replacement:
+<Notation rows={[
+  { name: 'chance of secondDefective, given firstDefective happened', symbol: 'P(B \\mid A) = \\dfrac{P(A \\cap B)}{P(A)}, \\quad P(A) > 0' },
+]} />
+
+**Why does this matter?** Because "given that" always means "inside this smaller
+population now" — mixing that up with the original, unconditioned population is the single
+most common mistake in this chapter (more on this in §2.8).
+
+**Multiplication (product) rule.** The chance that both `firstDefective` *and*
+`secondDefective` happen is the chance of the first, times the chance of the second *given*
+the first already happened. This is the standard tool for a sequence of dependent steps —
+drawing items one after another without replacement is the classic case:
 
 $$
 P(A \cap B) = P(A)\,P(B \mid A) = P(B)\,P(A \mid B).
 $$
 
-(This is the same identity as the conditional-probability definition above, rearranged —
-but it is worth keeping as its own reflex: whenever a problem reads "first this happens,
-then that happens," multiply. Do not confuse it with the *counting* multiplication rule
-of §2.3, which multiplies counts of ways rather than probabilities.)
+> **Worked example — the fuse box.** $P(\text{firstDefective}) = \tfrac{5}{20}$. Given that,
+> only 4 of the remaining 19 fuses are defective, so
+> $P(\text{secondDefective} \mid \text{firstDefective}) = \tfrac{4}{19}$. Both together:
+>
+> $$
+> P(A \cap B) = P(A)\,P(B \mid A) = \frac{5}{20}\cdot\frac{4}{19} = \frac{1}{19}.
+> $$
 
-**Independence.** Two events are **independent** when knowing one occurred tells you
-nothing about the other; any one of the following equivalent statements confirms it:
+(This is the same identity as the conditional-probability definition above, rearranged —
+but it earns its own reflex: whenever a problem reads "first this happens, then that
+happens," multiply. Do not confuse it with the *counting* multiplication rule of §2.3,
+which multiplies counts of ways, not probabilities.)
+
+**Independence.** A town's fire engine is available when needed with probability 0.98, and
+its ambulance with probability 0.92, and the two operate independently of each other.
+"Independently" means knowing one is available tells you nothing about the other — any one
+of the following equivalent statements confirms it:
 
 $$
 P(A \mid B) = P(A), \qquad P(B \mid A) = P(B), \qquad P(A \cap B) = P(A)\,P(B).
+$$
+
+The chance that *both* are available for a given emergency is
+
+$$
+P(A \cap B) = P(A)\,P(B) = (0.98)(0.92) = 0.9016.
 $$
 
 Independence extends to several events at once: $E_1, \dots, E_k$ are independent when
@@ -175,65 +300,88 @@ $P(E_{i_1} \cap \cdots \cap E_{i_k}) = P(E_{i_1}) \cdots P(E_{i_k})$ for *every*
 them, not just pairwise.
 
 > **Mutually exclusive is not the same as independent — the two are commonly confused.**
-> Mutually exclusive events are the most *dependent* pair possible: if
-> $A \cap B = \varnothing$, then knowing $A$ occurred tells you for certain $B$ did not,
-> so $P(B \mid A) = 0 \neq P(B)$ whenever $P(B) > 0$. Independent events, by contrast,
+> Take a single lottery ticket: `wins` and `loses` are mutually exclusive — a ticket can't
+> do both — but they are about as *dependent* as two events can get. Knowing `wins`
+> happened tells you for certain `loses` did not, so $P(\text{loses} \mid \text{wins}) = 0
+> \neq P(\text{loses})$ whenever $P(\text{loses}) > 0$. Independent events, by contrast,
 > must have $P(A \cap B) = P(A)\,P(B) > 0$ whenever $P(A), P(B) > 0$ — so two events with
 > positive probability can never be both mutually exclusive and independent.
 
-> **Worked example — dependent draw.** A box holds $20$ fuses, $5$ defective; two are drawn
-> *without replacement*. The probability both are defective is
->
-> $$
-> P(A \cap B) = P(A)\,P(B \mid A) = \frac{5}{20}\cdot\frac{4}{19} = \frac{1}{19}.
-> $$
-
 > **Worked example — conditioning shrinks the sample space.** Two fair dice are rolled.
-> *Given* that the sum is $7$, find $P(\text{first die} = 4)$. The sum $7$ occurs in $6$
-> equally likely ways $\{(1,6),\dots,(6,1)\}$, and only $(4,3)$ has a $4$ first:
+> *Given* that the total is 7, what's the chance the first die showed a 4?
+
+<Figure caption="6 of the 36 outcomes total 7; only one of those six — (4, 3), ringed — has a 4 on the first die.">
+  <DiceGrid
+    title="6 by 6 grid with the six outcomes summing to 7 highlighted, and (4,3) ringed"
+    highlight={[[1, 6], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1]]}
+    emphasize={[[4, 3]]}
+  />
+</Figure>
+
+> The total of 7 occurs in 6 equally likely ways, and only $(4,3)$ has a 4 first:
 >
 > $$
 > P(\text{first}=4 \mid \text{sum}=7) = \frac{P(\text{first}=4 \,\cap\, \text{sum}=7)}{P(\text{sum}=7)} = \frac{1/36}{6/36} = \frac{1}{6}.
 > $$
 
-> **Worked example — independence.** A town's fire engine is available when needed with
-> probability $0.98$, and its ambulance with probability $0.92$, the two operating
-> independently. The probability that *both* are available for a given emergency is
->
-> $$
-> P(A \cap B) = P(A)\,P(B) = (0.98)(0.92) = 0.9016.
-> $$
-
 ## 2.7 Bayes' rule
 
-Let $B_1, B_2, \dots, B_k$ be a **partition** of $S$ — mutually exclusive events that
-together cover everything, each with $P(B_i) \neq 0$. For any event $A$, the **theorem of
-total probability** assembles $P(A)$ from the pieces:
+A factory buys parts from three machines. `machine1` makes 30% of the output, `machine2`
+makes 45%, `machine3` makes 25%. Their defect rates are 2%, 3%, and 2% respectively. A part
+comes off the line and turns out to be `defective`.
+
+**Question 1 — before you know which machine made it, what's the overall chance a part is
+defective?** Each machine contributes its share of output times its own defect rate:
 
 $$
-P(A) = \sum_{i=1}^{k} P(B_i)\,P(A \mid B_i).
+P(A) = (0.30)(0.02) + (0.45)(0.03) + (0.25)(0.02) = 0.0245.
 $$
 
-**Bayes' rule** then reverses the conditioning — from the *likelihoods* $P(A \mid B_i)$ back
-to the *posterior* $P(B_r \mid A)$:
+This is the **theorem of total probability**, stated for any partition $B_1, \dots, B_k$ of
+$S$ — mutually exclusive events that together cover everything, each with $P(B_i) \neq 0$:
 
-$$
-P(B_r \mid A) = \frac{P(B_r)\,P(A \mid B_r)}{\displaystyle\sum_{i=1}^{k} P(B_i)\,P(A \mid B_i)}.
-$$
+<Notation rows={[
+  { name: 'machine1, machine2, machine3 — a partition of every part made', symbol: 'B_1, B_2, B_3' },
+  { name: 'defective', symbol: 'A' },
+  { name: 'overall chance a part is defective', symbol: 'P(A) = \\sum_{i=1}^{k} P(B_i)\\,P(A \\mid B_i)' },
+]} />
+
+<Figure minWidth={470} caption="Multiply along each path for that path's chance; add the three defective-leaf products to get the overall 2.45% defect rate.">
+  <ProbTree
+    title="Probability tree: three machines branching into defective or not defective, with path products at the leaves"
+    root="1 part"
+    branches={[
+      { label: 'machine1 (30%)', prob: '0.30', leaves: [
+        { label: 'defective', prob: '0.02', product: '0.30 × 0.02 = 0.006' },
+        { label: 'not defective', prob: '0.98', product: '0.30 × 0.98 = 0.294' },
+      ] },
+      { label: 'machine2 (45%)', prob: '0.45', leaves: [
+        { label: 'defective', prob: '0.03', product: '0.45 × 0.03 = 0.0135' },
+        { label: 'not defective', prob: '0.97', product: '0.45 × 0.97 = 0.4365' },
+      ] },
+      { label: 'machine3 (25%)', prob: '0.25', leaves: [
+        { label: 'defective', prob: '0.02', product: '0.25 × 0.02 = 0.005' },
+        { label: 'not defective', prob: '0.98', product: '0.25 × 0.98 = 0.245' },
+      ] },
+    ]}
+  />
+</Figure>
+
+**Question 2 — the part turned out defective. What's the chance it came from `machine3`?**
+This reverses the conditioning: Question 1 went from "which machine" to "chance of
+defective"; this goes the other way, from "it's defective" back to "which machine." That
+reversal is **Bayes' rule**:
+
+<Notation rows={[
+  { name: 'updated chance it was machine_r, now that the part is known to be defective', symbol: 'P(B_r \\mid A) = \\dfrac{P(B_r)\\,P(A \\mid B_r)}{\\sum_{i=1}^{k} P(B_i)\\,P(A \\mid B_i)}' },
+]} />
 
 Think of the $B_i$ as competing **causes** and $A$ as the **evidence**: Bayes weighs each
-cause by how probable it was ($P(B_i)$) *and* how well it explains the evidence
-($P(A \mid B_i)$).
+cause by how probable it was on its own ($P(B_i)$) *and* by how well it explains the
+evidence ($P(A \mid B_i)$).
 
-> **Worked example** (Walpole §2.7, Examples 2.41–2.42). Machines $B_1, B_2, B_3$ make
-> $30\%$, $45\%$, $25\%$ of output, with defect rates $2\%$, $3\%$, $2\%$. A product is found
-> defective ($A$).
->
-> $$
-> P(A) = (0.30)(0.02) + (0.45)(0.03) + (0.25)(0.02) = 0.0245.
-> $$
->
-> The chance it came from machine $B_3$ is
+> **Worked example** (Walpole §2.7, Examples 2.41–2.42). Using the numbers above, the
+> chance a defective part came from `machine3` is
 >
 > $$
 > P(B_3 \mid A) = \frac{(0.25)(0.02)}{0.0245} = \frac{0.005}{0.0245} \approx 0.204.
@@ -247,19 +395,21 @@ Mistakes this chapter actually punishes, gathered in one place:
   worth repeating: two events with positive probability can never be both. Treating
   disjoint events as independent (or vice versa) is the most common conceptual slip in
   the chapter.
-- **Equally likely is an assumption, not a default.** $P(A) = n/N$ (§2.4) only holds when
-  every sample point genuinely carries the same weight. A loaded die, a biased coin, or a
-  sample space built from unequal groups breaks it — check the assumption before you
+- **Equally likely is an assumption, not a default.** The formula $P(A) = n/N$ (§2.4) only
+  holds when every outcome genuinely carries the same weight. A loaded die, a biased coin,
+  or a sample space built from unequal groups breaks it — check the assumption before you
   start counting, don't reach for it out of habit.
-- **$P(A \mid B) \neq P(B \mid A)$.** Swapping the conditioning event silently swaps cause
-  and evidence. Bayes' rule (§2.7) exists precisely to convert one into the other
-  correctly — the error shows up when someone assumes they're already equal instead of
-  running the conversion.
+- **Conditioning is not symmetric.** `secondDefective` given `firstDefective` is a
+  different question from `firstDefective` given `secondDefective` — swapping which event
+  you condition on silently swaps cause and evidence, so $P(A \mid B) \neq P(B \mid A)$ in
+  general. Bayes' rule (§2.7) exists precisely to convert one into the other correctly; the
+  error shows up when someone assumes they're already equal instead of running the
+  conversion.
 - **The additive rule needs the overlap subtracted.** $P(A \cup B) = P(A) + P(B) - P(A \cap B)$
   (§2.5): dropping the $-P(A \cap B)$ term double-counts the overlap. The opposite slip —
   subtracting an overlap for events that are already mutually exclusive, where it is
-  already $0$ — is just as common.
-- **Draws without replacement are not independent.** Removing an item shrinks the sample
-  space for every draw after it, so $P(B \mid A) \neq P(B)$ in general (§2.6). Use the
+  already 0 — is just as common.
+- **Draws without replacement are not independent.** Removing an item shrinks the
+  population for every draw after it, so $P(B \mid A) \neq P(B)$ in general (§2.6). Use the
   product rule with a genuinely conditional second factor; reaching for $P(A)P(B)$ here
   quietly assumes independence the setup doesn't have.

@@ -1,0 +1,74 @@
+---
+// The 6x6 grid of two-dice outcomes. Data-driven so the same component
+// serves both a plain "36 equally likely outcomes" figure (§2.1) and a
+// figure highlighting one event's outcomes (§2.6) — the geometry never
+// hand-drawn, so it can't drift from the prose.
+interface Props {
+  title: string;
+
+  // 1-indexed [firstDie, secondDie] pairs to fill with the event colour.
+  highlight?: [number, number][];
+
+  // 1-indexed [firstDie, secondDie] pairs to ring, for one outcome singled
+  // out inside a highlighted set.
+  emphasize?: [number, number][];
+}
+
+const { title, highlight = [], emphasize = [] } = Astro.props;
+
+const cell = 28;
+const gutter = 22;
+const faces = [1, 2, 3, 4, 5, 6];
+
+const isIn = (list: [number, number][], a: number, b: number) => list.some(([x, y]) => x === a && y === b);
+
+const size = gutter + cell * 6;
+---
+
+<svg viewBox={`0 0 ${size} ${size}`} role="img" aria-label={title}>
+  <title>{title}</title>
+
+  {faces.map((f, i) => (
+    <text x={gutter + i * cell + cell / 2} y={gutter * 0.65} class="grid-axis" aria-hidden="true">{f}</text>
+  ))}
+
+  {faces.map((f, i) => (
+    <text x={gutter * 0.4} y={gutter + i * cell + cell / 2 + 4} class="grid-axis" aria-hidden="true">{f}</text>
+  ))}
+
+  {faces.map((a, i) =>
+    faces.map((b, j) => {
+      const x = gutter + j * cell;
+      const y = gutter + i * cell;
+      const on = isIn(highlight, a, b);
+      const marked = isIn(emphasize, a, b);
+      return (
+        <g aria-hidden="true">
+          <rect
+            x={x}
+            y={y}
+            width={cell}
+            height={cell}
+            fill={on ? 'var(--color-accent-soft)' : 'var(--color-surface)'}
+            stroke="var(--color-border)"
+          />
+          {marked && (
+            <rect x={x + 2} y={y + 2} width={cell - 4} height={cell - 4} fill="none" stroke="var(--color-accent)" stroke-width="2" />
+          )}
+        </g>
+      );
+    }),
+  )}
+
+  <style>
+    text.grid-axis {
+      font-size: 10px;
+
+      font-family: var(--font-sans);
+
+      fill: var(--color-text-muted);
+
+      text-anchor: middle;
+    }
+  </style>
+</svg>

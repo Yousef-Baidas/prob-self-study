@@ -1,0 +1,118 @@
+---
+import { iqrStats } from './stats';
+
+interface Props {
+  values: number[];
+
+  title: string;
+
+  unit?: string;
+
+  width?: number;
+
+  height?: number;
+}
+
+const { values, title, unit = '', width = 600, height = 210 } = Astro.props;
+
+const sorted = [...values].sort((a, b) => a - b);
+
+const { q1, q2, q3, lowerFence, upperFence } = iqrStats(sorted);
+
+const inFence = sorted.filter((v) => v >= lowerFence && v <= upperFence);
+
+const whiskerLow = inFence[0];
+
+const whiskerHigh = inFence[inFence.length - 1];
+
+const outliers = sorted.filter((v) => v < lowerFence || v > upperFence);
+
+const marginX = 32;
+
+const plotWidth = width - marginX * 2;
+
+const domainMin = Math.min(sorted[0], lowerFence) - (sorted[sorted.length - 1] - sorted[0]) * 0.08;
+
+const domainMax = Math.max(sorted[sorted.length - 1], upperFence) + (sorted[sorted.length - 1] - sorted[0]) * 0.08;
+
+const x = (v: number) => marginX + ((v - domainMin) / (domainMax - domainMin)) * plotWidth;
+
+const baselineY = height * 0.57;
+
+const boxHalf = 22;
+
+const capHalf = 10;
+
+const withUnit = (v: number) => (unit ? `${v} ${unit}` : `${v}`);
+
+// Q1, the median and Q3 sit close together whenever an outlier stretches the
+// scale, so their labels get their own vertical tier and a leader line rather
+// than a shared row they would overlap in.
+const quartileLabels = [
+  { value: q1, text: `Q1 ${withUnit(Math.round(q1 * 100) / 100)}`, tier: 0, accent: false },
+  { value: q2, text: `median ${withUnit(Math.round(q2 * 100) / 100)}`, tier: 1, accent: true },
+  { value: q3, text: `Q3 ${withUnit(Math.round(q3 * 100) / 100)}`, tier: 2, accent: false },
+];
+
+const tierY = (tier: number) => baselineY - boxHalf - 14 - tier * 26;
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} role="img">
+  <title>{title}</title>
+
+  <line x1={x(lowerFence)} y1={baselineY - boxHalf - 12} x2={x(lowerFence)} y2={baselineY + boxHalf + 12} stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />
+
+  <line x1={x(upperFence)} y1={baselineY - boxHalf - 12} x2={x(upperFence)} y2={baselineY + boxHalf + 12} stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />
+
+  <line x1={x(whiskerLow)} y1={baselineY} x2={x(q1)} y2={baselineY} stroke="var(--color-border)" stroke-width="1.5" />
+
+  <line x1={x(q3)} y1={baselineY} x2={x(whiskerHigh)} y2={baselineY} stroke="var(--color-border)" stroke-width="1.5" />
+
+  <line x1={x(whiskerLow)} y1={baselineY - capHalf} x2={x(whiskerLow)} y2={baselineY + capHalf} stroke="var(--color-border)" stroke-width="1.5" />
+
+  <line x1={x(whiskerHigh)} y1={baselineY - capHalf} x2={x(whiskerHigh)} y2={baselineY + capHalf} stroke="var(--color-border)" stroke-width="1.5" />
+
+  <rect x={x(q1)} y={baselineY - boxHalf} width={x(q3) - x(q1)} height={boxHalf * 2} fill="var(--color-accent-soft)" stroke="var(--color-accent)" stroke-width="1.5" />
+
+  <line x1={x(q2)} y1={baselineY - boxHalf} x2={x(q2)} y2={baselineY + boxHalf} stroke="var(--color-accent)" stroke-width="2.5" />
+
+  {
+    outliers.map((v) => (
+      <circle cx={x(v)} cy={baselineY} r="6" fill="var(--color-accent)" />
+    ))
+  }
+
+  {
+    quartileLabels.map((label) => (
+      <>
+        <line
+          x1={x(label.value)}
+          y1={baselineY - boxHalf}
+          x2={x(label.value)}
+          y2={tierY(label.tier) + 4}
+          stroke="var(--color-border)"
+          stroke-width="1"
+          aria-hidden="true"
+        />
+
+        <text
+          x={x(label.value)}
+          y={tierY(label.tier)}
+          text-anchor="middle"
+          font-size="19"
+          fill={label.accent ? 'var(--color-accent)' : 'var(--color-text-muted)'}
+        >
+          {label.text}
+        </text>
+      </>
+    ))
+  }
+
+  {
+    outliers.map((v) => (
+      <text x={x(v)} y={baselineY + boxHalf + 28} text-anchor="middle" font-size="19" fill="var(--color-accent)">
+        outlier {withUnit(v)}
+      </text>
+    ))
+  }
+</svg>

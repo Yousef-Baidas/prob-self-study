@@ -1,0 +1,120 @@
+---
+import katex from 'katex';
+
+interface NotationRow {
+  name: string;
+
+  symbol: string;
+
+  note?: string;
+}
+
+interface Props {
+  rows: NotationRow[];
+
+  title?: string;
+}
+
+const { rows, title = 'The book writes this as' } = Astro.props;
+
+const rendered = rows.map((row) => ({
+  ...row,
+  html: katex.renderToString(row.symbol, { throwOnError: false }),
+}));
+---
+
+<aside class="notation">
+  <p class="notation-eyebrow eyebrow">{title}</p>
+
+  <dl class="notation-rows">
+    {
+      rendered.map((row) => (
+        <div class="notation-row">
+          <dt class="notation-name">{row.name}</dt>
+
+          <dd class="notation-symbol" set:html={row.html} />
+
+          {row.note && <p class="notation-note">{row.note}</p>}
+        </div>
+      ))
+    }
+  </dl>
+
+  <style>
+    .notation {
+      margin-block: var(--space-lg);
+
+      padding: var(--space-md) var(--space-lg);
+
+      background: var(--color-surface);
+
+      border: 1px solid var(--color-border);
+
+      border-radius: var(--radius-md);
+    }
+
+    .notation-eyebrow {
+      margin: 0;
+    }
+
+    .notation-rows {
+      margin: var(--space-sm) 0 0;
+    }
+
+    .notation-row {
+      display: grid;
+
+      grid-template-columns: 1fr auto;
+
+      align-items: baseline;
+
+      column-gap: var(--space-lg);
+
+      padding-block: var(--space-sm);
+
+      border-top: 1px solid var(--color-border);
+    }
+
+    .notation-row:first-child {
+      border-top: none;
+    }
+
+    .notation-name {
+      font-weight: var(--font-weight-semibold);
+
+      color: var(--color-text);
+    }
+
+    .notation-symbol {
+      /* dd carries a UA margin-inline-start that global.css never resets, which
+         would inset every symbol inside its own grid column. */
+      margin: 0;
+
+      /* Long TeX scrolls inside its own box, matching .katex-display in
+         ChapterNotes.astro, rather than pushing the page sideways. */
+      overflow-x: auto;
+
+      overflow-y: hidden;
+
+      max-width: 100%;
+    }
+
+    .notation-note {
+      grid-column: 1 / -1;
+
+      margin: var(--space-xs) 0 0;
+
+      font-size: var(--font-size-label);
+
+      color: var(--color-text-muted);
+    }
+
+    @media (max-width: 480px) {
+      .notation-row {
+        grid-template-columns: 1fr;
+
+        row-gap: var(--space-xs);
+      }
+    }
+  </style>
+</aside>

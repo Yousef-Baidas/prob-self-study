@@ -1,0 +1,100 @@
+---
+// Density curve with the probability region shaded underneath. The curve
+// itself is never a probability — only the shaded area is — so the two are
+// drawn as visually distinct layers: a thin stroke for f(x), a filled region
+// for the integral.
+interface Props {
+  fn: (x: number) => number;
+
+  domain: [number, number];
+
+  shadeFrom: number;
+
+  shadeTo: number;
+
+  title: string;
+
+  width?: number;
+
+  height?: number;
+
+  samples?: number;
+}
+
+const { fn, domain, shadeFrom, shadeTo, title, width = 340, height = 220, samples = 80 } = Astro.props;
+
+const padding = { top: 20, right: 20, bottom: 32, left: 20 };
+
+const chartWidth = width - padding.left - padding.right;
+const chartHeight = height - padding.top - padding.bottom;
+
+const [xMin, xMax] = domain;
+
+const xs = Array.from({ length: samples + 1 }, (_, i) => xMin + (i / samples) * (xMax - xMin));
+const ys = xs.map(fn);
+
+const yMax = Math.max(...ys) * 1.15;
+
+const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
+const yScale = (y: number) => padding.top + (1 - y / yMax) * chartHeight;
+const baseline = padding.top + chartHeight;
+
+const curvePoints = xs.map((x, i) => `${xScale(x)},${yScale(ys[i])}`).join(' ');
+
+const shadeXs = xs.filter((x) => x >= shadeFrom && x <= shadeTo);
+const shadePath =
+  `M ${xScale(shadeFrom)},${baseline} ` +
+  shadeXs.map((x) => `L ${xScale(x)},${yScale(fn(x))}`).join(' ') +
+  ` L ${xScale(shadeTo)},${baseline} Z`;
+---
+
+<svg
+  width={width}
+  height={height}
+  viewBox={`0 0 ${width} ${height}`}
+  role="img"
+  aria-label={title}
+>
+  <title>{title}</title>
+
+  <line
+    x1={padding.left}
+    y1={baseline}
+    x2={width - padding.right}
+    y2={baseline}
+    stroke="var(--color-border)"
+    stroke-width="1"
+    aria-hidden="true"
+  />
+
+  {/* Full-strength accent at an explicit opacity rather than --color-accent-soft:
+      that token is a 12–16% background tint, which leaves the region almost
+      invisible on the dark palette — and this area is the whole point of the
+      figure, not a backdrop. */}
+  <path d={shadePath} fill="var(--color-accent)" fill-opacity="0.28" aria-hidden="true" />
+
+  {/* Edges, so the region reads as bounded by the two labelled values instead of
+      fading out into the curve. */}
+  {[shadeFrom, shadeTo].map((x) => (
+    <line
+      x1={xScale(x)}
+      y1={baseline}
+      x2={xScale(x)}
+      y2={yScale(fn(x))}
+      stroke="var(--color-accent)"
+      stroke-width="1.5"
+      stroke-opacity="0.65"
+      aria-hidden="true"
+    />
+  ))}
+
+  <polyline points={curvePoints} fill="none" stroke="var(--color-accent)" stroke-width="2.5" aria-hidden="true" />
+
+  <text x={xScale(shadeFrom)} y={baseline + 16} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
+    {shadeFrom}
+  </text>
+
+  <text x={xScale(shadeTo)} y={baseline + 16} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
+    {shadeTo}
+  </text>
+</svg>

@@ -1,0 +1,120 @@
+---
+// Two-set Venn diagram. One fixed layout, reused across §2.2 / §2.5 with a
+// different `shade` each time so the same picture teaches every set
+// operation instead of a new drawing per operation.
+type Shade = 'a' | 'b' | 'union' | 'intersection' | 'aOnly' | 'bOnly' | 'complementA' | 'complementB' | 'none';
+
+interface Props {
+  labelA: string;
+
+  labelB: string;
+
+  labelUniverse?: string;
+
+  shade: Shade;
+
+  title: string;
+}
+
+const { labelA, labelB, labelUniverse = 'S', shade, title } = Astro.props;
+
+// Ids must be unique per instance — the same component renders several
+// times on one page, and SVG ids are document-global.
+const id = `venn-${crypto.randomUUID().slice(0, 8)}`;
+
+const rect = { x: 10, y: 10, w: 300, h: 180 };
+const circleA = { cx: 130, cy: 100, r: 70 };
+const circleB = { cx: 190, cy: 100, r: 70 };
+---
+
+<svg viewBox={`0 0 ${rect.w + 20} ${rect.h + 20}`} role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <defs>
+    <clipPath id={`${id}-clip-a`}>
+      <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} />
+    </clipPath>
+
+    <clipPath id={`${id}-clip-b`}>
+      <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} />
+    </clipPath>
+
+    <mask id={`${id}-mask-not-a`}>
+      <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="white" />
+      <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="black" />
+    </mask>
+
+    <mask id={`${id}-mask-not-b`}>
+      <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="white" />
+      <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="black" />
+    </mask>
+
+    <mask id={`${id}-mask-a-not-b`}>
+      <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="white" />
+      <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="black" />
+    </mask>
+
+    <mask id={`${id}-mask-b-not-a`}>
+      <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="white" />
+      <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="black" />
+    </mask>
+  </defs>
+
+  <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx="8" fill="none" stroke="var(--color-border)" />
+
+  {shade === 'complementA' && (
+    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent-soft)" mask={`url(#${id}-mask-not-a)`} />
+  )}
+
+  {shade === 'complementB' && (
+    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent-soft)" mask={`url(#${id}-mask-not-b)`} />
+  )}
+
+  {shade === 'aOnly' && (
+    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent)" mask={`url(#${id}-mask-a-not-b)`} />
+  )}
+
+  {shade === 'bOnly' && (
+    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent)" mask={`url(#${id}-mask-b-not-a)`} />
+  )}
+
+  {(shade === 'a' || shade === 'union') && (
+    <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="var(--color-accent-soft)" />
+  )}
+
+  {(shade === 'b' || shade === 'union') && (
+    <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="var(--color-accent-soft)" />
+  )}
+
+  {shade === 'intersection' && (
+    <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} clip-path={`url(#${id}-clip-a)`} fill="var(--color-accent)" />
+  )}
+
+  <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="none" stroke="var(--color-accent)" stroke-width="2" />
+
+  <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="none" stroke="var(--color-accent)" stroke-width="2" />
+
+  <text x={rect.x + 14} y={rect.y + 22} class="venn-label venn-universe" aria-hidden="true">{labelUniverse}</text>
+
+  <text x={circleA.cx - 34} y={circleA.cy + 4} class="venn-label" aria-hidden="true">{labelA}</text>
+
+  <text x={circleB.cx + 34} y={circleB.cy + 4} class="venn-label" aria-hidden="true">{labelB}</text>
+
+  <style>
+    text.venn-label {
+      font-size: 11px;
+
+      font-family: var(--font-sans);
+
+      fill: var(--color-text);
+
+      text-anchor: middle;
+    }
+
+    text.venn-universe {
+      text-anchor: start;
+
+      fill: var(--color-text-muted);
+    }
+  </style>
+</svg>

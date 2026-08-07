@@ -1,0 +1,94 @@
+---
+// Illustrative shapes only — heights are relative, not tied to a specific
+// worked example, so each panel can show a clean symmetric/skewed silhouette.
+interface Panel {
+  label: string;
+
+  heights: number[];
+
+  meanPosition: number; // fraction 0..1 across the bin range
+
+  medianPosition: number; // fraction 0..1 across the bin range
+}
+
+interface Props {
+  panels: Panel[];
+
+  title: string;
+
+  width?: number;
+
+  height?: number;
+}
+
+const { panels, title, width = 600, height = 190 } = Astro.props;
+
+const gap = 24;
+
+const panelWidth = (width - gap * (panels.length - 1)) / panels.length;
+
+const chartHeight = 100;
+
+const baselineY = 140;
+
+const barGap = 3;
+
+const layout = panels.map((panel, i) => {
+  const panelX = i * (panelWidth + gap);
+
+  const maxHeight = Math.max(...panel.heights);
+
+  const barWidth = (panelWidth - barGap * (panel.heights.length - 1)) / panel.heights.length;
+
+  const bars = panel.heights.map((h, j) => {
+    const barHeight = (h / maxHeight) * chartHeight;
+
+    return {
+      x: panelX + j * (barWidth + barGap),
+      y: baselineY - barHeight,
+      width: barWidth,
+      height: barHeight,
+    };
+  });
+
+  return {
+    ...panel,
+    panelX,
+    bars,
+    meanX: panelX + panel.meanPosition * panelWidth,
+    medianX: panelX + panel.medianPosition * panelWidth,
+  };
+});
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} role="img">
+  <title>{title}</title>
+
+  {
+    layout.map((panel) => (
+      <g>
+        <text x={panel.panelX + panelWidth / 2} y="14" text-anchor="middle" font-size="19" fill="var(--color-text-muted)">
+          {panel.label}
+        </text>
+
+        <line x1={panel.panelX} y1={baselineY} x2={panel.panelX + panelWidth} y2={baselineY} stroke="var(--color-border)" stroke-width="1" />
+
+        {panel.bars.map((bar) => (
+          <rect x={bar.x} y={bar.y} width={bar.width} height={bar.height} fill="var(--color-accent-soft)" stroke="var(--color-accent)" stroke-width="1" />
+        ))}
+
+        <line x1={panel.medianX} y1={baselineY} x2={panel.medianX} y2={baselineY + 14} stroke="var(--color-border)" stroke-width="2" stroke-dasharray="3 2" />
+
+        <line x1={panel.meanX} y1={baselineY} x2={panel.meanX} y2={baselineY + 24} stroke="var(--color-accent)" stroke-width="2" />
+      </g>
+    ))
+  }
+
+  <line x1={width / 2 - 70} y1={height - 16} x2={width / 2 - 54} y2={height - 16} stroke="var(--color-border)" stroke-width="2" stroke-dasharray="3 2" />
+
+  <text x={width / 2 - 48} y={height - 12} font-size="18" fill="var(--color-text-muted)">median</text>
+
+  <line x1={width / 2 + 12} y1={height - 16} x2={width / 2 + 28} y2={height - 16} stroke="var(--color-accent)" stroke-width="2" />
+
+  <text x={width / 2 + 34} y={height - 12} font-size="18" fill="var(--color-accent)">mean</text>
+</svg>

@@ -1,0 +1,86 @@
+---
+import { mean, median, iqrStats } from './stats';
+
+interface Props {
+  values: number[];
+
+  title: string;
+
+  unit?: string;
+
+  width?: number;
+
+  height?: number;
+}
+
+const { values, title, unit = '', width = 600, height = 160 } = Astro.props;
+
+const sorted = [...values].sort((a, b) => a - b);
+
+const m = mean(sorted);
+
+const med = median(sorted);
+
+const { lowerFence, upperFence } = iqrStats(sorted);
+
+const marginX = 32;
+
+const plotWidth = width - marginX * 2;
+
+const dataMin = sorted[0];
+
+const dataMax = sorted[sorted.length - 1];
+
+const pad = (dataMax - dataMin) * 0.08;
+
+const domainMin = dataMin - pad;
+
+const domainMax = dataMax + pad;
+
+const x = (v: number) => marginX + ((v - domainMin) / (domainMax - domainMin)) * plotWidth;
+
+const baselineY = height * 0.55;
+
+const dotRadius = 6;
+
+const points = sorted.map((v) => ({
+  v,
+  cx: x(v),
+  isOutlier: v < lowerFence || v > upperFence,
+}));
+
+const meanX = x(m);
+
+const medianX = x(med);
+
+const withUnit = (v: number) => (unit ? `${v} ${unit}` : `${v}`);
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} role="img">
+  <title>{title}</title>
+
+  <line x1={x(domainMin)} y1={baselineY} x2={x(domainMax)} y2={baselineY} stroke="var(--color-border)" stroke-width="1" />
+
+  {
+    points.map((p) => (
+      <circle
+        cx={p.cx}
+        cy={baselineY}
+        r={dotRadius}
+        fill={p.isOutlier ? 'var(--color-accent)' : 'var(--color-text-muted)'}
+      />
+    ))
+  }
+
+  <line x1={medianX} y1={baselineY - 34} x2={medianX} y2={baselineY + 10} stroke="var(--color-border)" stroke-width="2" stroke-dasharray="4 3" />
+
+  <text x={medianX} y={baselineY - 40} text-anchor="middle" font-size="20" fill="var(--color-text-muted)">
+    median {withUnit(med)}
+  </text>
+
+  <line x1={meanX} y1={baselineY - 10} x2={meanX} y2={baselineY + 34} stroke="var(--color-accent)" stroke-width="2" />
+
+  <text x={meanX} y={baselineY + 48} text-anchor="middle" font-size="20" fill="var(--color-accent)">
+    mean {withUnit(Math.round(m * 100) / 100)}
+  </text>
+</svg>

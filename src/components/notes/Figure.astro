@@ -1,0 +1,76 @@
+---
+interface Props {
+  caption: string;
+
+  wide?: boolean;
+
+  /**
+   * Natural width in px below which the chart stops being legible. Set it for a
+   * chart that is wide relative to its detail — the figure then scrolls inside
+   * its own box rather than scaling every label down with the column, matching
+   * how ChapterNotes.astro treats wide display equations.
+   */
+  minWidth?: number;
+}
+
+const { caption, wide = false, minWidth } = Astro.props;
+---
+
+<figure class:list={['figure', { wide }]}>
+  <div
+    class:list={['figure-chart', { scrolls: minWidth !== undefined }]}
+    style={minWidth === undefined ? undefined : `--figure-min-width: ${minWidth}px`}
+  >
+    <slot />
+  </div>
+
+  <figcaption class="figure-caption">{caption}</figcaption>
+
+  <style>
+    .figure {
+      margin-block: var(--space-lg);
+
+      /* figure carries a UA margin-inline that global.css never resets, which
+         would indent every chart and skew the `wide` offset below. */
+      margin-inline: 0;
+    }
+
+    /* :global because the svg arrives through the slot, so it carries the MDX
+       file's scope attribute rather than this component's — an unscoped
+       descendant selector would never match it. Same reason .prose uses
+       :global() in ChapterNotes.astro. */
+    .figure-chart :global(svg) {
+      display: block;
+
+      width: 100%;
+
+      height: auto;
+    }
+
+    .figure-chart.scrolls {
+      overflow-x: auto;
+
+      overflow-y: hidden;
+    }
+
+    .figure-chart.scrolls :global(svg) {
+      min-width: var(--figure-min-width);
+    }
+
+    .figure-caption {
+      margin-top: var(--space-sm);
+
+      font-size: var(--font-size-label);
+
+      color: var(--color-text-muted);
+    }
+
+    /* Breaks slightly out of the 760px prose column on wide viewports only;
+       a no-op below --bp-desktop, so mobile never overflows. */
+    @media (min-width: 900px) {
+      .figure.wide {
+        margin-inline: calc(var(--space-2xl) * -1);
+      }
+    }
+  </style>
+</figure>

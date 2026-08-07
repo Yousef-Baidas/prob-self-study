@@ -1,0 +1,131 @@
+---
+// Continuous CDF, with the same two bounds used by the density-and-area
+// figure marked as guide lines. The vertical gap between the two dashed
+// lines is the height difference F(markTo) - F(markFrom) — the same number
+// as the shaded area next to it.
+interface Props {
+  fn: (x: number) => number;
+
+  domain: [number, number];
+
+  markFrom: number;
+
+  markTo: number;
+
+  title: string;
+
+  width?: number;
+
+  height?: number;
+
+  samples?: number;
+}
+
+const { fn, domain, markFrom, markTo, title, width = 340, height = 220, samples = 80 } = Astro.props;
+
+const padding = { top: 20, right: 20, bottom: 32, left: 34 };
+
+const chartWidth = width - padding.left - padding.right;
+const chartHeight = height - padding.top - padding.bottom;
+
+const [xMin, xMax] = domain;
+
+const xs = Array.from({ length: samples + 1 }, (_, i) => xMin + (i / samples) * (xMax - xMin));
+const ys = xs.map(fn);
+
+const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
+const yScale = (y: number) => padding.top + (1 - y) * chartHeight;
+const baseline = padding.top + chartHeight;
+
+const curvePoints = xs.map((x, i) => `${xScale(x)},${yScale(ys[i])}`).join(' ');
+
+const fFrom = fn(markFrom);
+const fTo = fn(markTo);
+---
+
+<svg
+  width={width}
+  height={height}
+  viewBox={`0 0 ${width} ${height}`}
+  role="img"
+  aria-label={title}
+>
+  <title>{title}</title>
+
+  <line
+    x1={padding.left}
+    y1={baseline}
+    x2={width - padding.right}
+    y2={baseline}
+    stroke="var(--color-border)"
+    stroke-width="1"
+    aria-hidden="true"
+  />
+
+  <line
+    x1={padding.left}
+    y1={padding.top}
+    x2={padding.left}
+    y2={baseline}
+    stroke="var(--color-border)"
+    stroke-width="1"
+    aria-hidden="true"
+  />
+
+  <text x={padding.left - 6} y={padding.top + 4} text-anchor="end" font-size="13" fill="var(--color-text-muted)">
+    1
+  </text>
+
+  <text x={padding.left - 6} y={baseline + 4} text-anchor="end" font-size="13" fill="var(--color-text-muted)">
+    0
+  </text>
+
+  {
+    [
+      { x: markFrom, f: fFrom },
+      { x: markTo, f: fTo },
+    ].map((mark) => (
+      <g aria-hidden="true">
+        <line
+          x1={xScale(mark.x)}
+          y1={yScale(mark.f)}
+          x2={padding.left}
+          y2={yScale(mark.f)}
+          stroke="var(--color-text-muted)"
+          stroke-width="1"
+          stroke-dasharray="3 3"
+        />
+
+        <line
+          x1={xScale(mark.x)}
+          y1={yScale(mark.f)}
+          x2={xScale(mark.x)}
+          y2={baseline}
+          stroke="var(--color-text-muted)"
+          stroke-width="1"
+          stroke-dasharray="3 3"
+        />
+      </g>
+    ))
+  }
+
+  <line
+    x1={padding.left - 6}
+    y1={yScale(fFrom)}
+    x2={padding.left - 6}
+    y2={yScale(fTo)}
+    stroke="var(--color-accent)"
+    stroke-width="3"
+    aria-hidden="true"
+  />
+
+  <polyline points={curvePoints} fill="none" stroke="var(--color-accent)" stroke-width="2.5" aria-hidden="true" />
+
+  {
+    [markFrom, markTo].map((x) => (
+      <text x={xScale(x)} y={baseline + 16} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
+        {x}
+      </text>
+    ))
+  }
+</svg>

@@ -1,55 +1,91 @@
+import Notation from '../components/notes/Notation.astro';
+import Figure from '../components/notes/Figure.astro';
+import DotPlot from '../components/notes/ch01/DotPlot.astro';
+import BoxPlot from '../components/notes/ch01/BoxPlot.astro';
+import HistogramTriptych from '../components/notes/ch01/HistogramTriptych.astro';
+
 ## 1.1 Overview: statistical inference, populations, and probability
 
-**Descriptive statistics** summarise a sample with single numbers that capture its
-centre, its spread, and the general shape of the data — as opposed to **inferential**
-statistics, which uses the sample to draw conclusions about the wider population.
+You inspect a batch of 100 manufactured items and count how many are defective. Call
+that count `defectCount`. That single number is the starting point for everything in
+this chapter: **descriptive statistics** summarise a sample like this one with single
+numbers that capture its centre, its spread, and its general shape — as opposed to
+**inferential** statistics, which uses the sample to draw a conclusion about the wider
+population it came from.
 
 - **Population** — the collection of *all* individuals or items of a particular type
   (every board the firm will ever make, every possible measurement of a process).
-- **Sample** — the subset of observations actually collected from the population.
-- **Statistical inference** — using the sample to draw conclusions about the population.
-  The reasoning runs from the specific to the general, so it is **inductive** and carries
+- **Sample** — the subset of observations actually collected from the population. Your
+  100 inspected items are a sample; the population is every item the process will ever
+  produce.
+- **Statistical inference** — using the sample to draw a conclusion about the
+  population. The reasoning runs from the specific (this sample's `defectCount`) to the
+  general (is the whole process acceptable?), so it is **inductive** and carries
   uncertainty; the elements of probability let us quantify that uncertainty.
-- **Parameter vs. statistic** — a fixed number describing the *population* (e.g. the
-  population mean) is a **parameter**; a number computed from the *sample* (e.g. $\bar{x}$)
-  is a **statistic**, used as an **estimate** of the parameter.
+- **Parameter vs. statistic** — a fixed number describing the *population* is a
+  **parameter**. A number computed from the *sample* is a **statistic**, used as an
+  **estimate** of the parameter.
+
+<Notation rows={[
+  { name: 'a number computed from the sample', symbol: '\\bar{x}', note: 'a statistic — used to estimate the matching population parameter' },
+]} />
 
 > **Why probability comes first.** Suppose a process is acceptable when it produces no
-> more than 5% defectives. If a random sample of 100 items contains 10 or more defectives —
-> an outcome whose probability under an acceptable process is only about $0.028$ — that is
-> strong evidence the process is *not* acceptable. Probability turns sample data into an
-> inferential conclusion (Walpole §1.1, Example 1.1).
+> more than 5% defectives. If a random sample of 100 items contains 10 or more
+> defectives — an outcome whose probability under an acceptable process is only about
+> $0.028$ — that is strong evidence the process is *not* acceptable. Probability turns
+> `defectCount` into an inferential conclusion (Walpole §1.1, Example 1.1).
 
 ## 1.2 Sampling procedures and experimental design
 
-- **Simple random sample** — one chosen so that every sample of the same size is equally
-  likely to be selected. A sample that systematically misses part of the population is a
-  **biased sample** — e.g. surveying only urban households when the population is an entire
-  state, or only the households that happen to answer the phone.
+Say you want to know the average income across a state. You cannot ask everyone, so
+you pick a sample instead — and *how* you pick it decides whether your conclusion
+means anything.
+
+- **Simple random sample** — one chosen so that every sample of the same size is
+  equally likely to be selected. A sample that systematically misses part of the
+  population is a **biased sample** — e.g. surveying only urban households when the
+  population is an entire state, or only the households that happen to answer the
+  phone.
 - **Stratified random sampling** — when the population splits naturally into
   non-overlapping, homogeneous groups (*strata*), drawing a separate random sample from
-  *within* each stratum guarantees that no group is over- or under-represented. This is a
-  refinement of simple random sampling, not an alternative to randomness.
+  *within* each stratum guarantees that no group is over- or under-represented. This is
+  a refinement of simple random sampling, not an alternative to randomness.
 
 ### Designed experiments
 
-- **Treatments** (or **factor combinations**) — the conditions being compared or studied
-  (e.g. coated vs. uncoated, or drug vs. placebo).
-- **Experimental unit** — the specimen, patient, or item a treatment is applied to; it is
-  the source of the variability *within* a treatment group. If that within-group variability
-  is too large, it can "wash out" a real difference between treatments.
-- **Completely randomized design** — experimental units are assigned to treatments *at
-  random*. Randomization is what lets the analyst attribute a difference in outcomes to the
-  treatment rather than to some uncontrolled, confounding difference between the units (age,
-  batch, operator, weight, …).
+Take a comparison of coated versus uncoated aluminium specimens, tested for how many
+stress cycles each survives before failing.
 
-Section 1.7 below classifies designed experiments against two other kinds of study where the
-analyst does **not** get to assign treatment levels.
+- **Treatments** (or **factor combinations**) — the conditions being compared or
+  studied (coated vs. uncoated, or drug vs. placebo).
+- **Experimental unit** — the specimen, patient, or item a treatment is applied to; it
+  is the source of the variability *within* a treatment group. If that within-group
+  variability is too large, it can "wash out" a real difference between treatments.
+- **Completely randomized design** — experimental units are assigned to treatments *at
+  random*. Randomization is what lets the analyst attribute a difference in outcomes to
+  the treatment rather than to some uncontrolled, confounding difference between the
+  units (age, batch, operator, weight, …).
+
+Section 1.7 below classifies designed experiments against two other kinds of study
+where the analyst does **not** get to assign treatment levels.
 
 ## 1.3 Measures of location: the sample mean and median
 
-- **Sample mean** $\bar{x}$ — the arithmetic average; the *centroid* (balance point) of the data.
-- **Sample median** $\tilde{x}$ — the middle value of the sorted data; unaffected by extreme values.
+Ten deliveries arrive with these delays, in minutes. Which single number best
+represents "how late deliveries typically run" — and does that number survive one
+unusually bad delivery? Call one delay `deliveryDelay`.
+
+- **Sample mean** — the arithmetic average of `deliveryDelay` across every delivery;
+  the *centroid* (balance point) of the data.
+- **Sample median** — the middle `deliveryDelay` value once the deliveries are sorted
+  from shortest to longest delay; unaffected by extreme values.
+
+<Notation rows={[
+  { name: 'the delivery delays', symbol: 'x_1,\\dots,x_n', note: 'n deliveries, in the order collected' },
+  { name: 'the average delay', symbol: '\\bar{x}', note: 'the sample mean' },
+  { name: 'the middle delay', symbol: '\\tilde{x}', note: 'the sample median' },
+]} />
 
 $$
 \bar{x} = \frac{1}{n}\sum_{i=1}^{n} x_i,
@@ -64,39 +100,63 @@ $$
 Here $x_1,\dots,x_n$ are the observations ($x_i$ the $i$-th one), sorted in increasing
 order for the median, and $n$ is the sample size.
 
-> **Mean vs. median.** For the data $2,\ 4,\ 5,\ 6,\ 100$ the mean is
-> $\bar{x} = \tfrac{117}{5} = 23.4$, but the median is $\tilde{x} = 5$. The single large
-> value drags the mean far from the bulk of the data, while the median still reflects
-> the centre — the median **resists outliers**.
+> **Mean vs. median.** Five deliveries have these delays, in minutes: $2,\ 4,\ 5,\ 6,\
+> 100$. The mean is $\bar{x} = \tfrac{117}{5} = 23.4$, but the median is
+> $\tilde{x} = 5$. The single large value drags the mean far from the bulk of the data,
+> while the median still reflects the centre — the median **resists outliers**.
 
 ### Trimmed mean
 
-The **$p\%$ trimmed mean** sorts the data, discards the largest $p\%$ and the smallest
-$p\%$ of the observations, and averages what remains. It is a compromise between the mean
-(uses every value, so it is easily swayed by outliers) and the median (uses only the middle
-one or two values, so it ignores most of the data). The sample median is, in fact, the
-extreme case of a trimmed mean in which everything but the middle observation(s) is trimmed
-away.
+The **$p\%$ trimmed mean** sorts the deliveries by delay, discards the largest $p\%$
+and the smallest $p\%$ of them, and averages what remains. It is a compromise between
+the mean (uses every value, so it is easily swayed by outliers) and the median (uses
+only the middle one or two values, so it ignores most of the data). The sample median
+is, in fact, the extreme case of a trimmed mean in which everything but the middle
+observation(s) is trimmed away.
 
-> **Worked example.** Ten observations, sorted: $2,\ 3,\ 5,\ 6,\ 7,\ 8,\ 9,\ 10,\ 11,\ 50$.
+<Notation rows={[
+  { name: 'the trimmed average', symbol: '\\bar{x}_{\\mathrm{tr}(p)}' },
+]} />
+
+> **Worked example.** Ten delivery delays, in minutes, sorted: $2,\ 3,\ 5,\ 6,\ 7,\ 8,\
+> 9,\ 10,\ 11,\ 50$.
 >
 > The mean is $\bar{x} = \tfrac{111}{10} = 11.1$, and the median is
-> $\tilde{x} = \tfrac{1}{2}(7+8) = 7.5$. The $10\%$ trimmed mean removes the largest $10\%$
-> ($1$ value: $50$) and the smallest $10\%$ ($1$ value: $2$), leaving $8$ values:
+> $\tilde{x} = \tfrac{1}{2}(7+8) = 7.5$. The $10\%$ trimmed mean removes the largest
+> $10\%$ ($1$ value: $50$) and the smallest $10\%$ ($1$ value: $2$), leaving $8$ values:
 >
 > $$
 > \bar{x}_{\mathrm{tr}(10)} = \frac{3+5+6+7+8+9+10+11}{8} = \frac{59}{8} = 7.375.
 > $$
 >
-> The trimmed mean lands close to the median and far from the mean — the single outlier
-> $50$ pulled $\bar{x}$ well above where the bulk of the data actually sits, while trimming
-> it away (along with the smallest value, to keep the trim symmetric) recovers a number much
-> more typical of the sample.
+> The trimmed mean lands close to the median and far from the mean — the single
+> outlier delay of $50$ minutes pulled $\bar{x}$ well above where the bulk of the
+> deliveries actually sit, while trimming it away (along with the smallest value, to
+> keep the trim symmetric) recovers a number much more typical of the sample.
+
+<Figure minWidth={430} caption="A single 50-minute delivery pulls the mean well past the bulk of the data; the median barely moves.">
+  <DotPlot
+    values={[2, 3, 5, 6, 7, 8, 9, 10, 11, 50]}
+    unit="min"
+    title="Dot plot of ten delivery delays in minutes: the mean sits far right of the median because of one 50-minute delay."
+  />
+</Figure>
 
 ## 1.4 Measures of variability
 
+You calibrate a pH meter and take ten readings of the same buffer solution. Call one
+reading `phReading`. The readings won't all agree — how spread out are they around
+their average?
+
 - **Sample range** — the crudest measure of spread, $R = x_{\max} - x_{\min}$.
-- **Sample variance** $s^2$ and **sample standard deviation** $s$ — the standard measures.
+- **Sample variance** and **sample standard deviation** — the standard measures of
+  spread around the mean.
+
+<Notation rows={[
+  { name: 'how far the readings reach', symbol: 'R = x_{\\max}-x_{\\min}', note: 'the sample range' },
+  { name: 'typical squared distance from the average reading', symbol: 's^2', note: 'the sample variance' },
+  { name: "typical distance from the average, in the reading's own units", symbol: 's = \\sqrt{s^2}', note: 'the sample standard deviation' },
+]} />
 
 $$
 s^2 = \frac{1}{n-1}\sum_{i=1}^{n}\left(x_i - \bar{x}\right)^2,
@@ -107,8 +167,8 @@ $$
 The divisor $n-1$ is the **degrees of freedom**: because the deviations always satisfy
 $\sum_{i=1}^{n}(x_i - \bar{x}) = 0$, only $n-1$ of them are free to vary. Variance is in
 *squared* units; the standard deviation is back in the original units of the data. (The
-sample variance is used more in inferential *theory*; the standard deviation, sharing the
-data's own units, is used more in applications.)
+sample variance is used more in inferential *theory*; the standard deviation, sharing
+the data's own units, is used more in applications.)
 
 > **Worked example — pH‑meter readings** (Walpole §1.4, Example 1.4). Ten readings:
 >
@@ -117,24 +177,39 @@ data's own units, is used more in applications.)
 > $$
 >
 > The mean is $\bar{x} = \dfrac{70.25}{10} = 7.025$; the variance is
-> $s^2 = \dfrac{1}{9}\big[(7.07-7.025)^2 + \dots + (7.08-7.025)^2\big] = 0.001939$; and the
-> standard deviation is $s = \sqrt{0.001939} = 0.044$, on $n-1 = 9$ degrees of freedom.
+> $s^2 = \dfrac{1}{9}\big[(7.07-7.025)^2 + \dots + (7.08-7.025)^2\big] = 0.001939$; and
+> the standard deviation is $s = \sqrt{0.001939} = 0.044$, on $n-1 = 9$ degrees of
+> freedom.
 
 ### Quartiles and the interquartile range
 
-The **quartiles** $Q_1, Q_2, Q_3$ cut the sorted data into four parts of roughly equal size:
-about a quarter of the observations lie below $Q_1$, about half below $Q_2$ (which is just
-the median), and about three quarters below $Q_3$. The **interquartile range** measures
-spread as the width of the middle half of the data,
+A queue's wait time, in minutes, splits the sorted data into four equal-sized groups.
+How wide is the middle half of the wait times — the part that ignores the fastest and
+slowest quarters? Call one measurement `waitTime`.
+
+The **quartiles** cut the sorted `waitTime` values into four parts of roughly equal
+size: about a quarter of the observations lie below the first quartile, about half
+below the second (which is just the median), and about three quarters below the third.
+The **interquartile range** measures spread as the width of that middle half.
+
+<Notation rows={[
+  { name: 'the three cut points', symbol: 'Q_1,\\ Q_2,\\ Q_3', note: 'the first, second (= the median), and third quartiles' },
+  { name: 'the width of the middle half', symbol: '\\mathrm{IQR} = Q_3 - Q_1' },
+]} />
 
 $$
 \mathrm{IQR} = Q_3 - Q_1.
 $$
 
-Unlike the range, the IQR ignores both tails, so no single extreme value can inflate it —
-it **resists outliers** for the same reason the median does.
+Unlike the range, the IQR ignores both tails, so no single extreme value can inflate
+it — it **resists outliers** for the same reason the median does.
 
-Sort the data first, then locate $Q_k$ by its **position** in the sorted list:
+Where exactly does a quartile fall in the sorted list? Sort the data first, then
+locate $Q_k$ by its **position**:
+
+<Notation rows={[
+  { name: "a quartile's position in the sorted list", symbol: 'L_k = \\dfrac{k(n+1)}{4}', note: 'k = 1, 2, 3' },
+]} />
 
 $$
 L_k = \frac{k(n+1)}{4}, \qquad k = 1, 2, 3.
@@ -149,11 +224,11 @@ $$
 Q_k = x_j + f\left(x_{j+1} - x_j\right).
 $$
 
-So a position of $2.75$ means *three quarters of the way from the 2nd observation to the
-3rd*, and you report that exact point — **not** whichever observation happens to be
-nearest.
+So a position of $2.75$ means *three quarters of the way from the 2nd observation to
+the 3rd*, and you report that exact point — **not** whichever observation happens to
+be nearest.
 
-> **Worked example.** Ten observations, already sorted:
+> **Worked example.** Ten wait times, in minutes, already sorted:
 >
 > $$
 > 1,\ 5,\ 6,\ 7,\ 9,\ 12,\ 14,\ 15,\ 18,\ 22 \qquad (n = 10)
@@ -165,17 +240,18 @@ nearest.
 > | $Q_2$ | $\tfrac{22}{4} = 5.5$ | $x_5 = 9,\ x_6 = 12$ | $9 + 0.5(12-9) = 10.5$ |
 > | $Q_3$ | $\tfrac{33}{4} = 8.25$ | $x_8 = 15,\ x_9 = 18$ | $15 + 0.25(18-15) = 15.75$ |
 >
-> The middle half of the data is therefore $10$ units wide:
+> The middle half of the wait times is therefore $10$ minutes wide:
 > $\mathrm{IQR} = 15.75 - 5.75 = 10$.
 >
-> **Check $Q_2$ against the median.** With $n = 10$ even, the median formula above gives
-> $\tilde{x} = \tfrac{1}{2}(x_5 + x_6) = \tfrac{1}{2}(9 + 12) = 10.5$ — the same number.
-> $Q_2$ and $\tilde{x}$ always agree, so computing both is a free check on your arithmetic.
+> **Check $Q_2$ against the median.** With $n = 10$ even, the median formula above
+> gives $\tilde{x} = \tfrac{1}{2}(x_5 + x_6) = \tfrac{1}{2}(9 + 12) = 10.5$ — the same
+> number. $Q_2$ and $\tilde{x}$ always agree, so computing both is a free check on your
+> arithmetic.
 
 > **Careful — other methods give other answers.** Splitting the data at the median and
-> taking the median of each half (the rule taught in school), or a calculator's default
-> percentile function, would report $Q_1 = 6$ for the data above instead of $5.75$. Use
-> the position-and-interpolate rule here.
+> taking the median of each half (the rule taught in school), or a calculator's
+> default percentile function, would report $Q_1 = 6$ for the data above instead of
+> $5.75$. Use the position-and-interpolate rule here.
 
 ## 1.5 Discrete and continuous data
 
@@ -190,20 +266,30 @@ Data are described along two independent axes.
 
 Discrete data are often **count data**: the number of radioactive particles passing a
 counter in one millisecond, or the number of oil tankers arriving at a port each day.
-Continuous data come from measuring on a continuum — a yield in percent or grams/pound is
-free to fall anywhere in an interval.
+Continuous data come from measuring on a continuum — a yield in percent or grams/pound
+is free to fall anywhere in an interval.
 
 ### Binary data and the sample proportion
 
-For **binary** (two‑category) data, if $x$ of $n$ units fall in the first category the
-**sample proportion** is
+You run a clinical trial of 50 patients and count how many improve. Call that count
+`improvedCount`. What fraction of patients improved?
+
+For **binary** (two‑category) data like this, if `improvedCount` out of the total
+number of patients falls in the first category, the **sample proportion** is the
+fraction that does.
+
+<Notation rows={[
+  { name: 'how many improved', symbol: 'x', note: 'the count in the first category' },
+  { name: 'how many patients total', symbol: 'n' },
+  { name: 'the fraction that improved', symbol: '\\hat{p} = x/n', note: 'the sample proportion' },
+]} />
 
 $$
 \hat{p} = \frac{x}{n}.
 $$
 
-Because each unit is coded $1$ or $0$, this proportion is itself just a sample mean of
-ones and zeros.
+Because each patient is coded $1$ or $0$ (improved or not), this proportion is itself
+just a sample mean of ones and zeros.
 
 > **Worked example.** In a trial of $n = 50$ patients, $x = 20$ improve. The sample
 > proportion that improved is $\hat{p} = \tfrac{20}{50} = 0.4$.
@@ -211,16 +297,17 @@ ones and zeros.
 ## 1.6 Statistical modeling and graphical diagnostics
 
 The end result of a statistical analysis is usually the estimation of parameters of a
-**postulated model** — an assumption about the form of the population the data come from
-(e.g. that stem weights from Example 1.2 are normally distributed). Before committing to a
-model, it pays to *look at the data*: a **scatter plot** of one variable against another can
-reveal whether a simple model is even plausible, and can expose violations of assumptions
-that a purely numerical summary would miss. Regression models built on this idea are
-developed in later chapters; the tools below are the everyday graphical building blocks used
-throughout the rest of the book.
+**postulated model** — an assumption about the form of the population the data come
+from (e.g. that stem weights from Example 1.2 are normally distributed). Before
+committing to a model, it pays to *look at the data*: a **scatter plot** of one
+variable against another can reveal whether a simple model is even plausible, and can
+expose violations of assumptions that a purely numerical summary would miss.
+Regression models built on this idea are developed in later chapters; the tools below
+are the everyday graphical building blocks used throughout the rest of the book.
 
-The same twelve order-processing times (in minutes), sorted, run through the next three
-subsections:
+An order-processing centre records how many minutes each of twelve orders takes to
+process. Call one of those measurements `processingTime`. The same twelve
+`processingTime` values, sorted, run through the next three subsections:
 
 $$
 23,\ 27,\ 29,\ 31,\ 33,\ 36,\ 38,\ 41,\ 44,\ 45,\ 47,\ 52 \qquad (n = 12).
@@ -228,10 +315,10 @@ $$
 
 ### Stem-and-leaf display
 
-Split each observation into a **stem** (leading digit(s)) and a **leaf** (the remaining
-digit), then list the leaves for each stem in increasing order. Rotated $90°$
-counter-clockwise, the columns of leaves form the same silhouette as a histogram — a
-stem-and-leaf display is a histogram that keeps every original value.
+Split each `processingTime` value into a **stem** (leading digit(s)) and a **leaf**
+(the remaining digit), then list the leaves for each stem in increasing order. Rotated
+$90°$ counter-clockwise, the columns of leaves form the same silhouette as a
+histogram — a stem-and-leaf display is a histogram that keeps every original value.
 
 | Stem | Leaves | Frequency |
 | --- | --- | --- |
@@ -240,14 +327,21 @@ stem-and-leaf display is a histogram that keeps every original value.
 | 4 | 1 4 5 7 | 4 |
 | 5 | 2 | 1 |
 
-With only a few stems, a plot can look too coarse; splitting each stem in two (leaves 0–4 vs.
-5–9) doubles the number of classes and is standard practice for larger samples, such as the
-book's 40-battery car-life data set (Walpole §1.6, Table 1.5 vs. Table 1.6).
+With only a few stems, a plot can look too coarse; splitting each stem in two (leaves
+0–4 vs. 5–9) doubles the number of classes and is standard practice for larger
+samples, such as the book's 40-battery car-life data set (Walpole §1.6, Table 1.5 vs.
+Table 1.6).
 
 ### Relative frequency distributions and histograms
 
-Grouping the leaves above into class intervals of width $10$ and dividing each class's
-**frequency** ($f$) by $n$ gives the **relative frequency distribution**:
+How much of the sample falls in each range of processing times? Grouping the leaves
+above into class intervals of width $10$ and dividing each class's count by $n$ gives
+the **relative frequency distribution**:
+
+<Notation rows={[
+  { name: 'how many orders land in a class', symbol: 'f', note: 'the class frequency' },
+  { name: 'that count as a share of the whole sample', symbol: 'f/n', note: 'the relative frequency' },
+]} />
 
 | Class interval | Midpoint | Frequency $f$ | Relative frequency |
 | --- | --- | --- | --- |
@@ -256,33 +350,52 @@ Grouping the leaves above into class intervals of width $10$ and dividing each c
 | 40–49 | 45 | 4 | $4/12 \approx 0.333$ |
 | 50–59 | 55 | 1 | $1/12 \approx 0.083$ |
 
-The relative frequencies sum to $1$ (up to rounding). Plotting a bar of height equal to the
-relative frequency over each class interval gives the **relative frequency histogram** — the
-picture most people mean by "histogram." As the sample size grows and the class width
-shrinks, the jagged outline of a histogram tends toward the smooth bell-shaped curve used to
-picture a continuous population **distribution** in later chapters.
+The relative frequencies sum to $1$ (up to rounding). Plotting a bar of height equal
+to the relative frequency over each class interval gives the **relative frequency
+histogram** — the picture most people mean by "histogram." As the sample size grows
+and the class width shrinks, the jagged outline of a histogram tends toward the smooth
+bell-shaped curve used to picture a continuous population **distribution** in later
+chapters.
 
 ### Symmetry and skewness
 
-A distribution is **symmetric** if it can be folded along a vertical axis so the two sides
-coincide. Otherwise it is **skewed**:
+A distribution is **symmetric** if it can be folded along a vertical axis so the two
+sides coincide. Otherwise it is **skewed**:
 
-- **skewed right** — a long tail toward large values (the histogram's right-hand tail is
-  drawn out).
+- **skewed right** — a long tail toward large values (the histogram's right-hand tail
+  is drawn out).
 - **skewed left** — a long tail toward small values.
 
-The processing-time histogram above is mildly **right-skewed**: the top class $(50\text{–}59)$
-holds only $1$ observation compared with $3$–$4$ per class lower down, stretching the tail
-upward. This matches the arithmetic: the mean $\bar{x} = 446/12 \approx 37.17$ sits slightly
-*above* the median $\tilde{x} = 37$ — a large value in the tail nudges the mean up without
-moving the median, exactly as in §1.3's mean-vs-median discussion.
+<Figure minWidth={430} caption="In a right-skewed shape the mean sits above the median; in a left-skewed shape it sits below. A symmetric shape has them together.">
+  <HistogramTriptych
+    title="Three histogram shapes: symmetric with mean and median together, right-skewed with the mean pulled above the median, and left-skewed with the mean pulled below the median."
+    panels={[
+      { label: 'Symmetric', heights: [2, 5, 9, 12, 9, 5, 2], meanPosition: 0.5, medianPosition: 0.5 },
+      { label: 'Right-skewed', heights: [3, 9, 12, 8, 5, 3, 1], meanPosition: 0.52, medianPosition: 0.40 },
+      { label: 'Left-skewed', heights: [1, 3, 5, 8, 12, 9, 3], meanPosition: 0.48, medianPosition: 0.60 },
+    ]}
+  />
+</Figure>
+
+The processing-time histogram above is mildly **right-skewed**: the top class
+$(50\text{–}59)$ holds only $1$ observation compared with $3$–$4$ per class lower
+down, stretching the tail upward. This matches the arithmetic: the mean
+$\bar{x} = 446/12 \approx 37.17$ sits slightly *above* the median $\tilde{x} = 37$ — a
+large value in the tail nudges the mean up without moving the median, exactly as in
+§1.3's mean-vs-median discussion.
 
 ### Box-and-whisker plots and outliers
 
-A **box-and-whisker plot** (box plot) draws a box from $Q_1$ to $Q_3$ (so its width is the
-IQR) with a line at the median, and "whiskers" reaching out to the most extreme values that
-are not flagged as **outliers**. A common outlier rule flags any observation farther than
+A **box-and-whisker plot** (box plot) draws a box from $Q_1$ to $Q_3$ (so its width is
+the IQR) with a line at the median, and "whiskers" reaching out to the most extreme
+values that are not flagged as **outliers**. How far is too far, before a value counts
+as unusual? A common outlier rule flags any observation farther than
 $1.5 \times \mathrm{IQR}$ from the box:
+
+<Notation rows={[
+  { name: 'too far below the box', symbol: 'x < Q_1 - 1.5\\,\\mathrm{IQR}' },
+  { name: 'too far above the box', symbol: 'x > Q_3 + 1.5\\,\\mathrm{IQR}' },
+]} />
 
 $$
 \text{outlier if } x < Q_1 - 1.5\,\mathrm{IQR} \quad \text{or} \quad x > Q_3 + 1.5\,\mathrm{IQR}.
@@ -297,30 +410,46 @@ $$
 > Q_3 = 44 + 0.75(45-44) = 44.75.
 > $$
 >
-> So $\mathrm{IQR} = 44.75 - 29.5 = 15.25$ and $1.5\,\mathrm{IQR} = 22.875$, giving fences at
-> $Q_1 - 1.5\,\mathrm{IQR} = 6.625$ and $Q_3 + 1.5\,\mathrm{IQR} = 67.625$. Since the minimum
-> ($23$) and maximum ($52$) both fall inside the fences, there are **no outliers**, and the
-> whiskers reach all the way to $23$ and $52$. A box whose median line sits closer to $Q_1$
-> than to $Q_3$ — as it does here, $37 - 29.5 = 7.5$ versus $44.75 - 37 = 7.75$ — is a visual
-> flag for the same mild right skew found above.
+> So $\mathrm{IQR} = 44.75 - 29.5 = 15.25$ and $1.5\,\mathrm{IQR} = 22.875$, giving
+> fences at $Q_1 - 1.5\,\mathrm{IQR} = 6.625$ and $Q_3 + 1.5\,\mathrm{IQR} = 67.625$.
+> Since the minimum ($23$) and maximum ($52$) both fall inside the fences, there are
+> **no outliers**, and the whiskers reach all the way to $23$ and $52$. A box whose
+> median line sits closer to $Q_1$ than to $Q_3$ — as it does here, $37 - 29.5 = 7.5$
+> versus $44.75 - 37 = 7.75$ — is a visual flag for the same mild right skew found
+> above.
+
+<Figure minWidth={430} caption="The same fence rule applied to the ten delivery delays from §1.3: the box covers the middle half, the whiskers reach the nearest non-extreme values, and the 50-minute delay falls outside the fence — the same value that pulled the mean away from the median earlier.">
+  <BoxPlot
+    values={[2, 3, 5, 6, 7, 8, 9, 10, 11, 50]}
+    unit="min"
+    title="Box plot of the ten delivery delays: Q1 4.5, median 7.5, Q3 10.25 minutes, with the 50-minute delay flagged as an outlier beyond the upper fence."
+  />
+</Figure>
 
 ## 1.7 Types of statistical studies: designed experiment, observational study, retrospective study
 
-- **Designed experiment** — the analyst chooses the treatments (factor levels) and assigns
-  them to experimental units at random (§1.2). Randomization equalizes uncontrolled
-  ("nuisance") factors across the treatment groups, so a difference found between groups can
-  be attributed to the treatment itself. This gives the strongest basis for a causal
-  conclusion.
-- **Observational study** — the factor levels are simply recorded, not assigned; subjects
-  are monitored as they naturally occur (e.g. tracking blood cholesterol against existing
-  blood-sodium levels, since sodium intake cannot ethically be assigned). Without
-  randomization, differences found may be caused by some other, uncontrolled factor —
-  a **confounding** variable — rather than the factor under study.
-- **Retrospective study** — uses purely **historical** data, collected over some past period
-  for another purpose. It is cheap, since no new data collection is needed, but it carries
-  real risks: the validity and reliability of old records is often in doubt, values may be
-  missing, collection errors may be undetectable, and the range of factor values reflects
-  whatever happened to occur historically rather than a range the analyst would have chosen.
+An engineer tests coated and uncoated aluminium specimens at two humidity levels and
+records how many stress cycles each survives before failing. Call that count
+`cyclesToFailure`. How the specimens were assigned to those conditions decides what
+kind of study this is.
+
+- **Designed experiment** — the analyst chooses the treatments (factor levels) and
+  assigns them to experimental units at random (§1.2). Randomization equalizes
+  uncontrolled ("nuisance") factors across the treatment groups, so a difference found
+  between groups can be attributed to the treatment itself. This gives the strongest
+  basis for a causal conclusion.
+- **Observational study** — the factor levels are simply recorded, not assigned;
+  subjects are monitored as they naturally occur (e.g. tracking blood cholesterol
+  against existing blood-sodium levels, since sodium intake cannot ethically be
+  assigned). Without randomization, differences found may be caused by some other,
+  uncontrolled factor — a **confounding** variable — rather than the factor under
+  study.
+- **Retrospective study** — uses purely **historical** data, collected over some past
+  period for another purpose. It is cheap, since no new data collection is needed, but
+  it carries real risks: the validity and reliability of old records is often in
+  doubt, values may be missing, collection errors may be undetectable, and the range
+  of factor values reflects whatever happened to occur historically rather than a
+  range the analyst would have chosen.
 
 | Study type | Who sets the factor levels? | Strength | Main weakness |
 | --- | --- | --- | --- |
@@ -328,9 +457,9 @@ $$
 | Observational study | Nature / circumstance | Usable when control is impossible | Confounding factors go uncontrolled |
 | Retrospective study | Already fixed (historical) | Low cost, no new data needed | Data quality, missingness, irrelevant ranges |
 
-> **Worked example — corrosion coating** (Walpole §1.7, Example 1.3). An engineer tests four
-> treatment combinations (coated/uncoated $\times$ 20%/80% humidity) by randomly assigning
-> two aluminum specimens to each combination — a completely randomized **designed
-> experiment**. Because the assignment is random, an observed difference in cycles-to-failure
-> across combinations can be attributed to the coating and humidity themselves, not to some
-> uncontrolled difference between the specimens.
+> **Worked example — corrosion coating** (Walpole §1.7, Example 1.3). An engineer
+> tests four treatment combinations (coated/uncoated $\times$ 20%/80% humidity) by
+> randomly assigning two aluminum specimens to each combination — a completely
+> randomized **designed experiment**. Because the assignment is random, an observed
+> difference in `cyclesToFailure` across combinations can be attributed to the coating
+> and humidity themselves, not to some uncontrolled difference between the specimens.
