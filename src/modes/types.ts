@@ -3,7 +3,7 @@ import type { QuestionInstance, QuestionTemplate } from '../engine/types';
 export type ExamSource = 'book' | 'generated' | 'both';
 
 export interface ExamSpec {
-  chapter: string;   // 'intro' | 'probability'
+  chapter: string;   // 'intro' | 'probability' | 'random-variables'
   source: ExamSource;
   count: number;     // requested N
   seed: number;      // master seed (uint32)

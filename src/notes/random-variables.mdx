@@ -1,0 +1,392 @@
+## 3.1 Concept of a random variable
+
+A **statistical experiment** is any process whose repeated observations are subject to
+chance. Its sample space $S$ (Chapter 2) describes outcomes in words; what we usually want
+is a *number* attached to each one.
+
+- **Random variable** — a **function** that assigns a real number to every element of the
+  sample space. Write the variable with a capital letter, $X$, and one of its values with
+  the matching lowercase letter, $x$. It is not an event and not a probability: it is the
+  rule that turns an outcome into a number.
+- Test three electronic components, writing $N$ for nondefective and $D$ for defective:
+
+$$
+S = \{NNN,\; NND,\; NDN,\; DNN,\; NDD,\; DND,\; DDN,\; DDD\}.
+$$
+
+  Let $X$ be the number of defectives. Then $X$ maps $NNN \mapsto 0$, $NND \mapsto 1$, and
+  so on. Each **value** of $X$ names an **event** — the set of outcomes sent to it:
+
+$$
+\{X = 2\} = \{NDD,\; DND,\; DDN\},
+$$
+
+  which is exactly why probabilities can be attached to values of $X$ at all. Every
+  statement about $X$ is shorthand for a statement about a subset of $S$.
+
+- **Discrete random variable** — one whose sample space holds a finite number of
+  possibilities, or an unending sequence with as many elements as there are whole numbers
+  (countably infinite). Discrete variables carry **count data**: defectives in a batch,
+  highway fatalities per year, tosses until the first head.
+- **Continuous random variable** — one whose sample space holds an interval of real
+  numbers, so its possibilities cannot be listed. Continuous variables carry **measurement
+  data**: heights, weights, temperatures, distances, lifetimes.
+
+> **Worked example** (Walpole §3.1, Example 3.1). Two balls are drawn in succession
+> *without replacement* from an urn holding $4$ red and $3$ black balls. With $Y$ the
+> number of red balls drawn, the outcomes and their $Y$-values are
+>
+> $$
+> \begin{array}{c|c}
+> \text{outcome} & y \\ \hline
+> RR & 2 \\
+> RB & 1 \\
+> BR & 1 \\
+> BB & 0
+> \end{array}
+> $$
+>
+> $Y$ is discrete: it takes only the values $0$, $1$, $2$. The count of possible values,
+> not the count of outcomes, is what makes a variable discrete.
+
+## 3.2 Discrete probability distributions
+
+A discrete random variable takes each of its values with a certain probability. Collecting
+those probabilities into a function of $x$ gives the distribution.
+
+- **Probability mass function (pmf)** — also called the probability function or the
+  probability distribution. The set of ordered pairs $(x, f(x))$ is a pmf of the discrete
+  random variable $X$ when, for every possible outcome $x$,
+
+$$
+f(x) \ge 0,
+\qquad \sum_{x} f(x) = 1,
+\qquad P(X = x) = f(x).
+$$
+
+  The three conditions are a checklist, not a formality: a candidate formula is not a
+  distribution until it passes all three. Solving for an unknown constant $c$ is exactly
+  the act of forcing $\sum_x f(x) = 1$.
+
+- A pmf can be presented three ways — as a **table** of $x$ against $f(x)$, as a
+  **formula** in $x$, or as a **graph** (a bar chart or probability histogram, where the
+  area of each bar is the probability of that value). They carry the same information.
+
+> **Worked example** (Walpole §3.2, Example 3.8). A shipment of $20$ laptops contains $3$
+> defective. A school buys $2$ at random; let $X$ be the number of defectives purchased,
+> so $x \in \{0, 1, 2\}$. Counting as in §2.3, the favourable selections over the
+> $\binom{20}{2} = 190$ equally likely ones give
+>
+> $$
+> f(x) = \frac{\dbinom{3}{x}\dbinom{17}{2-x}}{\dbinom{20}{2}},
+> \qquad x = 0, 1, 2,
+> $$
+>
+> so $f(0) = \tfrac{136}{190}$, $f(1) = \tfrac{51}{190}$, $f(2) = \tfrac{3}{190}$. These sum
+> to $\tfrac{190}{190} = 1$, as any pmf must.
+
+### The cumulative distribution function
+
+Often the question is not "what is $P(X = x)$" but "what is the probability $X$ comes in at
+or below $x$". That accumulated probability is the **cumulative distribution function**:
+
+$$
+F(x) = P(X \le x) = \sum_{t \le x} f(t), \qquad -\infty < x < \infty.
+$$
+
+Three properties are worth committing to memory:
+
+- $F$ is **monotone non-decreasing** — accumulating probability can never lose ground.
+- $F$ is defined **for every real number**, not only for the values $X$ actually takes. For
+  a discrete $X$ it is a **step function**: flat between the values, jumping at each one.
+- The **jump height at $x$ is $f(x)$**, so the pmf is recoverable from the CDF:
+  $f(x) = F(x) - F(x^{-})$, the value just before the jump. For integer-valued $X$ that is
+  simply $f(x) = F(x) - F(x-1)$.
+
+Between two values, $P(a < X \le b) = F(b) - F(a)$.
+
+> **Worked example** (Walpole §3.2, Examples 3.9–3.10). A car agency sells $50\%$ of its
+> inventory with side airbags; of the next $4$ cars sold, $X$ is the number so equipped,
+> with $f(x) = \dbinom{4}{x}\big/16$ for $x = 0, 1, 2, 3, 4$. Then
+> $f(0) = \tfrac{1}{16}$, $f(1) = \tfrac{4}{16}$, $f(2) = \tfrac{6}{16}$,
+> $f(3) = \tfrac{4}{16}$, $f(4) = \tfrac{1}{16}$, and accumulating gives
+>
+> $$
+> F(x) = \begin{cases}
+> 0, & x < 0, \\
+> \tfrac{1}{16}, & 0 \le x < 1, \\
+> \tfrac{5}{16}, & 1 \le x < 2, \\
+> \tfrac{11}{16}, & 2 \le x < 3, \\
+> \tfrac{15}{16}, & 3 \le x < 4, \\
+> 1, & x \ge 4.
+> \end{cases}
+> $$
+>
+> Reading the pmf back out of it: $f(2) = F(2) - F(1) = \tfrac{11}{16} - \tfrac{5}{16} = \tfrac{6}{16} = \tfrac{3}{8}$.
+
+## 3.3 Continuous probability distributions
+
+A continuous random variable has probability $0$ of taking **exactly** any one of its
+values, so its distribution cannot be tabulated. Between any two heights — $163.5$ and
+$164.5$ cm, or even $163.99$ and $164.01$ cm — lie infinitely many others, and no single
+one of them can carry positive weight without the total exceeding $1$.
+
+The consequence is a rule that saves a great deal of fretting over endpoints:
+
+$$
+P(a < X \le b) = P(a < X < b) + P(X = b) = P(a < X < b).
+$$
+
+For a continuous variable, $<$ and $\le$ are interchangeable. (For a discrete variable they
+are emphatically not.)
+
+- **Probability density function (pdf)** — $f(x)$ is a pdf for the continuous random
+  variable $X$, defined over the reals, when
+
+$$
+f(x) \ge 0 \;\text{ for all } x \in \mathbb{R},
+\qquad \int_{-\infty}^{\infty} f(x)\, dx = 1,
+\qquad P(a < X < b) = \int_{a}^{b} f(x)\, dx.
+$$
+
+  Read it as **area under the curve**: the probability of an interval is the area over that
+  interval, and the total area is $1$. The density $f(x)$ is *not* itself a probability —
+  it may be greater than $1$. Only the integral is constrained.
+
+> **Worked example** (Walpole §3.3, Example 3.11). The error in the reaction temperature,
+> in $^{\circ}\mathrm{C}$, for a controlled experiment is continuous with
+>
+> $$
+> f(x) = \begin{cases} \dfrac{x^2}{3}, & -1 < x < 2, \\[4pt] 0, & \text{elsewhere.} \end{cases}
+> $$
+>
+> It is a density: $f(x) \ge 0$ throughout, and
+>
+> $$
+> \int_{-1}^{2} \frac{x^2}{3}\, dx = \frac{x^3}{9}\bigg|_{-1}^{2} = \frac{8}{9} + \frac{1}{9} = 1.
+> $$
+>
+> Then
+>
+> $$
+> P(0 < X \le 1) = \int_{0}^{1} \frac{x^2}{3}\, dx = \frac{x^3}{9}\bigg|_{0}^{1} = \frac{1}{9}.
+> $$
+
+### The cumulative distribution function
+
+The continuous CDF replaces the sum of §3.2 with an integral:
+
+$$
+F(x) = P(X \le x) = \int_{-\infty}^{x} f(t)\, dt, \qquad -\infty < x < \infty.
+$$
+
+Two consequences follow immediately, and between them they cover most exercises:
+
+$$
+P(a < X < b) = F(b) - F(a),
+\qquad f(x) = \frac{dF(x)}{dx} \;\text{ where the derivative exists.}
+$$
+
+So the pdf and the CDF are two views of one object — differentiate to go one way, integrate
+to go the other. Where the discrete CDF jumped, this one rises continuously.
+
+> **Worked example** (Walpole §3.3, Example 3.12). For the density above, integrating from
+> the left end gives, for $-1 < x < 2$,
+>
+> $$
+> F(x) = \int_{-1}^{x} \frac{t^2}{3}\, dt = \frac{t^3}{9}\bigg|_{-1}^{x} = \frac{x^3 + 1}{9},
+> $$
+>
+> hence
+>
+> $$
+> F(x) = \begin{cases}
+> 0, & x < -1, \\[2pt]
+> \dfrac{x^3 + 1}{9}, & -1 \le x < 2, \\[4pt]
+> 1, & x \ge 2.
+> \end{cases}
+> $$
+>
+> Recovering the earlier answer without re-integrating:
+> $P(0 < X \le 1) = F(1) - F(0) = \tfrac{2}{9} - \tfrac{1}{9} = \tfrac{1}{9}$. ✓
+
+## 3.4 Joint probability distributions
+
+Everything so far lives in a **one-dimensional** sample space: one experiment, one number
+recorded. Often two numbers come out of the same experiment — the precipitate $P$ and the
+gas volume $V$ from one reaction, the hardness $H$ and tensile strength $T$ of one copper
+sample. The outcome is then a **pair** $(x, y)$, and the sample space is two-dimensional.
+
+- **Joint probability distribution** — for discrete $X$ and $Y$, the function $f(x, y)$ is
+  a joint pmf when
+
+$$
+f(x, y) \ge 0 \;\text{ for all } (x, y),
+\qquad \sum_{x} \sum_{y} f(x, y) = 1,
+\qquad P(X = x,\, Y = y) = f(x, y).
+$$
+
+  These are the §3.2 conditions with one more index. For any region $A$ of the plane,
+  $P[(X,Y) \in A] = \sum_{A} f(x, y)$ — probability over a region is a sum of the cells
+  inside it.
+
+- **Joint density function** — for continuous $X$ and $Y$, the conditions become
+
+$$
+f(x, y) \ge 0,
+\qquad \int_{-\infty}^{\infty} \int_{-\infty}^{\infty} f(x, y)\, dx\, dy = 1,
+\qquad P[(X,Y) \in A] = \iint_{A} f(x, y)\, dx\, dy.
+$$
+
+  Where the one-variable case measured area under a curve, this one measures **volume under
+  a surface**. Total volume $1$; the probability of a region is the volume standing over it.
+
+> **Worked example** (Walpole §3.4, Example 3.14). Two ballpoint pens are drawn from a box
+> of $3$ blue, $2$ red and $3$ green. Let $X$ count the blue drawn and $Y$ the red. With
+> $\binom{8}{2} = 28$ equally likely selections,
+>
+> $$
+> f(x, y) = \frac{\dbinom{3}{x}\dbinom{2}{y}\dbinom{3}{2-x-y}}{\dbinom{8}{2}},
+> \qquad 0 \le x + y \le 2,
+> $$
+>
+> which tabulates as
+>
+> $$
+> \begin{array}{c|ccc|c}
+> f(x,y) & x=0 & x=1 & x=2 & h(y) \\ \hline
+> y=0 & \tfrac{3}{28} & \tfrac{9}{28} & \tfrac{3}{28} & \tfrac{15}{28} \\[2pt]
+> y=1 & \tfrac{6}{28} & \tfrac{6}{28} & 0 & \tfrac{12}{28} \\[2pt]
+> y=2 & \tfrac{1}{28} & 0 & 0 & \tfrac{1}{28} \\ \hline
+> g(x) & \tfrac{10}{28} & \tfrac{15}{28} & \tfrac{3}{28} & 1
+> \end{array}
+> $$
+>
+> The nine cells sum to $1$. For the region $A = \{(x,y) \mid x + y \le 1\}$,
+>
+> $$
+> P[(X,Y) \in A] = f(0,0) + f(0,1) + f(1,0) = \frac{3 + 6 + 9}{28} = \frac{9}{14}.
+> $$
+
+### Marginal distributions
+
+Sum the joint distribution over the *other* variable and what is left is the distribution of
+one variable on its own:
+
+$$
+g(x) = \sum_{y} f(x, y),
+\qquad h(y) = \sum_{x} f(x, y),
+$$
+
+with integrals in place of sums in the continuous case. The name is literal: in the table
+above, $g(x)$ is the row of column totals and $h(y)$ the column of row totals — the numbers
+written in the **margins**. Each is a genuine pmf in its own right, satisfying every
+condition of §3.2, which is why $P(a < X < b)$ can be computed from $g$ alone.
+
+### Conditional distributions
+
+Conditional probability from §2.6, $P(B \mid A) = P(A \cap B)/P(A)$, applied to the events
+$\{X = x\}$ and $\{Y = y\}$, gives
+
+$$
+f(y \mid x) = \frac{f(x, y)}{g(x)} \;\text{ provided } g(x) > 0,
+\qquad
+f(x \mid y) = \frac{f(x, y)}{h(y)} \;\text{ provided } h(y) > 0.
+$$
+
+The joint distribution goes on top; the marginal of the variable being conditioned **on**
+goes underneath. Fixing $x$ and letting $y$ vary, $f(y \mid x)$ is itself a probability
+distribution — it is non-negative and sums (or integrates) to $1$, which is exactly why
+$P(a < X < b \mid Y = y) = \sum_{a < x < b} f(x \mid y)$ is legitimate.
+
+> **Worked example** (Walpole §3.4, Example 3.18). From the pen table, conditioning on
+> $Y = 1$ uses the row total $h(1) = \tfrac{6}{28} + \tfrac{6}{28} + 0 = \tfrac{3}{7}$, so
+>
+> $$
+> f(x \mid 1) = \frac{f(x, 1)}{h(1)} = \tfrac{7}{3} f(x, 1),
+> \qquad
+> f(0 \mid 1) = \tfrac{1}{2}, \quad f(1 \mid 1) = \tfrac{1}{2}, \quad f(2 \mid 1) = 0.
+> $$
+>
+> So $P(X = 0 \mid Y = 1) = \tfrac{1}{2}$: given that one of the two pens is red, the other
+> is equally likely to be green or blue.
+
+### Statistical independence
+
+If $f(y \mid x)$ does not depend on $x$ at all, then knowing $X$ tells you nothing about
+$Y$. Formally:
+
+$$
+X \text{ and } Y \text{ are statistically independent} \iff f(x, y) = g(x)\,h(y)
+\;\text{ for all } (x, y) \text{ in range.}
+$$
+
+For $n$ variables the same statement becomes
+$f(x_1, \dots, x_n) = f_1(x_1) \cdots f_n(x_n)$, and they are called **mutually**
+statistically independent.
+
+The asymmetry of the test is worth dwelling on. To **disprove** independence, one point
+suffices — find any $(x,y)$ with $f(x,y) \neq g(x)h(y)$ and you are done. To **establish**
+it, every point must be checked, because a table can agree at some cells and disagree at
+others.
+
+> **Worked example** (Walpole §3.4, Example 3.21). Are the pen variables independent? Take
+> the point $(0, 1)$:
+>
+> $$
+> g(0)\,h(1) = \frac{10}{28} \cdot \frac{12}{28} = \frac{5}{14} \cdot \frac{3}{7} = \frac{15}{98},
+> \qquad
+> f(0, 1) = \frac{6}{28} = \frac{3}{14} = \frac{21}{98}.
+> $$
+>
+> $\tfrac{15}{98} \neq \tfrac{21}{98}$, so $X$ and $Y$ are **not** independent — and no
+> further cells need checking. (Intuitively: drawing a blue pen uses up one of only two
+> slots, so it makes a red draw less likely. The variables are competing for the same two
+> draws.)
+
+For continuous variables the check is usually easier, because a density that **factors**
+into a function of $x$ times a function of $y$ over a **rectangular** support is
+independent. The rectangle matters: $f(x,y) = 10xy^2$ on $0 < x < y < 1$ factors, but its
+support is triangular — the range of $X$ depends on $y$ — and those variables are *not*
+independent.
+
+## 3.5 Potential misconceptions and hazards
+
+Mistakes this chapter actually punishes, gathered in one place:
+
+- **A random variable is a function, not an event and not a probability.** $X$ is the rule
+  mapping outcomes to numbers; $\{X = 2\}$ is the event; $P(X = 2)$ is the probability.
+  Sliding between the three is the root of most confused notation in this chapter.
+- **$f(x)$ is a probability only in the discrete case.** For a continuous variable $f$ is a
+  **density**, and $f(x) > 1$ is perfectly legal — the density $f(x) = 2x$ on $(0,1)$
+  reaches $2$. Only $\int f = 1$ is required. Reading a density value off a graph and
+  calling it a probability is the classic error.
+- **$P(X = a) = 0$ does not mean $X = a$ is impossible.** For continuous $X$ every single
+  value has probability $0$, yet the experiment must produce *some* value. Probability $0$
+  and impossibility part ways as soon as the sample space stops being countable.
+- **Endpoints matter for discrete variables and not for continuous ones.** $P(X \le k)$ and
+  $P(X < k)$ differ by exactly $f(k)$ when $X$ is discrete — the single commonest
+  off-by-one in CDF work — and are equal when $X$ is continuous. Decide which kind of
+  variable you have *before* you decide whether the endpoint is in.
+- **The CDF is defined for every real number.** $F(1.5)$ is a perfectly good question about
+  an integer-valued $X$; the answer is $F(1)$, because $F$ is flat between the jumps.
+  Treating $F$ as defined only at the values $X$ takes loses the step-function picture and
+  with it the "jump height is $f(x)$" shortcut.
+- **Check both conditions before calling something a distribution.** Non-negativity alone
+  is not enough, and neither is summing (or integrating) to $1$ alone. When a question
+  hands you an unknown constant $c$, that constant exists precisely so you can enforce
+  $\sum_x f(x) = 1$ or $\int f = 1$ — solving for it *is* the verification.
+- **$f(x \mid y)$ and $f(y \mid x)$ are different things.** They share a numerator,
+  $f(x,y)$, but divide by different marginals. Deciding which variable is *given* fixes
+  which total goes underneath; getting it backwards is the §3.4 counterpart of confusing
+  $P(A \mid B)$ with $P(B \mid A)$ in Chapter 2.
+- **The marginals do not determine the joint distribution.** Two different tables can have
+  identical row and column totals and describe quite different relationships between $X$
+  and $Y$. Marginals throw information away — going from $f(x,y)$ to $g(x)$ and $h(y)$ is a
+  one-way trip unless the variables happen to be independent.
+- **Independence is an all-points claim.** One point with $f(x,y) \neq g(x)h(y)$ disproves
+  it outright; one point where they *agree* proves nothing whatsoever. The evidence is
+  asymmetric, so a single lucky cell is never a proof of independence.
+- **A factoring density is not enough — the support must be rectangular too.** If the range
+  of one variable depends on the value of the other, as with $0 < x < y < 1$, the variables
+  are dependent no matter how cleanly $f(x,y)$ splits into $x$-parts and $y$-parts.

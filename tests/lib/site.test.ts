@@ -5,8 +5,8 @@ import { chapters, modes, navItems } from '../../src/lib/site';
 import { topicsForChapter } from '../../src/engine/registry';
 
 describe('site.ts', () => {
-  it('lists both Phase-1 chapters in order', () => {
-    expect(chapters.map((c) => c.number)).toEqual([1, 2]);
+  it('lists every written chapter in order', () => {
+    expect(chapters.map((c) => c.number)).toEqual([1, 2, 3]);
   });
 
   it('uses chapter slugs that resolve to real engine templates', () => {

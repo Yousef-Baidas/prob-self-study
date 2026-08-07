@@ -9,6 +9,10 @@ describe('drillTopics', () => {
       'probability/Bayes theorem',
       'probability/Conditional probability',
       'probability/Counting techniques',
+      'random-variables/Continuous distributions',
+      'random-variables/Discrete distributions',
+      'random-variables/Joint distributions',
+      'random-variables/Random variables',
     ]);
   });
 

@@ -4,19 +4,27 @@ import { ch01Generators } from './generators/ch01';
 
 import { ch02Generators } from './generators/ch02';
 
+import { ch03Generators } from './generators/ch03';
+
 import { ch01Book } from './questions/ch01.book';
 
 import { ch02Book } from './questions/ch02.book';
 
-/** Every question template — book and generated, both chapters — in one array. */
+import { ch03Book } from './questions/ch03.book';
+
+/** Every question template — book and generated, every chapter — in one array. */
 export const allTemplates: QuestionTemplate[] = [
   ...ch01Generators,
 
   ...ch02Generators,
 
+  ...ch03Generators,
+
   ...ch01Book,
 
   ...ch02Book,
+
+  ...ch03Book,
 ];
 
 export type SelectOptions = {
