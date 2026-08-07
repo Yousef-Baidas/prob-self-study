@@ -61,6 +61,7 @@
     <p>
       {#if run.reason === 'chapter'}That chapter isn’t available yet.
       {:else if run.reason === 'source'}That question source isn’t valid.
+      {:else if run.reason === 'difficulty'}That difficulty isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>
     <a href={route('exam')}>Back to setup</a>

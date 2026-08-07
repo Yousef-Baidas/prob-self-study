@@ -41,7 +41,11 @@
 
 {#if run.status === 'error'}
   <div class="drill-error">
-    <p>{run.reason === 'topic' ? 'That topic isn’t available for drilling yet.' : 'No questions match this topic.'}</p>
+    <p>
+      {#if run.reason === 'topic'}That topic isn’t available for drilling yet.
+      {:else if run.reason === 'difficulty'}That difficulty isn’t valid.
+      {:else}No questions match this topic at that difficulty.{/if}
+    </p>
     <a href={route('drill')}>Back to setup</a>
   </div>
 {:else if run.status === 'ready'}

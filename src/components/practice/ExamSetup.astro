@@ -1,11 +1,12 @@
 ---
 import { chapters } from '../../lib/site';
 import { route } from '../../lib/routes';
-import { COUNT_MAX, COUNT_MIN, EXAM_DEFAULTS, SOURCES } from '../../run/defaults';
+import { COUNT_MAX, COUNT_MIN, DIFFICULTIES, EXAM_DEFAULTS, SOURCES } from '../../run/defaults';
 const action = route('exam');
 // The same constants the parser falls back to, so a bare exam link behaves
 // exactly like submitting this form.
 const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', generated: 'Randomized' };
+const difficultyLabels: Record<string, string> = { any: 'Any', easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 ---
 <form class="exam-setup" method="get" action={action}>
   <h1>Start an exam</h1>
@@ -21,6 +22,12 @@ const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', gener
     <legend>Source</legend>
     {SOURCES.map((s) => (
       <label><input type="radio" name="source" value={s} checked={s === EXAM_DEFAULTS.source} /> {sourceLabels[s]}</label>
+    ))}
+  </fieldset>
+  <fieldset>
+    <legend>Difficulty</legend>
+    {DIFFICULTIES.map((d) => (
+      <label><input type="radio" name="difficulty" value={d} checked={d === EXAM_DEFAULTS.difficulty} /> {difficultyLabels[d]}</label>
     ))}
   </fieldset>
   <p class="last-score" hidden></p>

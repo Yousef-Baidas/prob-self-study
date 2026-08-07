@@ -9,8 +9,10 @@ import type { DrillQuestion, DrillSpec } from '../modes/drill';
 import { gradeInstance, type GivenAnswer } from '../engine/grade';
 import { buildSearch, resolveSeed } from './core';
 import { decodeTopicKey } from './topicKey';
+import { DIFFICULTIES, DIFFICULTY_DEFAULT } from './defaults';
+import { optionalEnum } from './params';
 
-export type DrillRunError = 'topic' | 'empty';
+export type DrillRunError = 'topic' | 'difficulty' | 'empty';
 
 export type DrillRunState =
   | { status: 'idle' }
@@ -50,7 +52,13 @@ const accuracyOf = (correct: number, answered: number) =>
 
 /** Load question `index` and clear whatever was typed against the last one. */
 function load(run: ReadyDrillRun, index: number): ReadyDrillRun {
-  const current = buildDrillQuestion(run.spec.chapter, run.spec.topic, run.spec.seed, index);
+  const current = buildDrillQuestion(
+    run.spec.chapter,
+    run.spec.topic,
+    run.spec.seed,
+    index,
+    run.spec.difficulty,
+  );
   return {
     ...run,
     index,
@@ -84,16 +92,22 @@ export function startDrillRun(search: string, deps: DrillRunDeps): DrillRunState
 
   const known = drillTopics().some((t) => t.chapter === chapter && t.topic === topic);
   if (!known) return { status: 'error', reason: 'topic' };
-  if (drillPool(chapter, topic).length === 0) return { status: 'error', reason: 'empty' };
+
+  const difficulty = optionalEnum(params.get('difficulty'), DIFFICULTIES, DIFFICULTY_DEFAULT, 'difficulty' as const);
+  if (!difficulty.ok) return { status: 'error', reason: difficulty.reason };
+
+  // A topic can exist at some difficulty and be empty at the one asked for — say
+  // so rather than quietly widening the filter back to 'any'.
+  if (drillPool(chapter, topic, difficulty.value).length === 0) return { status: 'error', reason: 'empty' };
 
   const seed = resolveSeed(params.get('seed'), deps.roll);
-  const spec: DrillSpec = { chapter, topic, seed };
+  const spec: DrillSpec = { chapter, topic, seed, difficulty: difficulty.value };
 
   const base: ReadyDrillRun = {
     status: 'ready',
     spec,
     index: 0,
-    current: buildDrillQuestion(chapter, topic, seed, 0),
+    current: buildDrillQuestion(chapter, topic, seed, 0, difficulty.value),
     answers: [],
     graded: null,
     checked: false,

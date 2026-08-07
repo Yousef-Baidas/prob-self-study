@@ -1,28 +1,89 @@
 ---
 import { chapters } from '../../lib/site';
-import { drillTopics } from '../../modes/drill';
+import { drillPool, drillTopics } from '../../modes/drill';
 import { route } from '../../lib/routes';
 import { encodeTopicKey } from '../../run/topicKey';
+import { DIFFICULTIES, DIFFICULTY_DEFAULT } from '../../run/defaults';
 const action = route('drill');
 const topics = drillTopics();
 const groups = chapters
   .map((c) => ({ chapter: c, topics: topics.filter((t) => t.chapter === c.slug) }))
   .filter((g) => g.topics.length > 0);
+// Every topic's own set of difficulties, so the difficulty control can be
+// narrowed to what the selected topic actually has instead of listing options
+// that would draw an empty pool.
+const difficultiesFor = (chapter: string, topic: string) =>
+  [...new Set(drillPool(chapter, topic).map((t) => t.difficulty))].join('|');
+const difficultyLabels: Record<string, string> = { any: 'Any', easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 ---
 <form class="drill-setup" method="get" action={action}>
   <h1>Drill a topic</h1>
   <label>Topic
-    <select name="tk">
+    <select name="tk" id="drill-topic">
       {groups.map((g) => (
         <optgroup label={`Ch ${g.chapter.number} — ${g.chapter.title}`}>
-          {g.topics.map((t) => <option value={encodeTopicKey(t.chapter, t.topic)}>{t.topic}</option>)}
+          {g.topics.map((t) => (
+            <option value={encodeTopicKey(t.chapter, t.topic)} data-difficulties={difficultiesFor(t.chapter, t.topic)}>
+              {t.topic}
+            </option>
+          ))}
         </optgroup>
       ))}
+    </select>
+  </label>
+  <label>Difficulty
+    <select name="difficulty" id="drill-difficulty">
+      {DIFFICULTIES.map((d) => <option value={d} selected={d === DIFFICULTY_DEFAULT}>{difficultyLabels[d]}</option>)}
     </select>
   </label>
   <p class="hint">Endless, single-topic practice — a new randomized question every time.</p>
   <button type="submit">Start drilling</button>
 </form>
+<script is:inline>
+  // A topic and difficulty can combine into an empty pool (some topics are
+  // currently hard-only, for instance), so each control narrows the other:
+  // picking a difficulty hides topics that have nothing at it, and picking a
+  // topic disables the difficulties it has no questions for.
+  (function () {
+    var topicSel = document.getElementById('drill-topic');
+    var diffSel = document.getElementById('drill-difficulty');
+
+    function difficultiesOf(option) {
+      return (option.getAttribute('data-difficulties') || '').split('|').filter(Boolean);
+    }
+
+    function refreshDifficulty() {
+      var opt = topicSel.options[topicSel.selectedIndex];
+      var available = difficultiesOf(opt);
+      Array.prototype.forEach.call(diffSel.options, function (o) {
+        o.disabled = o.value !== 'any' && available.indexOf(o.value) === -1;
+      });
+      if (diffSel.options[diffSel.selectedIndex].disabled) diffSel.value = 'any';
+    }
+
+    function refreshTopics() {
+      var chosen = diffSel.value;
+      Array.prototype.forEach.call(topicSel.options, function (o) {
+        if (!o.value) return;
+        var available = difficultiesOf(o);
+        o.hidden = chosen !== 'any' && available.indexOf(chosen) === -1;
+      });
+      var current = topicSel.options[topicSel.selectedIndex];
+      if (current && current.hidden) {
+        for (var i = 0; i < topicSel.options.length; i++) {
+          if (!topicSel.options[i].hidden && topicSel.options[i].value) {
+            topicSel.selectedIndex = i;
+            break;
+          }
+        }
+      }
+    }
+
+    topicSel.addEventListener('change', refreshDifficulty);
+    diffSel.addEventListener('change', refreshTopics);
+    refreshDifficulty();
+  })();
+</script>
 <style>
   .drill-setup {
     display: flex; flex-direction: column; gap: var(--space-md);

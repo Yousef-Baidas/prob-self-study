@@ -55,6 +55,12 @@ Random variables split into two kinds, by what their values look like:
   variable**. Continuous measurements carry **measurement data**: heights, weights,
   temperatures, distances, lifetimes.
 
+A discrete measurement can be as simple as a yes/no flag. Recording whether one component
+is defective as `isDefective = 1` and non-defective as `isDefective = 0` turns a category
+into a number — an assignment the book calls a **Bernoulli random variable**. Which value
+gets the label $1$ is arbitrary, chosen for convenience; later chapters build on exactly
+this trick to turn counting problems into arithmetic ones.
+
 > **Worked example** (Walpole §3.1, Example 3.1). Two balls are drawn in succession
 > *without replacement* from an urn holding $4$ red and $3$ black balls. Call the count of
 > red balls drawn `redCount`. The outcomes and their `redCount` values (written $y$ below)
@@ -138,6 +144,13 @@ Three properties are worth committing to memory:
 - The **jump height at $x$ is $f(x)$**, so the pmf is recoverable from the CDF:
   $f(x) = F(x) - F(x^{-})$, the value just before the jump. For integer-valued $X$ that is
   simply $f(x) = F(x) - F(x-1)$.
+- Each step is **closed on its left end and open on its right** — the value at a jump
+  belongs to the new step, not the old one. Formally the CDF is **continuous from the
+  right**: $F(x) = F(x^{+})$. This is the reason $F(x)$ is defined with $\le$ rather than
+  $<$, and it is what makes the jump height above equal $f(x)$ exactly. It also decides
+  the endpoints: $P(a < X \le b) = F(b) - F(a)$ includes $b$ but excludes $a$, so for a
+  discrete measurement moving an endpoint across a value it can actually take changes
+  the answer.
 
 Between two values, $P(a < X \le b) = F(b) - F(a)$.
 
@@ -527,6 +540,28 @@ into a function of $x$ times a function of $y$ over a **rectangular** support is
 independent. The rectangle matters: $f(x,y) = 10xy^2$ on $0 < x < y < 1$ factors, but its
 support is triangular — the range of $X$ depends on $y$ — and those variables are *not*
 independent.
+
+### Independence of more than two measurements
+
+Everything above extends to a list of measurements $X_1, X_2, \ldots, X_n$ with joint
+distribution $f(x_1, x_2, \ldots, x_n)$ and individual (marginal) distributions
+$f_1, f_2, \ldots, f_n$. They are **mutually independent** when the joint distribution is
+the product of *all* the marginals, at every point:
+
+$$
+f(x_1, x_2, \ldots, x_n) = f_1(x_1)\, f_2(x_2) \cdots f_n(x_n)
+$$
+
+The word *mutually* is doing real work. Checking the pairs one at a time is **not** enough:
+$X_1$ and $X_2$ can be independent, $X_1$ and $X_3$ independent, and $X_2$ and $X_3$
+independent, while the three together still fail the product rule above. Pairwise
+independence is a weaker condition than mutual independence, and only the full product
+licenses the factorisations used later in the course.
+
+The repeated-sampling case is the one worth remembering: if the same measurement is taken
+$n$ times independently under identical conditions, the joint distribution is
+$f(x_1) f(x_2) \cdots f(x_n)$ — the same marginal, multiplied $n$ times. That product is
+what every later chapter means by "a random sample".
 
 ## 3.5 Potential misconceptions and hazards
 

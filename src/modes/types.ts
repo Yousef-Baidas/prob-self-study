@@ -1,12 +1,19 @@
-import type { QuestionInstance, QuestionTemplate } from '../engine/types';
+import type { Difficulty, QuestionInstance, QuestionTemplate } from '../engine/types';
 
 export type ExamSource = 'book' | 'generated' | 'both';
+
+// 'any' is the current, pre-difficulty behaviour — every difficulty, unfiltered.
+// It is a mode-layer concept only: selectTemplates() knows just the three real
+// difficulties, so every read of this filter narrows 'any' to `undefined` right
+// before calling it.
+export type DifficultyFilter = 'any' | Difficulty;
 
 export interface ExamSpec {
   chapter: string;   // 'intro' | 'probability' | 'random-variables'
   source: ExamSource;
   count: number;     // requested N
   seed: number;      // master seed (uint32)
+  difficulty?: DifficultyFilter; // defaults to 'any' where read
 }
 
 export interface ExamQuestion {

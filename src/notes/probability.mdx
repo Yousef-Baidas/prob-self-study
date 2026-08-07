@@ -113,6 +113,18 @@ them, order mattering, is called `arrangementsOf(n, r)`:
 The two-argument $P(n, r)$ is a count of arrangements, not a probability — don't confuse
 this use of the letter $P$ with the probability $P(A)$ from §2.4.
 
+**Circular arrangements** are different again: arranging $n$ objects around a circle gives
+fewer distinct results than arranging them in a row, because rotating every object one seat
+clockwise doesn't create a new arrangement — only the order relative to each other counts.
+Fixing one object's seat and arranging the rest gives
+
+$$
+(n - 1)!
+$$
+
+distinct circular arrangements of $n$ objects. Four bridge players seated around a table have
+$(4-1)! = 6$ distinct seatings, not $4! = 24$.
+
 **Non-distinct objects.** Arranging $n$ items where $n_i$ of them are identical copies of
 kind $i$ gives fewer distinct arrangements, since swapping two identical items changes
 nothing:
@@ -121,8 +133,23 @@ $$
 \frac{n!}{n_1!\, n_2! \cdots n_k!}.
 $$
 
+**Partitioning into cells.** Sometimes the question isn't "pick $r$ objects" but "split all
+$n$ objects into several labelled groups" — 7 conference attendees sorted into a triple room
+and two double rooms, say. Call the count of ways to split $n$ objects into cells of sizes
+$n_1, n_2, \dots, n_r$ (with $n_1 + n_2 + \cdots + n_r = n$) `waysToPartition(n; n_1,\dots,n_r)`:
+
+<Notation rows={[
+  { name: 'waysToPartition(n; n_1,\\dots,n_r)', symbol: '\\dbinom{n}{n_1,\\,n_2,\\,\\dots,\\,n_r} = \\dfrac{n!}{n_1!\\,n_2!\\cdots n_r!}', note: 'splits all n objects into r labelled cells' },
+]} />
+
+Seven students split into rooms of size 3, 2, 2:
+$\;\dbinom{7}{3,2,2} = \dfrac{7!}{3!\,2!\,2!} = 210$ ways. This is the same fraction that
+counts non-distinct arrangements above — arranging $n$ objects with $n_i$ copies of kind $i$
+is really partitioning the $n$ positions into $k$ cells, one cell per kind.
+
 **Combinations** count *unordered* selections of $r$ from $n$ — the committee question,
-where who's picked matters but not the order they were picked in. Call it
+where who's picked matters but not the order they were picked in. A combination is a
+partition into just two cells: the $r$ objects picked, and the $n - r$ left behind. Call it
 `choicesOf(n, r)`, written three equivalent ways and read "$n$ choose $r$":
 
 <Notation rows={[
@@ -135,7 +162,12 @@ Here $n$ is the number of objects available and $r$ the number arranged or chose
 > - The committee of 3 from 10 people, order irrelevant:
 >   $\;{}_{10}C_{3} = \binom{10}{3} = \dfrac{10!}{3!\,7!} = 120$ ways.
 > - Distinct arrangements of the letters in **STATISTICS** (S, T each ×3, I ×2, A, C ×1):
->   $\;\dfrac{10!}{3!\,3!\,2!\,1!\,1!} = 50{,}400$.
+>   $\;\dfrac{10!}{3!\,3!\,2!\,1!\,1!} = 50{,}400$ — the same computation as
+>   `waysToPartition` above, since arranging with repeats is partitioning the 10 letter
+>   positions by which letter fills them.
+> - Choosing 3 arcade cartridges from 10 and 2 sports cartridges from 5, then combining the
+>   two independent choices with the multiplication rule: $\binom{10}{3}\binom{5}{2} =
+>   (120)(10) = 1200$ ways (Walpole §2.3, Example 2.22).
 
 ## 2.4 Probability of an event
 

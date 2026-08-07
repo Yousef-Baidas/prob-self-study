@@ -38,6 +38,15 @@ population it came from.
 > $0.028$ — that is strong evidence the process is *not* acceptable. Probability turns
 > `defectCount` into an inferential conclusion (Walpole §1.1, Example 1.1).
 
+That $0.028$ has a name. It is the probability, *assuming the process really is
+acceptable*, of seeing a sample at least this extreme — 10 or more defectives out of
+100. A result this unlikely under the assumption is what makes the assumption worth
+doubting.
+
+<Notation rows={[
+  { name: 'the probability of a result this extreme, if the assumption being tested is true', symbol: 'P\\text{-value}', note: '0.028 here — small enough to doubt the process is acceptable' },
+]} />
+
 ## 1.2 Sampling procedures and experimental design
 
 Say you want to know the average income across a state. You cannot ask everyone, so
@@ -136,6 +145,10 @@ observation(s) is trimmed away.
 > deliveries actually sit, while trimming it away (along with the smallest value, to
 > keep the trim symmetric) recovers a number much more typical of the sample.
 
+A **dot plot** is the simplest way to see this directly: each delivery delay is drawn
+as a single dot along a number line, so a value that does not belong with the rest —
+like the 50-minute delivery below — stands out on sight, before any arithmetic.
+
 <Figure width={CHART_WIDTH.dotPlot} caption="A single 50-minute delivery pulls the mean well past the bulk of the data; the median barely moves.">
   <DotPlot
     values={[2, 3, 5, 6, 7, 8, 9, 10, 11, 50]}
@@ -182,6 +195,30 @@ the data's own units, is used more in applications.)
 > $s^2 = \dfrac{1}{9}\big[(7.07-7.025)^2 + \dots + (7.08-7.025)^2\big] = 0.001939$; and
 > the standard deviation is $s = \sqrt{0.001939} = 0.044$, on $n-1 = 9$ degrees of
 > freedom.
+
+### A computational shortcut for $s^2$
+
+Computing $s^2$ from its definition means subtracting the mean from every reading,
+squaring each difference, and adding those up — every deviation gets computed twice
+if you also want $\bar{x}$ checked. A short algebraic rearrangement needs only the
+readings themselves and their squares, and returns exactly the same number.
+
+<Notation rows={[
+  { name: 'the readings, added up', symbol: '\\textstyle\\sum x_i' },
+  { name: 'the readings, squared and then added up', symbol: '\\textstyle\\sum x_i^2' },
+]} />
+
+$$
+s^2 = \frac{\displaystyle\sum_{i=1}^{n} x_i^2 - \dfrac{\left(\sum_{i=1}^{n} x_i\right)^2}{n}}{n-1}.
+$$
+
+> **Check against the pH-meter readings above.** $\sum x_i = 70.25$ and
+> $\sum x_i^2 = 493.5237$, so
+> $s^2 = \dfrac{493.5237 - 70.25^2/10}{9} = \dfrac{0.01745}{9} = 0.001939$ — the same
+> variance found the definitional way. Because a small rounding error inside the
+> subtraction gets divided by nothing to shrink it back down, this shortcut form is
+> more sensitive to rounding readings too early — keep extra decimal places until the
+> final division.
 
 ### Quartiles and the interquartile range
 
@@ -254,6 +291,23 @@ be nearest.
 > taking the median of each half (the rule taught in school), or a calculator's
 > default percentile function, would report $Q_1 = 6$ for the data above instead of
 > $5.75$. Use the position-and-interpolate rule here.
+
+### Percentiles
+
+The quartiles are one special case of a more general cut. A **percentile** splits the
+sorted data so that a stated percentage of the observations lie below it — the
+25th, 50th, and 75th percentiles are exactly $Q_1$, $Q_2$, and $Q_3$. The 95th
+percentile of `waitTime`, for instance, separates the slowest 5% of queue waits from
+the rest. Percentiles use the same position-and-interpolate rule as the quartiles,
+just written for an arbitrary cut point instead of quarters:
+
+<Notation rows={[
+  { name: "a percentile's position in the sorted list", symbol: 'L_p = \\dfrac{p(n+1)}{100}', note: 'p = the percentile, e.g. 95' },
+]} />
+
+$$
+L_p = \frac{p(n+1)}{100}.
+$$
 
 ## 1.5 Discrete and continuous data
 

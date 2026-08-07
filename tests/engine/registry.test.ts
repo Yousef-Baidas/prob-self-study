@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import { allTemplates, selectTemplates, topicsForChapter } from '../../src/engine/registry';
 
+import { mulberry32 } from '../../src/engine/rng';
+
 describe('registry', () => {
   it('collects both generated and book templates', () => {
     expect(allTemplates.length).toBeGreaterThanOrEqual(8);
@@ -73,6 +75,27 @@ describe('registry', () => {
       const bank = t.source === 'book' ? 'book' : 'gen';
 
       expect(t.id).toMatch(new RegExp(`^ch\\d{2}-${bank}-[a-z0-9-]+$`));
+    }
+  });
+
+  it('a prompt that asks for a verdict has a part that grades one', () => {
+    // A per-template test checks that every part carries the right answer. It
+    // cannot see a part that should exist and doesn't — the parts array is all
+    // it looks at, and the promise to the student lives in the prompt. This
+    // caught ch03-gen-independence-support-trap asking "decide whether X and Y
+    // are independent" while grading only the three numbers leading up to it.
+    const asksVerdict = /\b(decide|state|say)\s+whether\b|\bis it\b|\bdoes it support\b/i;
+
+    for (const t of allTemplates) {
+      for (const seed of [0, 7, 1234]) {
+        const instance = t.generate(mulberry32(seed));
+
+        if (!asksVerdict.test(instance.prompt)) continue;
+
+        const gradesVerdict = instance.parts.some((p) => p.kind === 'tf' || p.kind === 'mcq');
+
+        expect(gradesVerdict, `${t.id} asks for a verdict but grades none`).toBe(true);
+      }
     }
   });
 });

@@ -1,6 +1,11 @@
 import type { QuestionTemplate } from '../engine/types';
 import { selectTemplates } from '../engine/registry';
-import type { ExamSource } from './types';
+import type { DifficultyFilter, ExamSource } from './types';
+
+/** 'any' (and an absent filter) both mean "every difficulty" to selectTemplates. */
+export function narrowDifficulty(difficulty: DifficultyFilter | undefined) {
+  return difficulty && difficulty !== 'any' ? difficulty : undefined;
+}
 
 const DIFF_RANK: Record<string, number> = { easy: 0, medium: 1, hard: 2 };
 
@@ -23,8 +28,11 @@ export function drawTemplates(
   source: ExamSource,
   count: number,
   topic?: string,
+  difficulty?: DifficultyFilter,
 ): DrawResult {
-  const pool = orderByDifficulty(selectTemplates({ chapter, topic, source }));
+  const pool = orderByDifficulty(
+    selectTemplates({ chapter, topic, source, difficulty: narrowDifficulty(difficulty) }),
+  );
   let templates: QuestionTemplate[];
   if (source === 'book' || pool.length === 0 || pool.length >= count) {
     templates = pool.slice(0, count); // book caps here; generated/both with enough distinct also take first N

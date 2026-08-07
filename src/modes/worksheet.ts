@@ -1,7 +1,7 @@
 import { drawTemplates } from './select';
 import { deriveQuestionSeeds } from './exam';
 import { mulberry32 } from '../engine/rng';
-import type { ExamSource, ExamQuestion } from './types';
+import type { DifficultyFilter, ExamSource, ExamQuestion } from './types';
 
 export interface WorksheetSpec {
   /** One or more chapter slugs — a sheet may mix chapters in any combination. */
@@ -10,6 +10,7 @@ export interface WorksheetSpec {
   source: ExamSource;
   count: number;
   seed: number;
+  difficulty?: DifficultyFilter;
 }
 
 export interface WorksheetSession {
@@ -21,7 +22,7 @@ export interface WorksheetSession {
 }
 
 export function buildWorksheetSession(spec: WorksheetSpec): WorksheetSession {
-  const draw = drawTemplates(spec.chapters, spec.source, spec.count, spec.topic);
+  const draw = drawTemplates(spec.chapters, spec.source, spec.count, spec.topic, spec.difficulty);
   const seeds = deriveQuestionSeeds(spec.seed, draw.templates.length);
   const questions = draw.templates.map((template, i) => ({
     template,

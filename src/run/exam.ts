@@ -4,14 +4,14 @@
 // performs; nothing in this module touches window, history or localStorage.
 
 import { buildExamSession, gradeExamSession } from '../modes/exam';
-import type { ExamResult, ExamSession, ExamSource } from '../modes/types';
+import type { DifficultyFilter, ExamResult, ExamSession, ExamSource } from '../modes/types';
 import type { GivenAnswer } from '../engine/grade';
 import { chapters } from '../lib/site';
 import { buildSearch, resolveSeed } from './core';
-import { COUNT_MAX, COUNT_MIN, EXAM_DEFAULTS, SOURCES } from './defaults';
+import { COUNT_MAX, COUNT_MIN, DIFFICULTIES, EXAM_DEFAULTS, SOURCES } from './defaults';
 import { optionalEnum, optionalInt, requireSlug } from './params';
 
-export type ExamRunError = 'chapter' | 'source' | 'empty';
+export type ExamRunError = 'chapter' | 'source' | 'difficulty' | 'empty';
 
 export type ExamRunState =
   | { status: 'idle' }
@@ -36,7 +36,10 @@ export type ExamRunDeps = { roll: () => number };
 const blankAnswers = (session: ExamSession): GivenAnswer[][] =>
   session.questions.map((q) => q.instance.parts.map(() => null));
 
-function build(spec: { chapter: string; source: ExamSource; count: number; seed: number }, search: string): ExamRunState {
+function build(
+  spec: { chapter: string; source: ExamSource; count: number; seed: number; difficulty?: DifficultyFilter },
+  search: string,
+): ExamRunState {
   const session = buildExamSession(spec);
   if (session.delivered === 0) return { status: 'error', reason: 'empty' };
   return {
@@ -61,10 +64,18 @@ export function startExamRun(search: string, deps: ExamRunDeps): ExamRunState {
   const source = optionalEnum(params.get('source'), SOURCES, EXAM_DEFAULTS.source, 'source' as const);
   if (!source.ok) return { status: 'error', reason: source.reason };
 
+  const difficulty = optionalEnum(
+    params.get('difficulty'),
+    DIFFICULTIES,
+    EXAM_DEFAULTS.difficulty,
+    'difficulty' as const,
+  );
+  if (!difficulty.ok) return { status: 'error', reason: difficulty.reason };
+
   const seed = resolveSeed(params.get('seed'), deps.roll);
   const count = optionalInt(params.get('count'), COUNT_MIN, COUNT_MAX, EXAM_DEFAULTS.count);
 
-  return build({ chapter: chapter.value, source: source.value, count, seed }, search);
+  return build({ chapter: chapter.value, source: source.value, count, seed, difficulty: difficulty.value }, search);
 }
 
 export function gotoExamQuestion(run: ReadyExamRun, index: number): ReadyExamRun {

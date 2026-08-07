@@ -468,6 +468,282 @@ const jointDensityMarginalTemplate = generatedQuestion({
   },
 });
 
+const triangleRegionDensityTemplate = generatedQuestion({
+  id: 'ch03-gen-triangle-region-density',
+
+  chapter: 'random-variables',
+
+  topic: 'Joint distributions',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const a = rng.int(3, 6);
+
+    const m = rng.int(1, a - 1); // strictly inside (0, a), so P(Y > m) lands in (0, 1)
+
+    // f(x,y) = c on the triangle 0 < y < x < a has area a^2/2, so c = 2/a^2.
+    const c = round(2 / a ** 2, 5);
+
+    // {Y > m} intersected with the triangle is itself a smaller similar
+    // triangle with legs (a - m), giving area (a - m)^2 / 2 -- no rejection
+    // sampling needed, the closed form is exact for every 0 < m < a.
+    const answer = round(((a - m) / a) ** 2, 4);
+
+    return {
+      prompt:
+        `The continuous random variables $X$ and $Y$ have joint density $f(x,y)=c$ (constant) on the ` +
+        `triangular region $0<y<x<${a}$, and $f(x,y)=0$ elsewhere. Find the constant $c$, and then find ` +
+        `$P(Y>${m})$.`,
+
+      params: { a, m },
+
+      parts: [
+        { kind: 'numeric', label: 'c', answer: c, tol: 0.0005 },
+
+        { kind: 'numeric', label: `P(Y > ${m})`, answer, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `The support is the triangle with vertices $(0,0)$, $(${a},0)$ and $(${a},${a})$, of area $\\dfrac{${a}^2}{2}$. Setting the volume under $f$ to $1$ gives $c\\cdot\\dfrac{${a}^2}{2}=1$, so $c=\\dfrac{2}{${a}^2}\\approx${c}$.`,
+        },
+
+        {
+          text: `Probability over a region is still a volume, but the region is no longer a rectangle. This is not a special case of the one-variable pdf — it is $\\iint_A f(x,y)\\,dx\\,dy$ over whatever shape $A$ has.`,
+        },
+
+        {
+          text: `$\\{Y>${m}\\}$ meets the triangle in a smaller triangle with legs $${a}-${m}=${a - m}$, so its area is $\\dfrac{(${a - m})^2}{2}$.`,
+        },
+
+        {
+          text: `$P(Y>${m})=c\\cdot\\dfrac{(${a - m})^2}{2}=\\left(\\dfrac{${a - m}}{${a}}\\right)^2\\approx${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const conditionalDensityContinuousTemplate = generatedQuestion({
+  id: 'ch03-gen-conditional-density-continuous',
+
+  chapter: 'random-variables',
+
+  topic: 'Joint distributions',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const A = rng.int(2, 4);
+
+    const B = rng.int(3, 4); // >= 3, so an interior interval (y1, y2) with y1 >= 1 exists
+
+    const x0 = rng.int(1, A - 1); // strictly inside 0 < x < A
+
+    const y1 = rng.int(1, B - 2);
+
+    const y2 = rng.int(y1 + 1, B - 1); // y1 < y2, both strictly inside 0 < y < B
+
+    // c(x + y) on the rectangle (0, A) x (0, B): the same normalisation as
+    // ch03-gen-joint-density-constant, c = 2 / (A B (A + B)).
+    const denom = A * B * (A + B);
+
+    const c = round(2 / denom, 5);
+
+    // g(x0) = integral over y of c(x0 + y) dy = c(B x0 + B^2/2), never zero.
+    const gx0 = c * (B * x0 + (B * B) / 2);
+
+    // f(y | x0) = c(x0 + y) / g(x0); evaluate the density itself at y1.
+    const densityAtY1 = round(c * (x0 + y1) / gx0, 4);
+
+    // The probability over (y1, y2) is the integral of f(y | x0), which
+    // collapses to this closed form -- both terms are strictly positive
+    // since y1 < y2, so the answer never collapses to 0.
+    const numerator = 2 * x0 * (y2 - y1) + (y2 ** 2 - y1 ** 2);
+
+    const probability = round(numerator / (B * (2 * x0 + B)), 4);
+
+    return {
+      prompt:
+        `The continuous random variables $X$ and $Y$ have joint density $f(x,y)=c(x+y)$ for $0<x<${A}$ ` +
+        `and $0<y<${B}$, and $f(x,y)=0$ elsewhere. Find the constant $c$, then find the conditional ` +
+        `density $f(${y1}\\mid X=${x0})$, and use it to find $P(${y1}<Y<${y2}\\mid X=${x0})$.`,
+
+      params: { A, B, x0, y1, y2 },
+
+      parts: [
+        { kind: 'numeric', label: 'c', answer: c, tol: 0.0005 },
+
+        { kind: 'numeric', label: `f(${y1} | X = ${x0})`, answer: densityAtY1, tol: 0.0005 },
+
+        {
+          kind: 'numeric',
+          label: `P(${y1} < Y < ${y2} | X = ${x0})`,
+          answer: probability,
+          tol: 0.0005,
+        },
+      ],
+
+      solution: [
+        {
+          text: `Normalising over the rectangle gives $c\\cdot${A}\\cdot${B}\\cdot(${A}+${B})/2=1$, so $c=\\dfrac{2}{${A}\\cdot${B}\\cdot(${A}+${B})}\\approx${c}$.`,
+        },
+
+        {
+          text: `The marginal of $X$ at $x=${x0}$ is $g(${x0})=\\displaystyle\\int_0^{${B}} c(${x0}+y)\\,dy=c\\left(${B}\\cdot${x0}+\\dfrac{${B}^2}{2}\\right)\\approx${round(gx0, 4)}$.`,
+        },
+
+        {
+          text: `$f(y\\mid X=${x0})=\\dfrac{f(${x0},y)}{g(${x0})}$, so $f(${y1}\\mid X=${x0})=\\dfrac{c(${x0}+${y1})}{g(${x0})}\\approx${densityAtY1}$. It is a genuine density in $y$ alone — non-negative and integrating to $1$ over $0<y<${B}$.`,
+        },
+
+        {
+          text: `$P(${y1}<Y<${y2}\\mid X=${x0})=\\displaystyle\\int_{${y1}}^{${y2}} f(y\\mid X=${x0})\\,dy\\approx${probability}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const independenceSupportTrapTemplate = generatedQuestion({
+  id: 'ch03-gen-independence-support-trap',
+
+  chapter: 'random-variables',
+
+  topic: 'Joint distributions',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    // a >= 3 keeps the fixed evaluation point (1, 2) strictly inside the
+    // triangle 0 < x < y < a for every draw. Only three values of a are
+    // possible, so the mismatch below is checked by exhaustion, not luck:
+    // a=3 gives f=0.1646 vs gh=0.1174; a=4 gives 0.0391 vs 0.0160;
+    // a=5 gives 0.0128 vs 0.0034 -- never equal.
+    const a = rng.int(3, 5);
+
+    const x0 = 1;
+
+    const y0 = 2;
+
+    // c x y^2 on the triangle 0 < x < y < a: integrating gives c a^5 / 10 = 1.
+    const c = round(10 / a ** 5, 6);
+
+    const fAtPoint = round(c * x0 * y0 ** 2, 5);
+
+    // g(x) = integral_x^a c x y^2 dy = c x (a^3 - x^3) / 3.
+    const gAtX0 = round((c * x0 * (a ** 3 - x0 ** 3)) / 3, 5);
+
+    // h(y) = integral_0^y c x y^2 dx = c y^4 / 2.
+    const hAtY0 = round((c * y0 ** 4) / 2, 5);
+
+    const product = round(gAtX0 * hAtY0, 5);
+
+    return {
+      prompt:
+        `The continuous random variables $X$ and $Y$ have joint density $f(x,y)=cxy^2$ for $0<x<y<${a}$, ` +
+        `and $f(x,y)=0$ elsewhere. The formula factors into a function of $x$ times a function of $y$. ` +
+        `Find the constant $c$, then find $f(${x0},${y0})$ and the product $g(${x0})h(${y0})$ of the ` +
+        `marginals at that point, and decide whether $X$ and $Y$ are statistically independent.`,
+
+      params: { a, x0, y0 },
+
+      parts: [
+        { kind: 'numeric', label: 'c', answer: c, tol: 0.0005 },
+
+        { kind: 'numeric', label: `f(${x0}, ${y0})`, answer: fAtPoint, tol: 0.0005 },
+
+        { kind: 'numeric', label: `g(${x0}) h(${y0})`, answer: product, tol: 0.0005 },
+
+        // The prompt asks for the verdict, so the verdict has to be gradable —
+        // it is the whole point of the template. The answer is `false` for every
+        // draw by construction: the support is the triangle 0 < x < y < a, not a
+        // rectangle, so f(x, y) != g(x) h(y) however cleanly the formula factors.
+        { kind: 'tf', label: 'X and Y independent', answer: false },
+      ],
+
+      solution: [
+        {
+          text: `Normalising over the triangle: $\\displaystyle\\int_0^{${a}}\\!\\!\\int_0^{y} cxy^2\\,dx\\,dy=\\dfrac{c\\cdot${a}^5}{10}=1$, so $c=\\dfrac{10}{${a}^5}\\approx${c}$.`,
+        },
+
+        {
+          text: `$f(${x0},${y0})=c\\cdot${x0}\\cdot${y0}^2\\approx${fAtPoint}$.`,
+        },
+
+        {
+          text: `$g(${x0})=\\displaystyle\\int_{${x0}}^{${a}} cxy^2\\,dy=\\dfrac{c\\cdot${x0}(${a}^3-${x0}^3)}{3}\\approx${gAtX0}$, and $h(${y0})=\\displaystyle\\int_0^{${y0}} cxy^2\\,dx=\\dfrac{c\\cdot${y0}^4}{2}\\approx${hAtY0}$, so $g(${x0})h(${y0})\\approx${product}$.`,
+        },
+
+        {
+          text: `$f(${x0},${y0})\\neq g(${x0})h(${y0})$, so $X$ and $Y$ are **not** independent — even though $cxy^2$ visibly splits into an $x$-part and a $y$-part. The formula factoring is not enough: the range of $x$ depends on $y$ (support $x<y$), and that coupling alone breaks independence.`,
+        },
+      ],
+    };
+  },
+});
+
+const jointChainRuleTemplate = generatedQuestion({
+  id: 'ch03-gen-joint-chain-rule',
+
+  chapter: 'random-variables',
+
+  topic: 'Joint distributions',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const t = drawJointTable(rng);
+
+    const a = rng.int(0, 2);
+
+    const b = rng.int(0, 1);
+
+    const marginal = round(t.gx[a] / t.total, 4);
+
+    const conditional = round(t.w[a][b] / t.gx[a], 4);
+
+    const joint = round(t.w[a][b] / t.total, 4);
+
+    return {
+      prompt:
+        `The discrete random variables $X$ and $Y$ have the joint probability distribution ` +
+        `$${tableMath(t)}$. Find the marginal $g(${a})=P(X=${a})$, then find the conditional ` +
+        `$f(${b}\\mid ${a})=P(Y=${b}\\mid X=${a})$, and use those two answers to find ` +
+        `$P(X=${a},\\,Y=${b})$ without reading it straight off the table.`,
+
+      params: { w: flatWeights(t), a, b },
+
+      parts: [
+        { kind: 'numeric', label: `g(${a})`, answer: marginal, tol: 0.0005 },
+
+        { kind: 'numeric', label: `f(${b} | ${a})`, answer: conditional, tol: 0.0005 },
+
+        { kind: 'numeric', label: `P(X = ${a}, Y = ${b})`, answer: joint, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `The marginal is the row total: $g(${a})=\\dfrac{${t.gx[a]}}{${t.total}}\\approx${marginal}$.`,
+        },
+
+        {
+          text: `The conditional distribution rearranges to $f(${b}\\mid ${a})=\\dfrac{f(${a},${b})}{g(${a})}=\\dfrac{${t.w[a][b]}}{${t.gx[a]}}\\approx${conditional}$.`,
+        },
+
+        {
+          text: `Multiplying rearranges the definition the other way: $P(X=${a},Y=${b})=f(${b}\\mid ${a})\\cdot g(${a})=\\dfrac{${t.w[a][b]}}{${t.gx[a]}}\\cdot\\dfrac{${t.gx[a]}}{${t.total}}=\\dfrac{${t.w[a][b]}}{${t.total}}\\approx${joint}$.`,
+        },
+
+        {
+          text: `That matches the table cell $f(${a},${b})=\\dfrac{${t.w[a][b]}}{${t.total}}$ directly — the conditional-times-marginal chain always reconstructs the joint probability it came from.`,
+        },
+      ],
+    };
+  },
+});
+
 export const ch03JointGenerators: QuestionTemplate[] = [
   jointPmfConstantTemplate,
 
@@ -482,4 +758,12 @@ export const ch03JointGenerators: QuestionTemplate[] = [
   independenceCheckTemplate,
 
   jointDensityMarginalTemplate,
+
+  triangleRegionDensityTemplate,
+
+  conditionalDensityContinuousTemplate,
+
+  independenceSupportTrapTemplate,
+
+  jointChainRuleTemplate,
 ];

@@ -1,11 +1,12 @@
 ---
 import { chapters } from '../../lib/site';
 import { route } from '../../lib/routes';
-import { COUNT_MAX, COUNT_MIN, SOURCES, WORKSHEET_DEFAULTS } from '../../run/defaults';
+import { COUNT_MAX, COUNT_MIN, DIFFICULTIES, SOURCES, WORKSHEET_DEFAULTS } from '../../run/defaults';
 const action = route('worksheet');
 // The same constants the parser falls back to, so a bare worksheet link behaves
 // exactly like submitting this form.
 const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', generated: 'Randomized' };
+const difficultyLabels: Record<string, string> = { any: 'Any', easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 ---
 <form class="ws-setup" method="get" action={action}>
   <h1>Build a worksheet</h1>
@@ -28,6 +29,12 @@ const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', gener
     <legend>Source</legend>
     {SOURCES.map((s) => (
       <label><input type="radio" name="source" value={s} checked={s === WORKSHEET_DEFAULTS.source} /> {sourceLabels[s]}</label>
+    ))}
+  </fieldset>
+  <fieldset>
+    <legend>Difficulty</legend>
+    {DIFFICULTIES.map((d) => (
+      <label><input type="radio" name="difficulty" value={d} checked={d === WORKSHEET_DEFAULTS.difficulty} /> {difficultyLabels[d]}</label>
     ))}
   </fieldset>
   <button type="submit" id="ws-submit">Build worksheet</button>

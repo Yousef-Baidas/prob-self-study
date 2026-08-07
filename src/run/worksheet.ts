@@ -5,10 +5,10 @@ import { buildWorksheetSession } from '../modes/worksheet';
 import type { WorksheetSession, WorksheetSpec } from '../modes/worksheet';
 import { chapters } from '../lib/site';
 import { buildSearch, resolveSeed } from './core';
-import { COUNT_MAX, COUNT_MIN, SOURCES, WORKSHEET_DEFAULTS } from './defaults';
+import { COUNT_MAX, COUNT_MIN, DIFFICULTIES, SOURCES, WORKSHEET_DEFAULTS } from './defaults';
 import { optionalEnum, optionalInt, requireSlugs } from './params';
 
-export type WorksheetRunError = 'chapter' | 'source' | 'topic' | 'empty';
+export type WorksheetRunError = 'chapter' | 'source' | 'topic' | 'difficulty' | 'empty';
 
 export type WorksheetRunState =
   | { status: 'idle' }
@@ -45,6 +45,14 @@ export function startWorksheetRun(search: string, deps: WorksheetRunDeps): Works
   );
   if (!source.ok) return { status: 'error', reason: source.reason };
 
+  const difficulty = optionalEnum(
+    params.get('difficulty'),
+    DIFFICULTIES,
+    WORKSHEET_DEFAULTS.difficulty,
+    'difficulty' as const,
+  );
+  if (!difficulty.ok) return { status: 'error', reason: difficulty.reason };
+
   // The setup form's "All topics" option submits an empty value, which means
   // every topic in the chapter rather than a topic that failed to validate.
   const rawTopic = params.get('topic');
@@ -54,7 +62,10 @@ export function startWorksheetRun(search: string, deps: WorksheetRunDeps): Works
   const seed = resolveSeed(params.get('seed'), deps.roll);
   const count = optionalInt(params.get('count'), COUNT_MIN, COUNT_MAX, WORKSHEET_DEFAULTS.count);
 
-  return build({ chapters: slugs.value, topic, source: source.value, count, seed }, search);
+  return build(
+    { chapters: slugs.value, topic, source: source.value, count, seed, difficulty: difficulty.value },
+    search,
+  );
 }
 
 /** Same spec, fresh seed, a new sheet. */

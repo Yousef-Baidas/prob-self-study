@@ -51,6 +51,7 @@
       {#if run.reason === 'chapter'}Pick at least one chapter that’s available.
       {:else if run.reason === 'topic'}That topic isn’t in the chapters you picked.
       {:else if run.reason === 'source'}That question source isn’t valid.
+      {:else if run.reason === 'difficulty'}That difficulty isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>
     <a href={route('worksheet')}>Back to setup</a>

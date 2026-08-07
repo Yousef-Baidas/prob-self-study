@@ -6,9 +6,12 @@ describe('drillTopics', () => {
     const keys = drillTopics().map((d) => `${d.chapter}/${d.topic}`).sort();
     expect(keys).toEqual([
       'intro/Descriptive statistics',
+      'intro/Study design',
+      'probability/Additive rules',
       'probability/Bayes theorem',
       'probability/Conditional probability',
       'probability/Counting techniques',
+      'probability/Sample space and events',
       'random-variables/Continuous distributions',
       'random-variables/Discrete distributions',
       'random-variables/Joint distributions',
@@ -42,6 +45,45 @@ describe('buildDrillQuestion', () => {
     const id0 = buildDrillQuestion('probability', 'Counting techniques', 1, 0).template.id;
     const id1 = buildDrillQuestion('probability', 'Counting techniques', 1, 1).template.id;
     expect(id0).not.toBe(id1);
+  });
+});
+
+describe('difficulty filter', () => {
+  it('drillPool narrows to the requested difficulty', () => {
+    const all = drillPool('probability', 'Counting techniques');
+    const difficulties = [...new Set(all.map((t) => t.difficulty))];
+    expect(difficulties.length).toBeGreaterThan(0);
+    const only = drillPool('probability', 'Counting techniques', difficulties[0]);
+    expect(only.length).toBeGreaterThan(0);
+    expect(only.every((t) => t.difficulty === difficulties[0])).toBe(true);
+  });
+
+  it('a no-argument call to drillPool is identical to "any"', () => {
+    const bare = drillPool('probability', 'Counting techniques').map((t) => t.id);
+    const any = drillPool('probability', 'Counting techniques', 'any').map((t) => t.id);
+    expect(any).toEqual(bare);
+  });
+
+  it('drillTopics() with no argument is unchanged from the pre-difficulty list', () => {
+    const bare = drillTopics().map((d) => `${d.chapter}/${d.topic}`).sort();
+    const any = drillTopics('any').map((d) => `${d.chapter}/${d.topic}`).sort();
+    expect(any).toEqual(bare);
+  });
+
+  it('drillTopics(difficulty) only lists topics that actually have that difficulty', () => {
+    // Computed, not hardcoded: pools are uneven and other generators are landing
+    // in parallel, so which topics qualify at "hard" can change under us.
+    for (const t of drillTopics('hard')) {
+      expect(drillPool(t.chapter, t.topic, 'hard').length).toBeGreaterThan(0);
+    }
+  });
+
+  it('buildDrillQuestion only ever draws from the requested difficulty', () => {
+    const difficulties = [...new Set(drillPool('probability', 'Bayes theorem').map((t) => t.difficulty))];
+    const target = difficulties[0];
+    for (let i = 0; i < 6; i++) {
+      expect(buildDrillQuestion('probability', 'Bayes theorem', 5, i, target).template.difficulty).toBe(target);
+    }
   });
 });
 

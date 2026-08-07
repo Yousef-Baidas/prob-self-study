@@ -38,5 +38,31 @@ describe('buildWorksheetSession', () => {
     const ids = new Set(both.questions.map((q) => q.template.id));
     for (const q of one.questions) expect(ids.has(q.template.id)).toBe(true);
   });
+
+  it('difficulty filter restricts questions to that difficulty', () => {
+    const s = buildWorksheetSession(spec({ difficulty: 'hard', count: 99 }));
+    expect(s.questions.length).toBeGreaterThan(0);
+    expect(s.questions.every((q) => q.template.difficulty === 'hard')).toBe(true);
+  });
+
+  it('"any" difficulty is byte-identical to an omitted one', () => {
+    const withAny = buildWorksheetSession(spec({ difficulty: 'any' })).questions.map((q) => q.template.id);
+    const omitted = buildWorksheetSession(spec()).questions.map((q) => q.template.id);
+    expect(withAny).toEqual(omitted);
+  });
+
+  it('a chapter/topic/difficulty combination with nothing behind it delivers zero, capped', () => {
+    // additive rules is hard-only as of this writing; compute it rather than
+    // assume, since other agents are filling in easy/medium in parallel.
+    const anyEasy = buildWorksheetSession(
+      spec({ chapters: ['probability'], topic: 'Additive rules', count: 99 }),
+    ).questions.some((q) => q.template.difficulty !== 'hard');
+    if (anyEasy) return;
+    const s = buildWorksheetSession(
+      spec({ chapters: ['probability'], topic: 'Additive rules', difficulty: 'easy', count: 5 }),
+    );
+    expect(s.delivered).toBe(0);
+    expect(s.capped).toBe(true);
+  });
 });
 

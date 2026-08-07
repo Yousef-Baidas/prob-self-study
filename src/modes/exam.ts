@@ -12,7 +12,7 @@ export function deriveQuestionSeeds(masterSeed: number, n: number): number[] {
 }
 
 export function buildExamSession(spec: ExamSpec): ExamSession {
-  const draw = drawTemplates(spec.chapter, spec.source, spec.count);
+  const draw = drawTemplates(spec.chapter, spec.source, spec.count, undefined, spec.difficulty);
   const seeds = deriveQuestionSeeds(spec.seed, draw.templates.length);
   const questions = draw.templates.map((template, i) => ({
     template,

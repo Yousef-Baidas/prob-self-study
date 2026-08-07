@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { rerollWorksheet, startWorksheetRun } from '../../src/run/worksheet';
 import { WORKSHEET_DEFAULTS } from '../../src/run/defaults';
+import { selectTemplates } from '../../src/engine/registry';
 
 const roll = (n: number) => () => n;
 
@@ -26,6 +27,7 @@ describe('startWorksheetRun', () => {
     const run = ready();
     expect(run.session.spec.source).toBe(WORKSHEET_DEFAULTS.source);
     expect(run.session.spec.count).toBe(WORKSHEET_DEFAULTS.count);
+    expect(run.session.spec.difficulty).toBe(WORKSHEET_DEFAULTS.difficulty);
   });
 
   test('asks for eight questions, not the exam default of ten', () => {
@@ -44,6 +46,38 @@ describe('startWorksheetRun', () => {
       status: 'error',
       reason: 'source',
     });
+  });
+
+  test('accepts an explicit difficulty and narrows the sheet to it', () => {
+    const run = startWorksheetRun('?chapter=probability&difficulty=hard&count=50', { roll: roll(42) });
+    expect(run.status).toBe('ready');
+    if (run.status !== 'ready') return;
+    expect(run.session.questions.every((q) => q.template.difficulty === 'hard')).toBe(true);
+  });
+
+  test('rejects a difficulty that was supplied but is unrecognised', () => {
+    expect(startWorksheetRun('?chapter=probability&difficulty=vibes', { roll: roll(42) })).toEqual({
+      status: 'error',
+      reason: 'difficulty',
+    });
+  });
+
+  test('reports the selection as empty rather than silently widening the difficulty filter', () => {
+    const chapters = ['intro', 'probability', 'random-variables'] as const;
+    const difficulties = ['easy', 'medium', 'hard'] as const;
+    let found: { chapter: string; difficulty: string } | undefined;
+    outer: for (const chapter of chapters) {
+      for (const difficulty of difficulties) {
+        if (selectTemplates({ chapter, difficulty }).length === 0) {
+          found = { chapter, difficulty };
+          break outer;
+        }
+      }
+    }
+    if (!found) return; // every chapter now has full difficulty coverage
+    expect(
+      startWorksheetRun(`?chapter=${found.chapter}&difficulty=${found.difficulty}`, { roll: roll(42) }),
+    ).toEqual({ status: 'error', reason: 'empty' });
   });
 
   test('rejects a topic that is not in the chapter', () => {

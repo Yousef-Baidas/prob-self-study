@@ -432,6 +432,139 @@ const continuousCdfTemplate = generatedQuestion({
   },
 });
 
+const urnMassFunctionTemplate = generatedQuestion({
+  id: 'ch03-gen-urn-mass-function',
+
+  chapter: 'random-variables',
+
+  topic: 'Random variables',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    // N >= 8, R in [2,4] and n in [2,3]: since R <= 4 forces the good count
+    // W = N - R >= 4, and n <= 3 <= W always, f(0) is guaranteed positive --
+    // no draw can leave the "no defectives" case with zero probability, so
+    // every part below is well-posed without rejection sampling.
+    const N = rng.int(8, 10);
+
+    const R = rng.int(2, 4);
+
+    const W = N - R;
+
+    const n = rng.int(2, 3);
+
+    const xMax = Math.min(R, n);
+
+    const f0 = round(nCr(W, n) / nCr(N, n), 4);
+
+    const fMax = round((nCr(R, xMax) * nCr(W, n - xMax)) / nCr(N, n), 4);
+
+    const atLeastOne = round(1 - f0, 4);
+
+    return {
+      prompt:
+        `A box contains ${N} similar resistors, of which ${R} are defective. A random sample of ${n} ` +
+        `resistors is drawn without replacement. Let $X$ be the number of defective resistors in the ` +
+        `sample. Derive $f(0)$ and $f(${xMax})$ directly from the counting rule (do not assume a table), ` +
+        `and then find $P(X\\ge1)$.`,
+
+      params: { N, R, n },
+
+      parts: [
+        { kind: 'numeric', label: 'f(0)', answer: f0, tol: 0.0005 },
+
+        { kind: 'numeric', label: `f(${xMax})`, answer: fMax, tol: 0.0005 },
+
+        { kind: 'numeric', label: 'P(X >= 1)', answer: atLeastOne, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `The sample space of $\\binom{${N}}{${n}}=${nCr(N, n)}$ equally likely samples has to be counted from the experiment, not read off a supplied table.`,
+        },
+
+        {
+          text: `$X=0$ means all ${n} resistors come from the $${W}$ good ones: $f(0)=\\dfrac{\\binom{${R}}{0}\\binom{${W}}{${n}}}{\\binom{${N}}{${n}}}=\\dfrac{${nCr(W, n)}}{${nCr(N, n)}}\\approx${f0}$.`,
+        },
+
+        {
+          text: `$X=${xMax}$ is the largest count possible here — either all defectives are used (if $${R}\\le${n}$) or the sample is full of defectives (if $${n}\\le${R}$): $f(${xMax})=\\dfrac{\\binom{${R}}{${xMax}}\\binom{${W}}{${n - xMax}}}{\\binom{${N}}{${n}}}=\\dfrac{${nCr(R, xMax) * nCr(W, n - xMax)}}{${nCr(N, n)}}\\approx${fMax}$.`,
+        },
+
+        {
+          text: `$P(X\\ge1)$ is the complement of $f(0)$, cheaper than summing every other value: $1-${f0}\\approx${atLeastOne}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const piecewiseDensityTemplate = generatedQuestion({
+  id: 'ch03-gen-piecewise-density',
+
+  chapter: 'random-variables',
+
+  topic: 'Continuous distributions',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const a = rng.int(2, 4);
+
+    const m1 = rng.int(1, a - 1); // strictly inside the rising piece (0, a)
+
+    const m2 = rng.int(a + 1, 2 * a - 1); // strictly inside the falling piece (a, 2a)
+
+    // f(x) = x/a^2 on (0,a), f(x) = (2a-x)/a^2 on (a,2a): each piece is a
+    // right triangle of base a and height 1/a, so the two areas are 1/2
+    // each and the total is exactly 1 for every a -- c = 1/a^2 always
+    // normalises correctly, no solving needed at draw time.
+    const c = round(1 / a ** 2, 5);
+
+    // Splitting P(m1 < X < m2) at the peak x = a: the rising piece from m1
+    // to a, plus the falling piece from a to m2.
+    const risingPiece = (c * (a * a - m1 * m1)) / 2;
+
+    const fallingPiece = c * (2 * a * m2 - (m2 * m2) / 2 - (2 * a * a - (a * a) / 2));
+
+    const answer = round(risingPiece + fallingPiece, 4);
+
+    return {
+      prompt:
+        `A continuous random variable $X$ has density $f(x)=\\dfrac{x}{${a}^2}$ for $0<x<${a}$, ` +
+        `$f(x)=\\dfrac{2\\cdot${a}-x}{${a}^2}$ for $${a}<x<2\\cdot${a}$, and $f(x)=0$ elsewhere. Verify the ` +
+        `constant of proportionality is $c=\\dfrac{1}{${a}^2}$, and find $P(${m1}<X<${m2})$.`,
+
+      params: { a, m1, m2 },
+
+      parts: [
+        { kind: 'numeric', label: 'c', answer: c, tol: 0.0005 },
+
+        { kind: 'numeric', label: `P(${m1} < X < ${m2})`, answer, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `Each piece is a triangle of base ${a} and peak height $${a}/${a}^2=1/${a}$, so each has area $\\tfrac12$; the two pieces together give total area $1$ for any $c=1/${a}^2$ — that is what makes $f$ a density.`,
+        },
+
+        {
+          text: `$${m1}<${a}<${m2}$, so the interval straddles the peak. Split the integral at $x=${a}$: $P(${m1}<X<${m2})=\\displaystyle\\int_{${m1}}^{${a}}\\dfrac{x}{${a}^2}\\,dx+\\int_{${a}}^{${m2}}\\dfrac{2\\cdot${a}-x}{${a}^2}\\,dx$.`,
+        },
+
+        {
+          text: `The rising piece contributes $\\dfrac{${a}^2-${m1}^2}{2\\cdot${a}^2}\\approx${round(risingPiece, 4)}$.`,
+        },
+
+        {
+          text: `The falling piece contributes $\\approx${round(fallingPiece, 4)}$, so the total is $P(${m1}<X<${m2})\\approx${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
 export const ch03Generators: QuestionTemplate[] = [
   sampleSpaceValuesTemplate,
 
@@ -448,6 +581,10 @@ export const ch03Generators: QuestionTemplate[] = [
   densityIntervalTemplate,
 
   continuousCdfTemplate,
+
+  urnMassFunctionTemplate,
+
+  piecewiseDensityTemplate,
 
   // Section 3.4 lives in its own file -- same chapter, same export.
   ...ch03JointGenerators,

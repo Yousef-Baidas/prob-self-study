@@ -6,6 +6,7 @@ import {
   type ReadyDrillRun,
 } from '../../src/run/drill';
 import { encodeTopicKey } from '../../src/run/topicKey';
+import { drillPool, drillTopics } from '../../src/modes/drill';
 
 const roll = (n: number) => () => n;
 const TK = encodeTopicKey('probability', 'Bayes theorem');
@@ -53,6 +54,52 @@ describe('startDrillRun', () => {
       status: 'error',
       reason: 'topic',
     });
+  });
+
+  test('defaults difficulty to "any" when the parameter is absent', () => {
+    const run = ready();
+    expect(run.spec.difficulty).toBe('any');
+  });
+
+  test('accepts an explicit difficulty and narrows the drawn questions to it', () => {
+    const difficulties = [...new Set(drillPool('probability', 'Bayes theorem').map((t) => t.difficulty))];
+    const target = difficulties[0];
+    const run = startDrillRun(
+      `?chapter=probability&topic=${encodeURIComponent('Bayes theorem')}&difficulty=${target}`,
+      { roll: roll(42) },
+    );
+    expect(run.status).toBe('ready');
+    if (run.status !== 'ready') return;
+    expect(run.spec.difficulty).toBe(target);
+    expect(run.current.template.difficulty).toBe(target);
+  });
+
+  test('rejects a difficulty that was supplied but is unrecognised', () => {
+    expect(
+      startDrillRun('?chapter=probability&topic=Bayes%20theorem&difficulty=vibes', { roll: roll(42) }),
+    ).toEqual({ status: 'error', reason: 'difficulty' });
+  });
+
+  test('reports the (topic, difficulty) pair as empty rather than silently widening it', () => {
+    // Find a known drill topic that has no templates at some difficulty,
+    // computed rather than assumed since generator coverage is filling in live.
+    const difficulties = ['easy', 'medium', 'hard'] as const;
+    let found: { chapter: string; topic: string; difficulty: string } | undefined;
+    outer: for (const t of drillTopics()) {
+      for (const difficulty of difficulties) {
+        if (drillPool(t.chapter, t.topic, difficulty).length === 0) {
+          found = { chapter: t.chapter, topic: t.topic, difficulty };
+          break outer;
+        }
+      }
+    }
+    if (!found) return; // every drill topic now has full difficulty coverage
+    expect(
+      startDrillRun(
+        `?chapter=${found.chapter}&topic=${encodeURIComponent(found.topic)}&difficulty=${found.difficulty}`,
+        { roll: roll(42) },
+      ),
+    ).toEqual({ status: 'error', reason: 'empty' });
   });
 
   test('leaves the address bar alone when the run is rejected', () => {

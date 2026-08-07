@@ -8,6 +8,7 @@ import {
   type ReadyExamRun,
 } from '../../src/run/exam';
 import { EXAM_DEFAULTS } from '../../src/run/defaults';
+import { selectTemplates } from '../../src/engine/registry';
 
 const roll = (n: number) => () => n;
 
@@ -43,6 +44,7 @@ describe('startExamRun', () => {
     if (run.status !== 'ready') return;
     expect(run.session.spec.source).toBe(EXAM_DEFAULTS.source);
     expect(run.session.spec.count).toBe(EXAM_DEFAULTS.count);
+    expect(run.session.spec.difficulty).toBe(EXAM_DEFAULTS.difficulty);
   });
 
   test('rejects a chapter that does not exist', () => {
@@ -57,6 +59,40 @@ describe('startExamRun', () => {
       status: 'error',
       reason: 'source',
     });
+  });
+
+  test('accepts an explicit difficulty and narrows the questions to it', () => {
+    const run = startExamRun('?chapter=probability&source=both&difficulty=hard&count=50', { roll: roll(42) });
+    expect(run.status).toBe('ready');
+    if (run.status !== 'ready') return;
+    expect(run.session.questions.every((q) => q.template.difficulty === 'hard')).toBe(true);
+  });
+
+  test('rejects a difficulty that was supplied but is unrecognised', () => {
+    expect(startExamRun('?chapter=probability&difficulty=vibes', { roll: roll(42) })).toEqual({
+      status: 'error',
+      reason: 'difficulty',
+    });
+  });
+
+  test('reports the selection as empty rather than silently widening the difficulty filter', () => {
+    // Compute a chapter/difficulty pair with nothing behind it instead of
+    // assuming one, since generator coverage is being filled in in parallel.
+    const chapters = ['intro', 'probability', 'random-variables'] as const;
+    const difficulties = ['easy', 'medium', 'hard'] as const;
+    let found: { chapter: string; difficulty: string } | undefined;
+    outer: for (const chapter of chapters) {
+      for (const difficulty of difficulties) {
+        if (selectTemplates({ chapter, difficulty }).length === 0) {
+          found = { chapter, difficulty };
+          break outer;
+        }
+      }
+    }
+    if (!found) return; // every chapter now has full difficulty coverage
+    expect(
+      startExamRun(`?chapter=${found.chapter}&difficulty=${found.difficulty}`, { roll: roll(42) }),
+    ).toEqual({ status: 'error', reason: 'empty' });
   });
 
   test('leaves the address bar alone when the run is rejected', () => {
@@ -178,5 +214,6 @@ describe('rerollExam', () => {
     expect(after.session.spec.chapter).toBe(before.session.spec.chapter);
     expect(after.session.spec.source).toBe(before.session.spec.source);
     expect(after.session.spec.count).toBe(before.session.spec.count);
+    expect(after.session.spec.difficulty).toBe(before.session.spec.difficulty);
   });
 });
