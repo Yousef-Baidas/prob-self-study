@@ -1,6 +1,15 @@
 ---
-// Illustrative shapes only — heights are relative, not tied to a specific
-// worked example, so each panel can show a clean symmetric/skewed silhouette.
+import Hatch from '../Hatch.astro';
+
+import { CHART_WIDTH, uid } from '../chartkit';
+
+// Three silhouettes side by side, so the mean-versus-median rule is read off a
+// comparison rather than asserted. Heights are illustrative — they are not
+// tied to a worked example, which is why each panel can show a clean shape.
+//
+// The mean is drawn in accent and the median in ink, and both run the full
+// height of the panel: the point of the figure is *where they sit relative to
+// the peak*, which a stub below the axis cannot show.
 interface Panel {
   label: string;
 
@@ -17,26 +26,32 @@ interface Props {
   title: string;
 
   width?: number;
-
-  height?: number;
 }
 
-const { panels, title, width = 600, height = 190 } = Astro.props;
+const { panels, title, width = CHART_WIDTH.histogramTriptych } = Astro.props;
 
-const gap = 24;
+const gap = 26;
 
 const panelWidth = (width - gap * (panels.length - 1)) / panels.length;
 
-const chartHeight = 100;
+const chartHeight = 96;
 
-const baselineY = 140;
+const panelTop = 34;
 
-const barGap = 3;
+const baselineY = panelTop + chartHeight;
+
+const barGap = 2;
+
+const height = 196;
+
+const hatchId = uid('hist-hatch');
 
 const layout = panels.map((panel, i) => {
   const panelX = i * (panelWidth + gap);
 
-  const maxHeight = Math.max(...panel.heights);
+  // An all-zero panel would make every bar 0/0, and `height="NaN"` is not a
+  // length — the bars would vanish without error.
+  const maxHeight = Math.max(...panel.heights) || 1;
 
   const barWidth = (panelWidth - barGap * (panel.heights.length - 1)) / panel.heights.length;
 
@@ -59,36 +74,62 @@ const layout = panels.map((panel, i) => {
     medianX: panelX + panel.medianPosition * panelWidth,
   };
 });
+
+const legendY = height - 10;
+
+const legendX = width / 2 - 96;
 ---
 
-<svg viewBox={`0 0 ${width} ${height}`} role="img">
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={6} />
 
   {
     layout.map((panel) => (
-      <g>
-        <text x={panel.panelX + panelWidth / 2} y="14" text-anchor="middle" font-size="19" fill="var(--color-text-muted)">
+      <g aria-hidden="true">
+        <text x={panel.panelX + panelWidth / 2} y="14" class="c-caps c-mid">
           {panel.label}
         </text>
 
-        <line x1={panel.panelX} y1={baselineY} x2={panel.panelX + panelWidth} y2={baselineY} stroke="var(--color-border)" stroke-width="1" />
-
         {panel.bars.map((bar) => (
-          <rect x={bar.x} y={bar.y} width={bar.width} height={bar.height} fill="var(--color-accent-soft)" stroke="var(--color-accent)" stroke-width="1" />
+          <rect
+            x={bar.x}
+            y={bar.y}
+            width={bar.width}
+            height={bar.height}
+            fill={`url(#${hatchId})`}
+            stroke="var(--color-accent)"
+            stroke-width="1"
+          />
         ))}
 
-        <line x1={panel.medianX} y1={baselineY} x2={panel.medianX} y2={baselineY + 14} stroke="var(--color-border)" stroke-width="2" stroke-dasharray="3 2" />
+        <line x1={panel.panelX} y1={baselineY} x2={panel.panelX + panelWidth} y2={baselineY} class="c-axis" />
 
-        <line x1={panel.meanX} y1={baselineY} x2={panel.meanX} y2={baselineY + 24} stroke="var(--color-accent)" stroke-width="2" />
+        <line
+          x1={panel.meanX}
+          y1={panelTop - 6}
+          x2={panel.meanX}
+          y2={baselineY + 10}
+          stroke="var(--color-accent)"
+          stroke-width="2"
+        />
+
+        {/* Drawn after the mean so that in the symmetric panel, where the two
+            coincide exactly, the dashes still read on top of the solid line
+            instead of being hidden behind it. */}
+        <line x1={panel.medianX} y1={panelTop - 6} x2={panel.medianX} y2={baselineY + 10} class="c-guide-ink" />
       </g>
     ))
   }
 
-  <line x1={width / 2 - 70} y1={height - 16} x2={width / 2 - 54} y2={height - 16} stroke="var(--color-border)" stroke-width="2" stroke-dasharray="3 2" />
+  <g aria-hidden="true">
+    <line x1={legendX} y1={legendY - 4} x2={legendX + 18} y2={legendY - 4} stroke="var(--color-accent)" stroke-width="2" />
 
-  <text x={width / 2 - 48} y={height - 12} font-size="18" fill="var(--color-text-muted)">median</text>
+    <text x={legendX + 24} y={legendY} class="c-value">mean</text>
 
-  <line x1={width / 2 + 12} y1={height - 16} x2={width / 2 + 28} y2={height - 16} stroke="var(--color-accent)" stroke-width="2" />
+    <line x1={legendX + 106} y1={legendY - 4} x2={legendX + 124} y2={legendY - 4} class="c-guide-ink" />
 
-  <text x={width / 2 + 34} y={height - 12} font-size="18" fill="var(--color-accent)">mean</text>
+    <text x={legendX + 130} y={legendY} class="c-value c-value-ink">median</text>
+  </g>
 </svg>

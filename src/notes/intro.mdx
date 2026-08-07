@@ -4,6 +4,8 @@ import DotPlot from '../components/notes/ch01/DotPlot.astro';
 import BoxPlot from '../components/notes/ch01/BoxPlot.astro';
 import HistogramTriptych from '../components/notes/ch01/HistogramTriptych.astro';
 
+import { CHART_WIDTH } from '../components/notes/chartkit';
+
 ## 1.1 Overview: statistical inference, populations, and probability
 
 You inspect a batch of 100 manufactured items and count how many are defective. Call
@@ -134,7 +136,7 @@ observation(s) is trimmed away.
 > deliveries actually sit, while trimming it away (along with the smallest value, to
 > keep the trim symmetric) recovers a number much more typical of the sample.
 
-<Figure minWidth={430} caption="A single 50-minute delivery pulls the mean well past the bulk of the data; the median barely moves.">
+<Figure width={CHART_WIDTH.dotPlot} caption="A single 50-minute delivery pulls the mean well past the bulk of the data; the median barely moves.">
   <DotPlot
     values={[2, 3, 5, 6, 7, 8, 9, 10, 11, 50]}
     unit="min"
@@ -366,7 +368,7 @@ sides coincide. Otherwise it is **skewed**:
   is drawn out).
 - **skewed left** — a long tail toward small values.
 
-<Figure minWidth={430} caption="In a right-skewed shape the mean sits above the median; in a left-skewed shape it sits below. A symmetric shape has them together.">
+<Figure width={CHART_WIDTH.histogramTriptych} caption="In a right-skewed shape the mean sits above the median; in a left-skewed shape it sits below. A symmetric shape has them together.">
   <HistogramTriptych
     title="Three histogram shapes: symmetric with mean and median together, right-skewed with the mean pulled above the median, and left-skewed with the mean pulled below the median."
     panels={[
@@ -418,7 +420,7 @@ $$
 > versus $44.75 - 37 = 7.75$ — is a visual flag for the same mild right skew found
 > above.
 
-<Figure minWidth={430} caption="The same fence rule applied to the ten delivery delays from §1.3: the box covers the middle half, the whiskers reach the nearest non-extreme values, and the 50-minute delay falls outside the fence — the same value that pulled the mean away from the median earlier.">
+<Figure width={CHART_WIDTH.boxPlot} caption="The same fence rule applied to the ten delivery delays from §1.3: the box covers the middle half, the whiskers reach the nearest non-extreme values, and the 50-minute delay falls outside the fence — the same value that pulled the mean away from the median earlier.">
   <BoxPlot
     values={[2, 3, 5, 6, 7, 8, 9, 10, 11, 50]}
     unit="min"

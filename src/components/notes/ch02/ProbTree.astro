@@ -1,8 +1,15 @@
 ---
+import { CHART_WIDTH } from '../chartkit';
+
 // Two-stage probability tree. Branch probabilities and leaf products are
-// passed in as already-formatted strings (matching the prose exactly)
-// rather than recomputed here — only the geometry is derived, so the
-// figure can never show a rounding that disagrees with the worked example.
+// passed in as already-formatted strings (matching the prose exactly) rather
+// than recomputed here — only the geometry is derived, so the figure can never
+// show a rounding that disagrees with the worked example.
+//
+// The branches are drawn as curves rather than straight segments: a straight
+// fan from a single point reads as a starburst, while a curve that leaves the
+// node horizontally and arrives horizontally reads as a path you follow, which
+// is exactly the instruction the caption gives ("multiply along each path").
 interface Leaf {
   label: string;
 
@@ -25,106 +32,127 @@ interface Props {
   root: string;
 
   branches: Branch[];
+
+  /** Caps headers over the two stages, e.g. ['which machine', 'defective?']. */
+  columns?: [string, string];
 }
 
-const { title, root, branches } = Astro.props;
+const { title, root, branches, columns } = Astro.props;
 
-const rowHeight = 30;
-const x0 = 8;
-const x1 = 130;
-// Wide enough that a long first-stage label ("machine1 (30%)") ends before the
-// second-stage probability that sits between the two columns.
+const rowHeight = 36;
+
+const headerHeight = columns ? 30 : 8;
+
+const x0 = 14;
+
+const x1 = 150;
+
 const x2 = 330;
 
+// The second-stage probability sits near the leaf rather than midway along its
+// curve: midway puts it directly on top of the first-stage label, which runs
+// from x1 rightwards.
+const stageTwoProbX = x2 - 32;
+
+const width = CHART_WIDTH.probTree;
+
 let row = 0;
+
 const laidOut = branches.map((branch) => {
   const firstRow = row;
+
   const leafRows = branch.leaves.map((leaf) => {
-    const y = row * rowHeight + rowHeight / 2;
+    const y = headerHeight + row * rowHeight + rowHeight / 2;
+
     row += 1;
+
     return { ...leaf, y };
   });
+
   const lastRow = row - 1;
-  const branchY = ((firstRow + lastRow) / 2) * rowHeight + rowHeight / 2;
+
+  const branchY = headerHeight + ((firstRow + lastRow) / 2) * rowHeight + rowHeight / 2;
+
   return { ...branch, leafRows, branchY };
 });
 
 const totalRows = row;
-const height = totalRows * rowHeight + 20;
-const rootY = height / 2;
-const width = x2 + 130;
+
+const height = headerHeight + totalRows * rowHeight + 12;
+
+const rootY = headerHeight + (totalRows * rowHeight) / 2;
+
+// Leaves horizontally, curves vertically: control points sit a third of the
+// way across so the bend happens in the middle of the run, not at the nodes.
+const link = (ax: number, ay: number, bx: number, by: number) => {
+  const dx = (bx - ax) * 0.42;
+
+  return `M ${ax},${ay} C ${ax + dx},${ay} ${bx - dx},${by} ${bx},${by}`;
+};
 ---
 
-<svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label={title}>
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <g aria-hidden="true" class="tree-lines">
+  {
+    columns && (
+      <g aria-hidden="true">
+        <text x={x1 + 6} y="14" class="c-caps">
+          {columns[0]}
+        </text>
+
+        <text x={x2 + 6} y="14" class="c-caps">
+          {columns[1]}
+        </text>
+
+        <line x1="0" y1="22" x2={width} y2="22" class="c-grid" />
+      </g>
+    )
+  }
+
+  <g aria-hidden="true" fill="none" stroke="var(--color-chart-grid)" stroke-width="1.5">
     {laidOut.map((branch) => (
-      <line x1={x0} y1={rootY} x2={x1} y2={branch.branchY} />
+      <path d={link(x0, rootY, x1, branch.branchY)} />
     ))}
 
-    {laidOut.map((branch) =>
-      branch.leafRows.map((leaf) => <line x1={x1} y1={branch.branchY} x2={x2} y2={leaf.y} />),
-    )}
+    {laidOut.map((branch) => branch.leafRows.map((leaf) => <path d={link(x1, branch.branchY, x2, leaf.y)} />))}
   </g>
 
-  <circle cx={x0} cy={rootY} r="4" fill="var(--color-accent)" aria-hidden="true" />
+  <circle cx={x0} cy={rootY} r="4.5" class="c-dot" aria-hidden="true" />
 
-  <text x={x0} y={rootY - 10} class="tree-label tree-root" aria-hidden="true">{root}</text>
+  <text x={x0 - 2} y={rootY - 12} class="c-caps" aria-hidden="true">{root}</text>
 
-  {laidOut.map((branch) => (
-    <>
-      <text x={(x0 + x1) / 2} y={(rootY + branch.branchY) / 2 - 6} class="tree-prob" aria-hidden="true">{branch.prob}</text>
+  {
+    laidOut.map((branch) => (
+      <>
+        <text x={(x0 + x1) / 2} y={(rootY + branch.branchY) / 2 - 5} class="c-value c-mid c-halo" aria-hidden="true">
+          {branch.prob}
+        </text>
 
-      <text x={x1 + 6} y={branch.branchY - 6} class="tree-label" aria-hidden="true">{branch.label}</text>
+        <circle cx={x1} cy={branch.branchY} r="3.5" fill="var(--color-chart-ink)" aria-hidden="true" />
 
-      {branch.leafRows.map((leaf) => (
-        <>
-          <text x={x2 - 40} y={(branch.branchY + leaf.y) / 2 - 6} class="tree-prob" aria-hidden="true">{leaf.prob}</text>
+        <text x={x1 + 8} y={branch.branchY - 7} class="c-label" aria-hidden="true">
+          {branch.label}
+        </text>
 
-          <text x={x2 + 6} y={leaf.y - 6} class="tree-label" aria-hidden="true">{leaf.label}</text>
+        {branch.leafRows.map((leaf) => (
+          <>
+            <text x={stageTwoProbX} y={(branch.branchY + leaf.y) / 2 - 5} class="c-value c-mid c-halo" aria-hidden="true">
+              {leaf.prob}
+            </text>
 
-          <text x={x2 + 6} y={leaf.y + 8} class="tree-product" aria-hidden="true">{leaf.product}</text>
-        </>
-      ))}
-    </>
-  ))}
+            <circle cx={x2} cy={leaf.y} r="3" class="c-dot-muted" aria-hidden="true" />
 
-  <style>
-    .tree-lines line {
-      stroke: var(--color-border);
+            <text x={x2 + 8} y={leaf.y - 5} class="c-label" aria-hidden="true">
+              {leaf.label}
+            </text>
 
-      stroke-width: 1.5;
-    }
-
-    text.tree-label {
-      font-size: 13px;
-
-      font-family: var(--font-sans);
-
-      fill: var(--color-text);
-    }
-
-    text.tree-root {
-      fill: var(--color-text-muted);
-    }
-
-    text.tree-prob {
-      font-size: 12px;
-
-      font-family: var(--font-mono);
-
-      fill: var(--color-accent);
-
-      text-anchor: middle;
-    }
-
-    text.tree-product {
-      font-size: 12px;
-
-      font-family: var(--font-mono);
-
-      fill: var(--color-text-muted);
-    }
-  </style>
+            <text x={x2 + 8} y={leaf.y + 11} class="c-value c-value-muted" aria-hidden="true">
+              {leaf.product}
+            </text>
+          </>
+        ))}
+      </>
+    ))
+  }
 </svg>

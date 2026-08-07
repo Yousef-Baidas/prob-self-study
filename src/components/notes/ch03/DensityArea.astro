@@ -1,8 +1,13 @@
 ---
+import Hatch from '../Hatch.astro';
+
+import { CHART_WIDTH, PLOT_PADDING, plot, samplePoints, scale, uid } from '../chartkit';
+
 // Density curve with the probability region shaded underneath. The curve
 // itself is never a probability — only the shaded area is — so the two are
-// drawn as visually distinct layers: a thin stroke for f(x), a filled region
-// for the integral.
+// drawn as deliberately different kinds of mark: a stroked line for the curve,
+// a hatched region for the area. Hatching rather than a tint is what keeps the
+// region visible on the dark palette, where a soft fill washes out entirely.
 interface Props {
   fn: (x: number) => number;
 
@@ -14,87 +19,108 @@ interface Props {
 
   title: string;
 
-  width?: number;
+  /** The area's value, written into the region itself, e.g. 'area = 1/9'. */
+  areaLabel?: string;
 
-  height?: number;
+  /** Name of the quantity along the bottom, e.g. `roundingError`. */
+  axisLabel?: string;
+
+  width?: number;
 
   samples?: number;
 }
 
-const { fn, domain, shadeFrom, shadeTo, title, width = 340, height = 220, samples = 80 } = Astro.props;
+const { fn, domain, shadeFrom, shadeTo, title, areaLabel, axisLabel, width = CHART_WIDTH.densityArea, samples = 96 } = Astro.props;
 
-const padding = { top: 20, right: 20, bottom: 32, left: 20 };
+const height = 224;
 
-const chartWidth = width - padding.left - padding.right;
-const chartHeight = height - padding.top - padding.bottom;
+const p = plot(width, height, { ...PLOT_PADDING, left: 26, bottom: axisLabel ? 48 : 34 });
 
-const [xMin, xMax] = domain;
+const points = samplePoints(fn, domain, samples);
 
-const xs = Array.from({ length: samples + 1 }, (_, i) => xMin + (i / samples) * (xMax - xMin));
-const ys = xs.map(fn);
+const yMax = Math.max(...points.map((point) => point.y)) * 1.18;
 
-const yMax = Math.max(...ys) * 1.15;
+const x = scale(domain, [p.left, p.right]);
 
-const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
-const yScale = (y: number) => padding.top + (1 - y / yMax) * chartHeight;
-const baseline = padding.top + chartHeight;
+const y = scale([0, yMax], [p.baseline, p.top]);
 
-const curvePoints = xs.map((x, i) => `${xScale(x)},${yScale(ys[i])}`).join(' ');
+const curvePoints = points.map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
 
-const shadeXs = xs.filter((x) => x >= shadeFrom && x <= shadeTo);
+const shadeXs = points.filter((point) => point.x >= shadeFrom && point.x <= shadeTo);
+
 const shadePath =
-  `M ${xScale(shadeFrom)},${baseline} ` +
-  shadeXs.map((x) => `L ${xScale(x)},${yScale(fn(x))}`).join(' ') +
-  ` L ${xScale(shadeTo)},${baseline} Z`;
+  `M ${x(shadeFrom)},${p.baseline} ` +
+  `L ${x(shadeFrom)},${y(fn(shadeFrom))} ` +
+  shadeXs.map((point) => `L ${x(point.x)},${y(point.y)}`).join(' ') +
+  ` L ${x(shadeTo)},${y(fn(shadeTo))} L ${x(shadeTo)},${p.baseline} Z`;
+
+const hatchId = uid('density-hatch');
+
+// The label is a callout above the region with a leader into it, not text set
+// inside it. A probability region is often a thin slice — here 1/9 of a curve
+// that climbs steeply — and a label placed inside one is wider than the region
+// it names, so it ends up straddling the axis instead of pointing at anything.
+const labelX = (x(shadeFrom) + x(shadeTo)) / 2;
+
+const labelY = p.top + 34;
+
+// The leader stops at the region's own upper edge, wherever the curve happens
+// to be at the midpoint.
+const leaderTo = y(fn((shadeFrom + shadeTo) / 2));
 ---
 
-<svg
-  width={width}
-  height={height}
-  viewBox={`0 0 ${width} ${height}`}
-  role="img"
-  aria-label={title}
->
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <line
-    x1={padding.left}
-    y1={baseline}
-    x2={width - padding.right}
-    y2={baseline}
-    stroke="var(--color-border)"
-    stroke-width="1"
-    aria-hidden="true"
-  />
+  <Hatch id={hatchId} spacing={7} />
 
-  {/* Full-strength accent at an explicit opacity rather than --color-accent-soft:
-      that token is a 12–16% background tint, which leaves the region almost
-      invisible on the dark palette — and this area is the whole point of the
-      figure, not a backdrop. */}
-  <path d={shadePath} fill="var(--color-accent)" fill-opacity="0.28" aria-hidden="true" />
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
 
-  {/* Edges, so the region reads as bounded by the two labelled values instead of
-      fading out into the curve. */}
-  {[shadeFrom, shadeTo].map((x) => (
-    <line
-      x1={xScale(x)}
-      y1={baseline}
-      x2={xScale(x)}
-      y2={yScale(fn(x))}
-      stroke="var(--color-accent)"
-      stroke-width="1.5"
-      stroke-opacity="0.65"
-      aria-hidden="true"
-    />
-  ))}
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">curve height</text>
 
-  <polyline points={curvePoints} fill="none" stroke="var(--color-accent)" stroke-width="2.5" aria-hidden="true" />
+  <path d={shadePath} fill={`url(#${hatchId})`} aria-hidden="true" />
 
-  <text x={xScale(shadeFrom)} y={baseline + 16} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
-    {shadeFrom}
-  </text>
+  {
+    [shadeFrom, shadeTo].map((bound) => (
+      <line
+        x1={x(bound)}
+        y1={p.baseline}
+        x2={x(bound)}
+        y2={y(fn(bound))}
+        stroke="var(--color-accent)"
+        stroke-width="1.5"
+        aria-hidden="true"
+      />
+    ))
+  }
 
-  <text x={xScale(shadeTo)} y={baseline + 16} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
-    {shadeTo}
-  </text>
+  <polyline points={curvePoints} class="c-data" aria-hidden="true" />
+
+  {
+    areaLabel && (
+      <g aria-hidden="true">
+        <line x1={labelX} y1={labelY + 6} x2={labelX} y2={leaderTo - 4} class="c-leader" />
+
+        <text x={labelX} y={labelY} class="c-value c-mid c-halo">
+          {areaLabel}
+        </text>
+      </g>
+    )
+  }
+
+  {
+    [shadeFrom, shadeTo].map((bound) => (
+      <text x={x(bound)} y={p.baseline + 20} class="c-tick c-mid" aria-hidden="true">
+        {bound}
+      </text>
+    ))
+  }
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
 </svg>

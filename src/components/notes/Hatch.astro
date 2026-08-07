@@ -1,0 +1,42 @@
+---
+// A 45° hatch fill, for regions that mean "this part counts" — the area under
+// a density, the cells of an event, the overlap of two sets.
+//
+// Why hatching rather than a flat tint: a region has to stay legible on both a
+// cream page and an espresso one, and a single opacity cannot do that (the
+// tint that reads on paper vanishes on the dark palette, which is exactly how
+// the shaded area in DensityArea went missing). Hatching carries a stroke, so
+// it survives both. It also distinguishes a *counted region* from a *solid
+// mark* without spending a second colour on the difference.
+//
+// Renders as <defs>, so it must be placed inside the consuming <svg>.
+interface Props {
+  /** Instance-unique id, from chartkit's uid(). Referenced as fill={`url(#${id})`}. */
+  id: string;
+
+  tone?: 'accent' | 'ink';
+
+  /** Distance between hatch lines. Wider reads calmer on a large region. */
+  spacing?: number;
+}
+
+const { id, tone = 'accent', spacing = 7 } = Astro.props;
+
+const stroke = tone === 'ink' ? 'var(--color-chart-ink)' : 'var(--color-accent)';
+---
+
+<defs>
+  <pattern
+    id={id}
+    width={spacing}
+    height={spacing}
+    patternUnits="userSpaceOnUse"
+    patternTransform="rotate(45)"
+  >
+    {/* A faint wash under the strokes, so a hatched region still reads as a
+        region at small scale where individual lines merge. */}
+    <rect width={spacing} height={spacing} fill={stroke} fill-opacity="0.1" />
+
+    <line x1="0" y1="0" x2="0" y2={spacing} stroke={stroke} stroke-width="1.6" stroke-opacity="0.55" />
+  </pattern>
+</defs>

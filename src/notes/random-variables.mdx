@@ -6,6 +6,8 @@ import DensityArea from '../components/notes/ch03/DensityArea.astro';
 import ContinuousCdf from '../components/notes/ch03/ContinuousCdf.astro';
 import JointGrid from '../components/notes/ch03/JointGrid.astro';
 
+import { CHART_WIDTH, jointGridWidth } from '../components/notes/chartkit';
+
 ## 3.1 Concept of a random variable
 
 Test three electronic components as they come off a line, and mark each one `N` for
@@ -159,9 +161,10 @@ Between two values, $P(a < X \le b) = F(b) - F(a)$.
 >
 > Reading the pmf back out of it: $f(2) = F(2) - F(1) = \tfrac{11}{16} - \tfrac{5}{16} = \tfrac{6}{16} = \tfrac{3}{8}$.
 
-<Figure caption="Every bar height is a probability, and the bars sum to 1 — this is the same airbagCount distribution from the worked example above.">
+<Figure width={CHART_WIDTH.massChart} caption="Every bar height is a probability, and the bars sum to 1 — this is the same airbagCount distribution from the worked example above.">
   <MassChart
     title="Probability mass function of airbagCount: bars at 0 through 4 cars"
+    axisLabel="airbagCount"
     bars={[
       { x: '0', p: 1 / 16, label: '1/16' },
       { x: '1', p: 4 / 16, label: '4/16' },
@@ -172,9 +175,10 @@ Between two values, $P(a < X \le b) = F(b) - F(a)$.
   />
 </Figure>
 
-<Figure caption="The height of each step is exactly the bar it sits above — the CDF just piles the bars on top of each other as x increases.">
+<Figure width={CHART_WIDTH.cdfStep} caption="The height of each step is exactly the bar it sits above — the CDF just piles the bars on top of each other as x increases.">
   <CdfStep
     title="Cumulative distribution function of airbagCount, staircase with jumps at each value"
+    axisLabel="airbagCount"
     steps={[
       { x: 0, f: 1 / 16, label: '0' },
       { x: 1, f: 5 / 16, label: '1' },
@@ -251,9 +255,11 @@ $$
 > P(0 < X \le 1) = \int_{0}^{1} \frac{x^2}{3}\, dx = \frac{x^3}{9}\bigg|_{0}^{1} = \frac{1}{9}.
 > $$
 
-<Figure caption="The curve is tall where errors near 2 are more likely, but the curve's height is not a probability — only the shaded area, 1/9, is.">
+<Figure width={CHART_WIDTH.densityArea} caption="The curve is tall where errors near 2 are more likely, but the curve's height is not a probability — only the shaded area, 1/9, is.">
   <DensityArea
     title="Density of the reaction-temperature error, area shaded from 0 to 1"
+    areaLabel="area = 1/9"
+    axisLabel="reaction-temperature error (°C)"
     fn={(x) => (x * x) / 3}
     domain={[-1, 2]}
     shadeFrom={0}
@@ -299,9 +305,11 @@ to go the other. Where the discrete CDF jumped, this one rises continuously.
 > Recovering the earlier answer without re-integrating:
 > $P(0 < X \le 1) = F(1) - F(0) = \tfrac{2}{9} - \tfrac{1}{9} = \tfrac{1}{9}$. ✓
 
-<Figure caption="Reading the S-curve's height at 1 and subtracting its height at 0 gives 1/9 — the same number as the shaded area in the figure above.">
+<Figure width={CHART_WIDTH.continuousCdf} caption="Reading the S-curve's height at 1 and subtracting its height at 0 gives 1/9 — the same number as the shaded area in the figure above.">
   <ContinuousCdf
     title="CDF of the reaction-temperature error, with guide lines at 0 and 1"
+    gapLabel="1/9"
+    axisLabel="reaction-temperature error (°C)"
     fn={(x) => (x ** 3 + 1) / 9}
     domain={[-1, 2]}
     markFrom={0}
@@ -379,9 +387,11 @@ $$
 > P[(X,Y) \in A] = f(0,0) + f(0,1) + f(1,0) = \frac{3 + 6 + 9}{28} = \frac{9}{14}.
 > $$
 
-<Figure caption="Darker cells are more probable. The row and column of totals at the edges are the marginal distributions — collapse the table along one direction and what is left is a distribution in the other variable alone.">
+<Figure width={jointGridWidth(3)} caption="Darker cells are more probable. The row and column of totals at the edges are the marginal distributions — collapse the table along one direction and what is left is a distribution in the other variable alone.">
   <JointGrid
     title="Joint distribution of blueCount and redCount, cells shaded by probability, with row and column totals"
+    colLabel="blueCount"
+    rowLabel="redCount"
     cols={['0', '1', '2']}
     rows={['0', '1', '2']}
     values={[
@@ -432,9 +442,11 @@ numbers so they sum to $1$ again. Fixing $x$ and letting $y$ vary, $f(y \mid x)$
 probability distribution — it is non-negative and sums (or integrates) to $1$, which is
 exactly why $P(a < X < b \mid Y = y) = \sum_{a < x < b} f(x \mid y)$ is legitimate.
 
-<Figure caption="Zoom into the y = 1 row: that row's total, 12/28, becomes the divisor that rescales its cells to sum to 1.">
+<Figure width={jointGridWidth(3)} caption="Zoom into the y = 1 row: that row's total, 12/28, becomes the divisor that rescales its cells to sum to 1.">
   <JointGrid
     title="Same joint distribution, with the redCount = 1 row highlighted"
+    colLabel="blueCount"
+    rowLabel="redCount"
     cols={['0', '1', '2']}
     rows={['0', '1', '2']}
     values={[
@@ -453,9 +465,10 @@ exactly why $P(a < X < b \mid Y = y) = \sum_{a < x < b} f(x \mid y)$ is legitima
   />
 </Figure>
 
-<Figure caption="Rescaled, the highlighted row becomes its own distribution: given one red pen, the other is equally likely to be blue or green.">
+<Figure width={CHART_WIDTH.massChart} caption="Rescaled, the highlighted row becomes its own distribution: given one red pen, the other is equally likely to be blue or green.">
   <MassChart
     title="Conditional distribution of blueCount given redCount = 1"
+    axisLabel="blueCount"
     bars={[
       { x: '0', p: 0.5, label: '1/2' },
       { x: '1', p: 0.5, label: '1/2' },

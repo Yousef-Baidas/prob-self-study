@@ -4,6 +4,8 @@ import Venn from '../components/notes/ch02/Venn.astro';
 import DiceGrid from '../components/notes/ch02/DiceGrid.astro';
 import ProbTree from '../components/notes/ch02/ProbTree.astro';
 
+import { CHART_WIDTH } from '../components/notes/chartkit';
+
 ## 2.1 Sample space
 
 Toss a coin once. Before you toss it, you can write down every result that could happen:
@@ -24,7 +26,7 @@ outcomes in all, from $(1,1)$ up to $(6,6)$. The order *within* an outcome matte
 though the order you list outcomes in doesn't: rolling a 2 then a 5 is a different outcome
 from rolling a 5 then a 2.
 
-<Figure caption="36 equally likely outcomes. (2, 5) and (5, 2) are different cells — which die showed which number matters, even though the order you list outcomes in doesn't.">
+<Figure width={CHART_WIDTH.diceGrid} caption="36 equally likely outcomes. (2, 5) and (5, 2) are different cells — which die showed which number matters, even though the order you list outcomes in doesn't.">
   <DiceGrid
     title="6 by 6 grid of two-dice outcomes, with (2,5) and (5,2) ringed as distinct outcomes"
     emphasize={[[2, 5], [5, 2]]}
@@ -62,15 +64,15 @@ symbol:
 - **The intersection** — everything in both evenRoll and highRoll — is $A \cap B = \{4, 6\}$.
 - **The union** — everything in evenRoll or highRoll, or both — is $A \cup B = \{2, 4, 5, 6\}$.
 
-<Figure caption="The union: every outcome that's even, at least 4, or both.">
+<Figure width={CHART_WIDTH.venn} caption="The union: every outcome that's even, at least 4, or both.">
   <Venn labelA="evenRoll" labelB="highRoll" shade="union" title="Venn diagram of evenRoll union highRoll, both circles shaded" />
 </Figure>
 
-<Figure caption="The intersection: only the outcomes the two events share.">
+<Figure width={CHART_WIDTH.venn} caption="The intersection: only the outcomes the two events share.">
   <Venn labelA="evenRoll" labelB="highRoll" shade="intersection" title="Venn diagram of evenRoll intersect highRoll, only the overlap shaded" />
 </Figure>
 
-<Figure caption="The complement of evenRoll: everything left once evenRoll is ruled out.">
+<Figure width={CHART_WIDTH.venn} caption="The complement of evenRoll: everything left once evenRoll is ruled out.">
   <Venn labelA="evenRoll" labelB="highRoll" shade="complementA" title="Venn diagram of the complement of evenRoll, everything outside the evenRoll circle shaded" />
 </Figure>
 
@@ -196,7 +198,7 @@ $$
 P(A \cup B) = P(A) + P(B) - P(A \cap B).
 $$
 
-<Figure caption="Adding P(needsMed) and P(needsTherapy) counts the overlap twice — subtracting P(needsMed ∩ needsTherapy) undoes that double-count.">
+<Figure width={CHART_WIDTH.venn} caption="Adding P(needsMed) and P(needsTherapy) counts the overlap twice — subtracting P(needsMed ∩ needsTherapy) undoes that double-count.">
   <Venn labelA="needsMed" labelB="needsTherapy" shade="union" title="Venn diagram of needsMed union needsTherapy" />
 </Figure>
 
@@ -231,7 +233,7 @@ $$
 P(A) + P(A') = 1.
 $$
 
-<Figure caption="evenRoll and its complement split S with nothing left over and nothing shared, so their chances must add to 1.">
+<Figure width={CHART_WIDTH.venn} caption="evenRoll and its complement split S with nothing left over and nothing shared, so their chances must add to 1.">
   <Venn labelA="evenRoll" labelB="highRoll" shade="complementA" title="Venn diagram of the complement of evenRoll" />
 </Figure>
 
@@ -310,7 +312,7 @@ them, not just pairwise.
 > **Worked example — conditioning shrinks the sample space.** Two fair dice are rolled.
 > *Given* that the total is 7, what's the chance the first die showed a 4?
 
-<Figure caption="6 of the 36 outcomes total 7; only one of those six — (4, 3), ringed — has a 4 on the first die.">
+<Figure width={CHART_WIDTH.diceGrid} caption="6 of the 36 outcomes total 7; only one of those six — (4, 3), ringed — has a 4 on the first die.">
   <DiceGrid
     title="6 by 6 grid with the six outcomes summing to 7 highlighted, and (4,3) ringed"
     highlight={[[1, 6], [2, 5], [3, 4], [4, 3], [5, 2], [6, 1]]}
@@ -346,20 +348,21 @@ $S$ — mutually exclusive events that together cover everything, each with $P(B
   { name: 'overall chance a part is defective', symbol: 'P(A) = \\sum_{i=1}^{k} P(B_i)\\,P(A \\mid B_i)' },
 ]} />
 
-<Figure minWidth={470} caption="Multiply along each path for that path's chance; add the three defective-leaf products to get the overall 2.45% defect rate.">
+<Figure width={CHART_WIDTH.probTree} caption="Multiply along each path for that path's chance; add the three defective-leaf products to get the overall 2.45% defect rate.">
   <ProbTree
     title="Probability tree: three machines branching into defective or not defective, with path products at the leaves"
     root="1 part"
+    columns={['which machine', 'defective?']}
     branches={[
-      { label: 'machine1 (30%)', prob: '0.30', leaves: [
+      { label: 'machine1', prob: '0.30', leaves: [
         { label: 'defective', prob: '0.02', product: '0.30 × 0.02 = 0.006' },
         { label: 'not defective', prob: '0.98', product: '0.30 × 0.98 = 0.294' },
       ] },
-      { label: 'machine2 (45%)', prob: '0.45', leaves: [
+      { label: 'machine2', prob: '0.45', leaves: [
         { label: 'defective', prob: '0.03', product: '0.45 × 0.03 = 0.0135' },
         { label: 'not defective', prob: '0.97', product: '0.45 × 0.97 = 0.4365' },
       ] },
-      { label: 'machine3 (25%)', prob: '0.25', leaves: [
+      { label: 'machine3', prob: '0.25', leaves: [
         { label: 'defective', prob: '0.02', product: '0.25 × 0.02 = 0.005' },
         { label: 'not defective', prob: '0.98', product: '0.25 × 0.98 = 0.245' },
       ] },

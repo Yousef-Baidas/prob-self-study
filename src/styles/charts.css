@@ -1,0 +1,239 @@
+/* Chart kit — the shared drawing language for every figure in src/notes.
+   Imported by Layout.astro after global.css.
+
+   Why a stylesheet rather than per-component styles: an SVG's font-size is in
+   user units, so its rendered size is `containerWidth / viewBoxWidth` times
+   whatever number the author typed. Eleven components each picking their own
+   number produced rendered type from 13px to 40px. Figure.astro now pins each
+   chart to its natural width so one user unit is one CSS pixel, which makes a
+   single type scale meaningful across all of them — and that scale belongs in
+   one file, not restated eleven times.
+
+   Two ink voices, deliberately:
+     accent (Burnt Rust) — the quantity the figure is about
+     chart-ink (teal)    — the reference it is measured against
+   Furniture (axes, grids, ticks) is never either; it is grid/muted, so colour
+   always carries meaning rather than decoration. */
+
+.c-svg {
+  display: block;
+
+  /* Text inside SVG does not inherit the page font in every engine, and three
+     charts previously rendered their labels in the UA serif default. */
+  font-family: var(--font-sans);
+}
+
+/* --- Type scale ------------------------------------------------------- */
+
+/* Tick numbers and axis furniture: mono, so digits align in columns. */
+.c-tick {
+  font-family: var(--font-mono);
+
+  font-size: 11px;
+
+  fill: var(--color-text-muted);
+}
+
+/* A named quantity — `batteryLife`, `machine1`, `median`. */
+.c-label {
+  font-size: 13px;
+
+  fill: var(--color-text);
+}
+
+/* A number the prose also quotes. Mono so it reads as a figure, not a word. */
+.c-value {
+  font-family: var(--font-mono);
+
+  font-size: 13px;
+
+  font-weight: var(--font-weight-semibold);
+
+  fill: var(--color-accent);
+}
+
+.c-value-ink {
+  fill: var(--color-chart-ink);
+}
+
+.c-value-muted {
+  font-weight: var(--font-weight-regular);
+
+  fill: var(--color-text-muted);
+}
+
+/* Section furniture inside a figure — panel titles, legend keys. Tracked caps
+   at a small size, matching the .eyebrow treatment used in the prose. */
+.c-caps {
+  font-family: var(--font-mono);
+
+  font-size: 10px;
+
+  font-weight: var(--font-weight-semibold);
+
+  letter-spacing: var(--tracking-caps);
+
+  text-transform: uppercase;
+
+  fill: var(--color-text-muted);
+}
+
+/* The name of a quantity on an axis. Deliberately NOT .c-caps: these are the
+   notes' camelCase identifiers (`airbagCount`, `blueCount`), and uppercasing
+   them destroys the word boundary that makes the name readable in the first
+   place. */
+.c-axis-name {
+  font-family: var(--font-mono);
+
+  font-size: 11px;
+
+  fill: var(--color-text-muted);
+}
+
+/* A number sitting on a filled cell, where the accent text colour would be
+   accent-on-accent and the muted one would not survive the darkest fill. */
+.c-value-body {
+  font-weight: var(--font-weight-regular);
+
+  fill: var(--color-text);
+}
+
+.c-mid {
+  text-anchor: middle;
+}
+
+.c-end {
+  text-anchor: end;
+}
+
+/* Labels that must sit on top of a line or a filled region. Paints a plate
+   coloured outline behind the glyphs first, so the text stays legible without
+   needing an opaque box that would punch a hole in the drawing. */
+.c-halo {
+  paint-order: stroke fill;
+
+  stroke: var(--color-chart-plate);
+
+  stroke-width: 3.5px;
+
+  stroke-linejoin: round;
+}
+
+/* --- Ink weights ------------------------------------------------------ */
+
+/* Grid and baselines: present, never competing with the data. */
+.c-grid {
+  stroke: var(--color-chart-grid);
+
+  stroke-width: 1;
+}
+
+.c-axis {
+  /* Muted text rather than --color-border, held back to 0.7. The frame of a
+     chart is structure a reader needs, not decoration: at --color-border it
+     measured 1.3:1 against the plate, under WCAG's 3:1 floor for non-text
+     essentials. At 0.7 it measures 3.1:1 light / 3.8:1 dark and still sits
+     visibly behind .c-data. --color-chart-grid stays weak on purpose. */
+  stroke: var(--color-text-muted);
+
+  stroke-opacity: 0.7;
+
+  stroke-width: 1.25;
+}
+
+/* The measured quantity. */
+.c-data {
+  fill: none;
+
+  stroke: var(--color-accent);
+
+  stroke-width: 2.25;
+
+  stroke-linecap: round;
+
+  stroke-linejoin: round;
+}
+
+/* An annotation that points at a value rather than being one. */
+.c-guide {
+  stroke: var(--color-text-muted);
+
+  stroke-width: 1;
+
+  stroke-dasharray: 3 3;
+}
+
+.c-guide-accent {
+  stroke: var(--color-accent);
+
+  stroke-width: 1.25;
+
+  stroke-dasharray: 4 3;
+}
+
+.c-guide-ink {
+  stroke: var(--color-chart-ink);
+
+  stroke-width: 1.25;
+
+  stroke-dasharray: 4 3;
+}
+
+/* Solid ink rule — a measured span rather than a pointer. Note this cannot be
+   done by putting stroke-dasharray="none" on .c-guide-ink: a CSS declaration
+   beats an SVG presentation attribute, so the dashes would survive. */
+.c-bracket-ink {
+  stroke: var(--color-chart-ink);
+
+  stroke-width: 1.5;
+
+  stroke-linecap: round;
+}
+
+/* A whisker or connector: present enough to trace, quiet enough not to read as
+   data. --color-border alone is page furniture and vanishes inside a plate. */
+.c-connector {
+  stroke: var(--color-text-muted);
+
+  stroke-width: 1.5;
+
+  stroke-linecap: round;
+}
+
+/* Leader line from a label down to the value it names. */
+.c-leader {
+  stroke: var(--color-chart-grid);
+
+  stroke-width: 1;
+}
+
+/* --- Fills ------------------------------------------------------------ */
+
+/* Explicit opacity on a full-strength ink, never --color-accent-soft and its
+   ink equivalent: those tokens are 12–16% background tints that disappear
+   against the dark palette, which is the wrong trade for a mark carrying
+   data. Regions that mean "this part counts" use Hatch.astro instead. */
+.c-fill-ink {
+  fill: var(--color-chart-ink);
+
+  fill-opacity: 0.18;
+}
+
+.c-dot {
+  fill: var(--color-accent);
+}
+
+.c-dot-muted {
+  fill: var(--color-text-muted);
+}
+
+/* An open circle marks a height a step approaches but never takes; it has to
+   read as hollow, so it is filled with the plate rather than left transparent
+   (a transparent circle would show the line running through it). */
+.c-dot-open {
+  fill: var(--color-chart-plate);
+
+  stroke: var(--color-accent);
+
+  stroke-width: 2;
+}

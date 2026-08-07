@@ -1,8 +1,15 @@
 ---
+import { JOINT_GRID_ORIGIN, jointGridWidth } from '../chartkit';
+
 // Two-way joint table with cell shading by probability and the row/column
-// totals drawn in the margins, so "marginal" reads as literally the margin
-// of this grid. Passing `highlightRow` dims every other row, for reuse as
-// the "zoom into one row" picture behind a conditional distribution.
+// totals drawn in the margins, so "marginal" reads as literally the margin of
+// this grid. Passing `highlightRow` dims every other row and frames the one
+// that is left, for reuse as the "zoom into one row" picture behind a
+// conditional distribution.
+//
+// The totals are drawn in ink, not accent: they are sums *of* the cells rather
+// than more cells, and giving them the same colour as the body made the margin
+// look like a fourth column of data.
 interface Props {
   cols: string[];
 
@@ -18,43 +25,84 @@ interface Props {
 
   title: string;
 
+  /** Name of the quantity running across the columns. */
+  colLabel?: string;
+
+  /** Name of the quantity running down the rows. */
+  rowLabel?: string;
+
   highlightRow?: number;
 
   cell?: number;
 }
 
-const { cols, rows, values, cellText, rowTotalText, colTotalText, title, highlightRow, cell = 64 } = Astro.props;
+const {
+  cols,
+  rows,
+  values,
+  cellText,
+  rowTotalText,
+  colTotalText,
+  title,
+  colLabel,
+  rowLabel,
+  highlightRow,
+  cell = 60,
+} = Astro.props;
 
-const headerSize = 40;
+const headerSize = 34;
 
-const width = headerSize + cell * cols.length + cell;
-const height = headerSize + cell * rows.length + cell;
+const axisPad = 22;
+
+const originX = JOINT_GRID_ORIGIN;
+
+const originY = axisPad + headerSize;
+
+const bodyWidth = cell * cols.length;
+
+const bodyHeight = cell * rows.length;
+
+const width = jointGridWidth(cols.length, cell);
+
+const height = originY + bodyHeight + cell + 1;
 
 const maxValue = Math.max(...values.flat());
 
-const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.7;
+// Capped at 0.6, not 0.8. The cell's own number is drawn over this fill in
+// --color-text, and at 0.8 that pairing measures 3.5:1 — under the 4.5:1 floor
+// for 13px text, in exactly the darkest cell the shading is meant to emphasise.
+// 0.6 measures 5.5:1 and still spans a five-fold range of tint.
+const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.48;
 ---
 
-<svg
-  width={width}
-  height={height}
-  viewBox={`0 0 ${width} ${height}`}
-  role="img"
-  aria-label={title}
->
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <rect x="0" y="0" width={width} height={height} fill="none" stroke="var(--color-border)" stroke-width="1" aria-hidden="true" />
+  {
+    colLabel && (
+      <text x={originX} y="12" class="c-axis-name" aria-hidden="true">
+        {colLabel} →
+      </text>
+    )
+  }
+
+  {
+    rowLabel && (
+      <text
+        x="12"
+        y={originY + bodyHeight / 2}
+        class="c-axis-name c-mid"
+        transform={`rotate(-90 12 ${originY + bodyHeight / 2})`}
+        aria-hidden="true"
+      >
+        {rowLabel} →
+      </text>
+    )
+  }
 
   {
     cols.map((col, colIndex) => (
-      <text
-        x={headerSize + cell * colIndex + cell / 2}
-        y={headerSize / 2 + 5}
-        text-anchor="middle"
-        font-size="12"
-        fill="var(--color-text)"
-      >
+      <text x={originX + cell * colIndex + cell / 2} y={originY - 12} class="c-tick c-mid" aria-hidden="true">
         {col}
       </text>
     ))
@@ -62,13 +110,7 @@ const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.7;
 
   {
     rows.map((row, rowIndex) => (
-      <text
-        x={headerSize / 2}
-        y={headerSize + cell * rowIndex + cell / 2 + 4}
-        text-anchor="middle"
-        font-size="12"
-        fill="var(--color-text)"
-      >
+      <text x={originX - 10} y={originY + cell * rowIndex + cell / 2 + 4} class="c-tick c-end" aria-hidden="true">
         {row}
       </text>
     ))
@@ -81,11 +123,12 @@ const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.7;
       return cols.map((_col, colIndex) => {
         const value = values[rowIndex][colIndex];
 
-        const x = headerSize + cell * colIndex;
-        const y = headerSize + cell * rowIndex;
+        const x = originX + cell * colIndex;
+
+        const y = originY + cell * rowIndex;
 
         return (
-          <g opacity={dimmed ? 0.25 : 1}>
+          <g opacity={dimmed ? 0.22 : 1} aria-hidden="true">
             <rect
               x={x}
               y={y}
@@ -93,11 +136,10 @@ const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.7;
               height={cell}
               fill="var(--color-accent)"
               fill-opacity={value > 0 ? opacityFor(value) : 0}
-              stroke="var(--color-border)"
-              stroke-width="1"
+              class="c-grid"
             />
 
-            <text x={x + cell / 2} y={y + cell / 2 + 4} text-anchor="middle" font-size="12" fill="var(--color-text)">
+            <text x={x + cell / 2} y={y + cell / 2 + 4} class="c-value c-mid c-value-body">
               {cellText[rowIndex][colIndex]}
             </text>
           </g>
@@ -107,26 +149,32 @@ const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.7;
   }
 
   {
+    highlightRow !== undefined && (
+      <rect
+        x={originX}
+        y={originY + cell * highlightRow}
+        width={bodyWidth + cell}
+        height={cell}
+        fill="none"
+        stroke="var(--color-accent)"
+        stroke-width="2"
+        aria-hidden="true"
+      />
+    )
+  }
+
+  {
     colTotalText.map((text, colIndex) => (
-      <g>
+      <g aria-hidden="true">
         <rect
-          x={headerSize + cell * colIndex}
-          y={headerSize + cell * rows.length}
+          x={originX + cell * colIndex}
+          y={originY + bodyHeight}
           width={cell}
           height={cell}
-          fill="var(--color-surface)"
-          stroke="var(--color-border)"
-          stroke-width="1"
+          class="c-fill-ink c-grid"
         />
 
-        <text
-          x={headerSize + cell * colIndex + cell / 2}
-          y={headerSize + cell * rows.length + cell / 2 + 4}
-          text-anchor="middle"
-          font-size="12"
-          font-weight="var(--font-weight-semibold)"
-          fill="var(--color-text)"
-        >
+        <text x={originX + cell * colIndex + cell / 2} y={originY + bodyHeight + cell / 2 + 4} class="c-value c-value-ink c-mid">
           {text}
         </text>
       </g>
@@ -135,28 +183,38 @@ const opacityFor = (value: number) => 0.12 + (value / maxValue) * 0.7;
 
   {
     rowTotalText.map((text, rowIndex) => (
-      <g>
+      <g aria-hidden="true">
         <rect
-          x={headerSize + cell * cols.length}
-          y={headerSize + cell * rowIndex}
+          x={originX + bodyWidth}
+          y={originY + cell * rowIndex}
           width={cell}
           height={cell}
-          fill="var(--color-surface)"
-          stroke="var(--color-border)"
-          stroke-width="1"
+          class="c-fill-ink c-grid"
         />
 
-        <text
-          x={headerSize + cell * cols.length + cell / 2}
-          y={headerSize + cell * rowIndex + cell / 2 + 4}
-          text-anchor="middle"
-          font-size="12"
-          font-weight="var(--font-weight-semibold)"
-          fill="var(--color-text)"
-        >
+        <text x={originX + bodyWidth + cell / 2} y={originY + cell * rowIndex + cell / 2 + 4} class="c-value c-value-ink c-mid">
           {text}
         </text>
       </g>
     ))
   }
+
+  {/* A heavier rule where the body ends and the margins begin, so the totals
+      read as a summary of the table rather than more of it. */}
+  <g aria-hidden="true" class="c-axis">
+    <line x1={originX + bodyWidth} y1={originY} x2={originX + bodyWidth} y2={originY + bodyHeight + cell} />
+
+    <line x1={originX} y1={originY + bodyHeight} x2={originX + bodyWidth + cell} y2={originY + bodyHeight} />
+  </g>
+
+  <rect
+    x={originX}
+    y={originY}
+    width={bodyWidth}
+    height={bodyHeight}
+    fill="none"
+    stroke="var(--color-border)"
+    stroke-width="1.25"
+    aria-hidden="true"
+  />
 </svg>

@@ -1,7 +1,17 @@
 ---
+import Hatch from '../Hatch.astro';
+
+import { CHART_WIDTH, uid } from '../chartkit';
+
 // Two-set Venn diagram. One fixed layout, reused across §2.2 / §2.5 with a
-// different `shade` each time so the same picture teaches every set
-// operation instead of a new drawing per operation.
+// different `shade` each time so the same picture teaches every set operation
+// instead of a new drawing per operation.
+//
+// The two events are drawn in different inks — the first in accent, the second
+// in chart-ink — so "the part of A that is also B" can be read off the picture
+// without tracing which outline is which. The shaded region is hatched rather
+// than tinted: a flat tint that reads on cream paper disappears on the dark
+// palette, and the shading is the entire content of the figure.
 type Shade = 'a' | 'b' | 'union' | 'intersection' | 'aOnly' | 'bOnly' | 'complementA' | 'complementB' | 'none';
 
 interface Props {
@@ -18,25 +28,42 @@ interface Props {
 
 const { labelA, labelB, labelUniverse = 'S', shade, title } = Astro.props;
 
-// Ids must be unique per instance — the same component renders several
-// times on one page, and SVG ids are document-global.
-const id = `venn-${crypto.randomUUID().slice(0, 8)}`;
+// Ids must be unique per instance — the same component renders several times
+// on one page, and SVG ids are document-global.
+const id = uid('venn');
 
-const rect = { x: 10, y: 10, w: 300, h: 180 };
-const circleA = { cx: 130, cy: 100, r: 70 };
-const circleB = { cx: 190, cy: 100, r: 70 };
+const hatchAccent = `${id}-hatch-a`;
+
+const hatchInk = `${id}-hatch-b`;
+
+const width = CHART_WIDTH.venn;
+
+const rect = { x: 12, y: 12, w: width - 24, h: 214 };
+
+const circleA = { cx: 152, cy: 122, r: 84 };
+
+const circleB = { cx: 228, cy: 122, r: 84 };
+
+const height = rect.h + 24;
+
+// Which ink the shaded region takes: a region made only of the first event
+// reads in accent, one made only of the second reads in ink, and a region
+// spanning both takes accent as the neutral default.
+const inkShades: Shade[] = ['b', 'bOnly', 'complementA'];
+
+const hatchId = inkShades.includes(shade) ? hatchInk : hatchAccent;
 ---
 
-<svg viewBox={`0 0 ${rect.w + 20} ${rect.h + 20}`} role="img" aria-label={title}>
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
+
+  <Hatch id={hatchAccent} spacing={8} />
+
+  <Hatch id={hatchInk} tone="ink" spacing={8} />
 
   <defs>
     <clipPath id={`${id}-clip-a`}>
       <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} />
-    </clipPath>
-
-    <clipPath id={`${id}-clip-b`}>
-      <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} />
     </clipPath>
 
     <mask id={`${id}-mask-not-a`}>
@@ -60,61 +87,103 @@ const circleB = { cx: 190, cy: 100, r: 70 };
     </mask>
   </defs>
 
-  <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} rx="8" fill="none" stroke="var(--color-border)" />
+  <rect
+    x={rect.x}
+    y={rect.y}
+    width={rect.w}
+    height={rect.h}
+    rx="10"
+    fill="none"
+    stroke="var(--color-border)"
+    stroke-width="1.25"
+    aria-hidden="true"
+  />
 
-  {shade === 'complementA' && (
-    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent-soft)" mask={`url(#${id}-mask-not-a)`} />
-  )}
+  {
+    (shade === 'complementA' || shade === 'complementB') && (
+      <rect
+        x={rect.x}
+        y={rect.y}
+        width={rect.w}
+        height={rect.h}
+        rx="10"
+        fill={`url(#${hatchId})`}
+        mask={`url(#${id}-mask-not-${shade === 'complementA' ? 'a' : 'b'})`}
+        aria-hidden="true"
+      />
+    )
+  }
 
-  {shade === 'complementB' && (
-    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent-soft)" mask={`url(#${id}-mask-not-b)`} />
-  )}
+  {
+    (shade === 'aOnly' || shade === 'bOnly') && (
+      <rect
+        x={rect.x}
+        y={rect.y}
+        width={rect.w}
+        height={rect.h}
+        fill={`url(#${hatchId})`}
+        mask={`url(#${id}-mask-${shade === 'aOnly' ? 'a-not-b' : 'b-not-a'})`}
+        aria-hidden="true"
+      />
+    )
+  }
 
-  {shade === 'aOnly' && (
-    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent)" mask={`url(#${id}-mask-a-not-b)`} />
-  )}
+  {
+    (shade === 'a' || shade === 'union') && (
+      <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill={`url(#${hatchAccent})`} aria-hidden="true" />
+    )
+  }
 
-  {shade === 'bOnly' && (
-    <rect x={rect.x} y={rect.y} width={rect.w} height={rect.h} fill="var(--color-accent)" mask={`url(#${id}-mask-b-not-a)`} />
-  )}
+  {
+    (shade === 'b' || shade === 'union') && (
+      <circle
+        cx={circleB.cx}
+        cy={circleB.cy}
+        r={circleB.r}
+        fill={`url(#${shade === 'union' ? hatchAccent : hatchInk})`}
+        aria-hidden="true"
+      />
+    )
+  }
 
-  {(shade === 'a' || shade === 'union') && (
-    <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="var(--color-accent-soft)" />
-  )}
+  {
+    shade === 'intersection' && (
+      <circle
+        cx={circleB.cx}
+        cy={circleB.cy}
+        r={circleB.r}
+        clip-path={`url(#${id}-clip-a)`}
+        fill={`url(#${hatchAccent})`}
+        aria-hidden="true"
+      />
+    )
+  }
 
-  {(shade === 'b' || shade === 'union') && (
-    <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="var(--color-accent-soft)" />
-  )}
+  <circle
+    cx={circleA.cx}
+    cy={circleA.cy}
+    r={circleA.r}
+    fill="none"
+    stroke="var(--color-accent)"
+    stroke-width="2"
+    aria-hidden="true"
+  />
 
-  {shade === 'intersection' && (
-    <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} clip-path={`url(#${id}-clip-a)`} fill="var(--color-accent)" />
-  )}
+  <circle
+    cx={circleB.cx}
+    cy={circleB.cy}
+    r={circleB.r}
+    fill="none"
+    stroke="var(--color-chart-ink)"
+    stroke-width="2"
+    aria-hidden="true"
+  />
 
-  <circle cx={circleA.cx} cy={circleA.cy} r={circleA.r} fill="none" stroke="var(--color-accent)" stroke-width="2" />
+  <text x={rect.x + 14} y={rect.y + 22} class="c-caps" aria-hidden="true">{labelUniverse}</text>
 
-  <circle cx={circleB.cx} cy={circleB.cy} r={circleB.r} fill="none" stroke="var(--color-accent)" stroke-width="2" />
+  <text x={circleA.cx - circleA.r * 0.55} y={circleA.cy + 5} class="c-value c-mid c-halo" aria-hidden="true">{labelA}</text>
 
-  <text x={rect.x + 14} y={rect.y + 22} class="venn-label venn-universe" aria-hidden="true">{labelUniverse}</text>
-
-  <text x={circleA.cx - 34} y={circleA.cy + 4} class="venn-label" aria-hidden="true">{labelA}</text>
-
-  <text x={circleB.cx + 34} y={circleB.cy + 4} class="venn-label" aria-hidden="true">{labelB}</text>
-
-  <style>
-    text.venn-label {
-      font-size: 11px;
-
-      font-family: var(--font-sans);
-
-      fill: var(--color-text);
-
-      text-anchor: middle;
-    }
-
-    text.venn-universe {
-      text-anchor: start;
-
-      fill: var(--color-text-muted);
-    }
-  </style>
+  <text x={circleB.cx + circleB.r * 0.55} y={circleB.cy + 5} class="c-value c-value-ink c-mid c-halo" aria-hidden="true"
+    >{labelB}</text
+  >
 </svg>

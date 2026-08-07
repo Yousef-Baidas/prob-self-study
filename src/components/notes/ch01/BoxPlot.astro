@@ -1,6 +1,17 @@
 ---
 import { iqrStats } from './stats';
 
+import Hatch from '../Hatch.astro';
+
+import { CHART_WIDTH, padDomain, round, scale, ticks, uid } from '../chartkit';
+
+// Box-and-whisker plot. Two voices: the box and its median are the data
+// (accent), the fence rule is the reference the data is judged against (ink).
+//
+// The fence span is drawn as a bracket *under* the axis rather than a filled
+// band behind the box. A band works out to a slab wider and taller than the
+// box plot itself, which puts the reference in front of the thing it is meant
+// to judge; a bracket says "this far and no further" and stays out of the way.
 interface Props {
   values: number[];
 
@@ -9,11 +20,9 @@ interface Props {
   unit?: string;
 
   width?: number;
-
-  height?: number;
 }
 
-const { values, title, unit = '', width = 600, height = 210 } = Astro.props;
+const { values, title, unit = '', width = CHART_WIDTH.boxPlot } = Astro.props;
 
 const sorted = [...values].sort((a, b) => a - b);
 
@@ -27,21 +36,29 @@ const whiskerHigh = inFence[inFence.length - 1];
 
 const outliers = sorted.filter((v) => v < lowerFence || v > upperFence);
 
-const marginX = 32;
+const marginX = 26;
 
-const plotWidth = width - marginX * 2;
+const domain = padDomain(
+  Math.min(sorted[0], lowerFence),
+  Math.max(sorted[sorted.length - 1], upperFence),
+  0.06,
+);
 
-const domainMin = Math.min(sorted[0], lowerFence) - (sorted[sorted.length - 1] - sorted[0]) * 0.08;
+const x = scale(domain, [marginX, width - marginX]);
 
-const domainMax = Math.max(sorted[sorted.length - 1], upperFence) + (sorted[sorted.length - 1] - sorted[0]) * 0.08;
+const axisTicks = ticks(domain, 6);
 
-const x = (v: number) => marginX + ((v - domainMin) / (domainMax - domainMin)) * plotWidth;
+const baselineY = 128;
 
-const baselineY = height * 0.57;
-
-const boxHalf = 22;
+const boxHalf = 24;
 
 const capHalf = 10;
+
+const bracketY = 188;
+
+const height = 216;
+
+const hatchId = uid('box-hatch');
 
 const withUnit = (v: number) => (unit ? `${v} ${unit}` : `${v}`);
 
@@ -49,70 +66,114 @@ const withUnit = (v: number) => (unit ? `${v} ${unit}` : `${v}`);
 // scale, so their labels get their own vertical tier and a leader line rather
 // than a shared row they would overlap in.
 const quartileLabels = [
-  { value: q1, text: `Q1 ${withUnit(Math.round(q1 * 100) / 100)}`, tier: 0, accent: false },
-  { value: q2, text: `median ${withUnit(Math.round(q2 * 100) / 100)}`, tier: 1, accent: true },
-  { value: q3, text: `Q3 ${withUnit(Math.round(q3 * 100) / 100)}`, tier: 2, accent: false },
+  { value: q1, text: `Q1 ${withUnit(round(q1))}`, tier: 0, accent: false },
+  { value: q2, text: `median ${withUnit(round(q2))}`, tier: 1, accent: true },
+  { value: q3, text: `Q3 ${withUnit(round(q3))}`, tier: 2, accent: false },
 ];
 
-const tierY = (tier: number) => baselineY - boxHalf - 14 - tier * 26;
+const tierY = (tier: number) => baselineY - boxHalf - 12 - tier * 24;
 ---
 
-<svg viewBox={`0 0 ${width} ${height}`} role="img">
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <line x1={x(lowerFence)} y1={baselineY - boxHalf - 12} x2={x(lowerFence)} y2={baselineY + boxHalf + 12} stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />
+  <Hatch id={hatchId} />
 
-  <line x1={x(upperFence)} y1={baselineY - boxHalf - 12} x2={x(upperFence)} y2={baselineY + boxHalf + 12} stroke="var(--color-border)" stroke-width="1" stroke-dasharray="3 3" />
+  {
+    axisTicks.map((tick) => (
+      <g aria-hidden="true">
+        <line x1={x(tick)} y1={baselineY + boxHalf + 6} x2={x(tick)} y2={baselineY + boxHalf + 11} class="c-grid" />
 
-  <line x1={x(whiskerLow)} y1={baselineY} x2={x(q1)} y2={baselineY} stroke="var(--color-border)" stroke-width="1.5" />
+        <text x={x(tick)} y={baselineY + boxHalf + 22} class="c-tick c-mid">
+          {tick}
+        </text>
+      </g>
+    ))
+  }
 
-  <line x1={x(q3)} y1={baselineY} x2={x(whiskerHigh)} y2={baselineY} stroke="var(--color-border)" stroke-width="1.5" />
+  <line x1={marginX} y1={baselineY + boxHalf + 6} x2={width - marginX} y2={baselineY + boxHalf + 6} class="c-grid" aria-hidden="true" />
 
-  <line x1={x(whiskerLow)} y1={baselineY - capHalf} x2={x(whiskerLow)} y2={baselineY + capHalf} stroke="var(--color-border)" stroke-width="1.5" />
+  {/* The fence span, as a bracket beneath the scale. */}
+  <g aria-hidden="true">
+    <line x1={x(lowerFence)} y1={bracketY} x2={x(upperFence)} y2={bracketY} class="c-bracket-ink" />
 
-  <line x1={x(whiskerHigh)} y1={baselineY - capHalf} x2={x(whiskerHigh)} y2={baselineY + capHalf} stroke="var(--color-border)" stroke-width="1.5" />
+    {[lowerFence, upperFence].map((fence) => (
+      <line x1={x(fence)} y1={bracketY - 6} x2={x(fence)} y2={bracketY + 6} class="c-bracket-ink" />
+    ))}
 
-  <rect x={x(q1)} y={baselineY - boxHalf} width={x(q3) - x(q1)} height={boxHalf * 2} fill="var(--color-accent-soft)" stroke="var(--color-accent)" stroke-width="1.5" />
+    <text x={(x(lowerFence) + x(upperFence)) / 2} y={bracketY + 20} class="c-caps c-mid c-halo">
+      inside the fences
+    </text>
+  </g>
 
-  <line x1={x(q2)} y1={baselineY - boxHalf} x2={x(q2)} y2={baselineY + boxHalf} stroke="var(--color-accent)" stroke-width="2.5" />
+  {/* Where each fence falls on the scale, carried up through the plot so a
+      point can be read as inside or outside it at a glance. */}
+  {
+    [lowerFence, upperFence].map((fence) => (
+      <line x1={x(fence)} y1={baselineY - boxHalf - 4} x2={x(fence)} y2={baselineY + boxHalf + 4} class="c-guide-ink" aria-hidden="true" />
+    ))
+  }
+
+  <line x1={x(whiskerLow)} y1={baselineY} x2={x(q1)} y2={baselineY} class="c-connector" aria-hidden="true" />
+
+  <line x1={x(q3)} y1={baselineY} x2={x(whiskerHigh)} y2={baselineY} class="c-connector" aria-hidden="true" />
+
+  {
+    [whiskerLow, whiskerHigh].map((v) => (
+      <line x1={x(v)} y1={baselineY - capHalf} x2={x(v)} y2={baselineY + capHalf} class="c-connector" aria-hidden="true" />
+    ))
+  }
+
+  <rect
+    x={x(q1)}
+    y={baselineY - boxHalf}
+    width={x(q3) - x(q1)}
+    height={boxHalf * 2}
+    fill={`url(#${hatchId})`}
+    stroke="var(--color-accent)"
+    stroke-width="1.5"
+    aria-hidden="true"
+  />
+
+  <line
+    x1={x(q2)}
+    y1={baselineY - boxHalf}
+    x2={x(q2)}
+    y2={baselineY + boxHalf}
+    stroke="var(--color-accent)"
+    stroke-width="3"
+    aria-hidden="true"
+  />
 
   {
     outliers.map((v) => (
-      <circle cx={x(v)} cy={baselineY} r="6" fill="var(--color-accent)" />
+      <g aria-hidden="true">
+        <circle cx={x(v)} cy={baselineY} r="10" fill="none" stroke="var(--color-accent)" stroke-width="1" opacity="0.5" />
+
+        <circle cx={x(v)} cy={baselineY} r="5.5" class="c-dot" />
+
+        <line x1={x(v)} y1={baselineY - 14} x2={x(v)} y2={tierY(0) + 4} class="c-leader" />
+
+        <text x={x(v)} y={tierY(0)} class="c-value c-mid c-halo">
+          outlier {withUnit(v)}
+        </text>
+      </g>
     ))
   }
 
   {
     quartileLabels.map((label) => (
-      <>
-        <line
-          x1={x(label.value)}
-          y1={baselineY - boxHalf}
-          x2={x(label.value)}
-          y2={tierY(label.tier) + 4}
-          stroke="var(--color-border)"
-          stroke-width="1"
-          aria-hidden="true"
-        />
+      <g aria-hidden="true">
+        <line x1={x(label.value)} y1={baselineY - boxHalf} x2={x(label.value)} y2={tierY(label.tier) + 4} class="c-leader" />
 
         <text
           x={x(label.value)}
           y={tierY(label.tier)}
-          text-anchor="middle"
-          font-size="19"
-          fill={label.accent ? 'var(--color-accent)' : 'var(--color-text-muted)'}
+          class={`c-value c-mid c-halo${label.accent ? '' : ' c-value-muted'}`}
         >
           {label.text}
         </text>
-      </>
-    ))
-  }
-
-  {
-    outliers.map((v) => (
-      <text x={x(v)} y={baselineY + boxHalf + 28} text-anchor="middle" font-size="19" fill="var(--color-accent)">
-        outlier {withUnit(v)}
-      </text>
+      </g>
     ))
   }
 </svg>

@@ -2,25 +2,30 @@
 interface Props {
   caption: string;
 
-  wide?: boolean;
-
   /**
-   * Natural width in px below which the chart stops being legible. Set it for a
-   * chart that is wide relative to its detail — the figure then scrolls inside
-   * its own box rather than scaling every label down with the column, matching
-   * how ChapterNotes.astro treats wide display equations.
+   * The chart's natural width in px — the same number as its viewBox width.
+   *
+   * This is what keeps the eleven figures in one type scale. An SVG's
+   * font-size is in user units, so a chart stretched to fill the prose column
+   * multiplies every size by `columnWidth / viewBoxWidth`. Left to stretch,
+   * the same `font-size: 11` rendered at 40px in DiceGrid and 13px in
+   * ProbTree. Rendering the svg at exactly this many pixels makes one user
+   * unit one CSS pixel, so 11 means 11 in every figure on the site — and a
+   * chart never scales down either: below its natural width the plate scrolls
+   * rather than shrinking the labels past legibility. Charts are therefore
+   * drawn as narrow as their content honestly allows, so that scroll is rare.
    */
-  minWidth?: number;
+  width: number;
+
+  /** Lets a genuinely wide figure use the full column on desktop. */
+  wide?: boolean;
 }
 
-const { caption, wide = false, minWidth } = Astro.props;
+const { caption, width, wide = false } = Astro.props;
 ---
 
 <figure class:list={['figure', { wide }]}>
-  <div
-    class:list={['figure-chart', { scrolls: minWidth !== undefined }]}
-    style={minWidth === undefined ? undefined : `--figure-min-width: ${minWidth}px`}
-  >
+  <div class="figure-plate" style={`--figure-width: ${width}px`}>
     <slot />
   </div>
 
@@ -28,41 +33,127 @@ const { caption, wide = false, minWidth } = Astro.props;
 
   <style>
     .figure {
-      margin-block: var(--space-lg);
+      margin-block: var(--space-xl);
 
       /* figure carries a UA margin-inline that global.css never resets, which
          would indent every chart and skew the `wide` offset below. */
       margin-inline: 0;
     }
 
+    /* The plate is itself the scroller, so the few figures wider than a phone
+       scroll inside their own frame. The shadow is the pure-CSS overflow
+       detector: the plate-coloured `local` gradients travel with the content
+       and uncover the `scroll` shadows pinned to the edges only when there is
+       actually more to see. Painting it on the plate rather than a wrapper
+       matters — over the page background instead of the plate the same
+       gradients show as two smudges beside a figure that does not scroll. */
+    .figure-plate {
+      width: fit-content;
+
+      max-width: 100%;
+
+      margin-inline: auto;
+
+      padding: var(--space-md) var(--space-md) var(--space-sm);
+
+      overflow-x: auto;
+
+      overflow-y: hidden;
+
+      background:
+        linear-gradient(to right, var(--color-chart-plate), transparent) left center / 28px 100% no-repeat local,
+        linear-gradient(to left, var(--color-chart-plate), transparent) right center / 28px 100% no-repeat local,
+        radial-gradient(farthest-side at 0 50%, color-mix(in srgb, var(--color-text) 18%, transparent), transparent)
+          left center / 12px 100% no-repeat scroll,
+        radial-gradient(farthest-side at 100% 50%, color-mix(in srgb, var(--color-text) 18%, transparent), transparent)
+          right center / 12px 100% no-repeat scroll,
+        var(--color-chart-plate);
+
+      border: 1px solid var(--color-border);
+
+      border-radius: var(--radius-md);
+    }
+
     /* :global because the svg arrives through the slot, so it carries the MDX
        file's scope attribute rather than this component's — an unscoped
-       descendant selector would never match it. Same reason .prose uses
-       :global() in ChapterNotes.astro. */
-    .figure-chart :global(svg) {
+       descendant selector would never match it.
+
+       The three widths together are the legibility rule. `width` is the
+       natural size, where one user unit is one CSS pixel and the type scale
+       means what it says. `max-width` lets a chart absorb a small shortfall by
+       scaling rather than making the reader drag a figure sideways to see four
+       missing pixels. `min-width` stops that scaling at 90%, below which the
+       11px tick labels would fall under 10px — past there the plate scrolls
+       instead. */
+    .figure-plate :global(svg) {
       display: block;
 
-      width: 100%;
+      width: var(--figure-width);
+
+      max-width: 100%;
+
+      min-width: calc(var(--figure-width) * 0.9);
 
       height: auto;
     }
 
-    .figure-chart.scrolls {
-      overflow-x: auto;
-
-      overflow-y: hidden;
-    }
-
-    .figure-chart.scrolls :global(svg) {
-      min-width: var(--figure-min-width);
+    /* Buy back sixteen pixels of chart width where it is scarcest. */
+    @media (max-width: 600px) {
+      .figure-plate {
+        padding-inline: var(--space-sm);
+      }
     }
 
     .figure-caption {
-      margin-top: var(--space-sm);
+      max-width: 62ch;
+
+      margin-top: var(--space-md);
+
+      padding-left: var(--space-md);
+
+      /* A rust hairline down the caption marks it as apparatus rather than
+         prose, without spending an uppercase "FIGURE 3" label on the job. */
+      border-left: 2px solid var(--color-accent);
 
       font-size: var(--font-size-label);
 
+      line-height: var(--line-height-snug);
+
       color: var(--color-text-muted);
+    }
+
+    /* The print sheet is white whatever the theme — global.css forces
+       `background: #fff` on body unconditionally — but it only forces legible
+       ink inside `.worksheet`, and a figure is not one. Printed from the dark
+       theme the charts would otherwise draw #efe7d6 text on white paper.
+       Re-pointing the tokens here fixes every mark at once, since the svg
+       inherits them; the literals are the one place hard-coded colour is
+       right, because paper has no theme to read. */
+    @media print {
+      .figure-plate {
+        --color-text: #111111;
+
+        --color-text-muted: #555555;
+
+        --color-accent: #8c3a1b;
+
+        --color-border: #cccccc;
+
+        --color-chart-ink: #1f5057;
+
+        --color-chart-plate: #ffffff;
+
+        --color-chart-grid: #cccccc;
+
+        /* A scrolled figure must print whole, not cropped at the plate edge. */
+        overflow-x: visible;
+
+        background: #ffffff;
+      }
+
+      .figure-caption {
+        color: #444444;
+      }
     }
 
     /* Breaks slightly out of the 760px prose column on wide viewports only;

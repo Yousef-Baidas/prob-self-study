@@ -1,8 +1,11 @@
 ---
-// Continuous CDF, with the same two bounds used by the density-and-area
-// figure marked as guide lines. The vertical gap between the two dashed
-// lines is the height difference F(markTo) - F(markFrom) — the same number
-// as the shaded area next to it.
+import { AXIS_PADDING, CHART_WIDTH, plot, samplePoints, scale } from '../chartkit';
+
+// Continuous CDF, with the same two bounds used by the density-and-area figure
+// marked as guide lines. The vertical gap between the two dashed lines is the
+// height difference between them — the same number as the shaded area next
+// door — so it is drawn as a measured bracket with its value on it rather than
+// a bare accent tick the reader has to interpret.
 interface Props {
   fn: (x: number) => number;
 
@@ -14,118 +17,112 @@ interface Props {
 
   title: string;
 
-  width?: number;
+  /** The height difference, e.g. '1/9'. Written onto the bracket. */
+  gapLabel?: string;
 
-  height?: number;
+  /** Name of the quantity along the bottom, e.g. `roundingError`. */
+  axisLabel?: string;
+
+  width?: number;
 
   samples?: number;
 }
 
-const { fn, domain, markFrom, markTo, title, width = 340, height = 220, samples = 80 } = Astro.props;
+const { fn, domain, markFrom, markTo, title, gapLabel, axisLabel, width = CHART_WIDTH.continuousCdf, samples = 96 } = Astro.props;
 
-const padding = { top: 20, right: 20, bottom: 32, left: 34 };
+const height = 224;
 
-const chartWidth = width - padding.left - padding.right;
-const chartHeight = height - padding.top - padding.bottom;
+const p = plot(width, height, { ...AXIS_PADDING, left: 44, bottom: axisLabel ? 48 : 34 });
 
-const [xMin, xMax] = domain;
+const points = samplePoints(fn, domain, samples);
 
-const xs = Array.from({ length: samples + 1 }, (_, i) => xMin + (i / samples) * (xMax - xMin));
-const ys = xs.map(fn);
+const x = scale(domain, [p.left, p.right]);
 
-const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
-const yScale = (y: number) => padding.top + (1 - y) * chartHeight;
-const baseline = padding.top + chartHeight;
+const y = scale([0, 1], [p.baseline, p.top]);
 
-const curvePoints = xs.map((x, i) => `${xScale(x)},${yScale(ys[i])}`).join(' ');
+const curvePoints = points.map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
 
-const fFrom = fn(markFrom);
-const fTo = fn(markTo);
+const marks = [markFrom, markTo].map((at) => ({ at, f: fn(at) }));
+
+// The bracket lives at the right edge, not beside the y axis. The gap it
+// measures is the whole point of the figure and is only about a tenth of the
+// plot tall — beside the axis it collides with the 0/1 ticks and leaves no
+// room for its own label, whereas at the right edge the curve has already
+// climbed away and there is clear space to write the value beside it.
+const bracketX = p.right - 14;
+
+const gridLines = [0, 0.25, 0.5, 0.75, 1];
 ---
 
-<svg
-  width={width}
-  height={height}
-  viewBox={`0 0 ${width} ${height}`}
-  role="img"
-  aria-label={title}
->
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <line
-    x1={padding.left}
-    y1={baseline}
-    x2={width - padding.right}
-    y2={baseline}
-    stroke="var(--color-border)"
-    stroke-width="1"
-    aria-hidden="true"
-  />
-
-  <line
-    x1={padding.left}
-    y1={padding.top}
-    x2={padding.left}
-    y2={baseline}
-    stroke="var(--color-border)"
-    stroke-width="1"
-    aria-hidden="true"
-  />
-
-  <text x={padding.left - 6} y={padding.top + 4} text-anchor="end" font-size="13" fill="var(--color-text-muted)">
-    1
-  </text>
-
-  <text x={padding.left - 6} y={baseline + 4} text-anchor="end" font-size="13" fill="var(--color-text-muted)">
-    0
-  </text>
-
   {
-    [
-      { x: markFrom, f: fFrom },
-      { x: markTo, f: fTo },
-    ].map((mark) => (
+    gridLines.map((f) => (
       <g aria-hidden="true">
-        <line
-          x1={xScale(mark.x)}
-          y1={yScale(mark.f)}
-          x2={padding.left}
-          y2={yScale(mark.f)}
-          stroke="var(--color-text-muted)"
-          stroke-width="1"
-          stroke-dasharray="3 3"
-        />
+        <line x1={p.left} y1={y(f)} x2={p.right} y2={y(f)} class="c-grid" />
 
-        <line
-          x1={xScale(mark.x)}
-          y1={yScale(mark.f)}
-          x2={xScale(mark.x)}
-          y2={baseline}
-          stroke="var(--color-text-muted)"
-          stroke-width="1"
-          stroke-dasharray="3 3"
-        />
+        {(f === 0 || f === 1) && (
+          <text x={p.left - 26} y={y(f) + 4} class="c-tick c-end">
+            {f}
+          </text>
+        )}
       </g>
     ))
   }
 
-  <line
-    x1={padding.left - 6}
-    y1={yScale(fFrom)}
-    x2={padding.left - 6}
-    y2={yScale(fTo)}
-    stroke="var(--color-accent)"
-    stroke-width="3"
-    aria-hidden="true"
-  />
+  <line x1={p.left} y1={p.top} x2={p.left} y2={p.baseline} class="c-axis" aria-hidden="true" />
 
-  <polyline points={curvePoints} fill="none" stroke="var(--color-accent)" stroke-width="2.5" aria-hidden="true" />
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left - 26} y={p.top - 12} class="c-caps" aria-hidden="true">chance so far</text>
 
   {
-    [markFrom, markTo].map((x) => (
-      <text x={xScale(x)} y={baseline + 16} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
-        {x}
+    marks.map((mark) => (
+      <g aria-hidden="true">
+        <line x1={p.left} y1={y(mark.f)} x2={bracketX} y2={y(mark.f)} class="c-guide" />
+
+        <line x1={x(mark.at)} y1={y(mark.f)} x2={x(mark.at)} y2={p.baseline} class="c-guide" />
+
+        <circle cx={x(mark.at)} cy={y(mark.f)} r="4" class="c-dot" />
+      </g>
+    ))
+  }
+
+  {/* A bracket rather than a bare tick: the figure's claim is that this
+      *distance* equals the shaded area next door, and a distance needs two
+      ends to be read as one. */}
+  <g aria-hidden="true" stroke="var(--color-accent)" stroke-width="2" fill="none">
+    <line x1={bracketX} y1={y(marks[0].f)} x2={bracketX} y2={y(marks[1].f)} />
+
+    <line x1={bracketX - 4} y1={y(marks[0].f)} x2={bracketX + 4} y2={y(marks[0].f)} />
+
+    <line x1={bracketX - 4} y1={y(marks[1].f)} x2={bracketX + 4} y2={y(marks[1].f)} />
+  </g>
+
+  <polyline points={curvePoints} class="c-data" aria-hidden="true" />
+
+  {
+    gapLabel && (
+      <text x={bracketX - 10} y={(y(marks[0].f) + y(marks[1].f)) / 2 + 4} class="c-value c-end c-halo" aria-hidden="true">
+        {gapLabel}
+      </text>
+    )
+  }
+
+  {
+    marks.map((mark) => (
+      <text x={x(mark.at)} y={p.baseline + 20} class="c-tick c-mid" aria-hidden="true">
+        {mark.at}
       </text>
     ))
+  }
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
   }
 </svg>

@@ -1,6 +1,11 @@
 ---
 import { mean, median, iqrStats } from './stats';
 
+import { CHART_WIDTH, padDomain, round, scale, ticks } from '../chartkit';
+
+// One dot per observation on a number line, with the mean and the median
+// marked as two distinct voices: the mean in accent (the figure's subject),
+// the median in ink (what it is being compared against).
 interface Props {
   values: number[];
 
@@ -9,11 +14,9 @@ interface Props {
   unit?: string;
 
   width?: number;
-
-  height?: number;
 }
 
-const { values, title, unit = '', width = 600, height = 160 } = Astro.props;
+const { values, title, unit = '', width = CHART_WIDTH.dotPlot } = Astro.props;
 
 const sorted = [...values].sort((a, b) => a - b);
 
@@ -23,64 +26,127 @@ const med = median(sorted);
 
 const { lowerFence, upperFence } = iqrStats(sorted);
 
-const marginX = 32;
+const marginX = 26;
 
-const plotWidth = width - marginX * 2;
+const domain = padDomain(sorted[0], sorted[sorted.length - 1]);
 
-const dataMin = sorted[0];
+const x = scale(domain, [marginX, width - marginX]);
 
-const dataMax = sorted[sorted.length - 1];
+const baselineY = 122;
 
-const pad = (dataMax - dataMin) * 0.08;
+const dotRadius = 5.5;
 
-const domainMin = dataMin - pad;
+const dotStep = 13;
 
-const domainMax = dataMax + pad;
+// Dots stack upward whenever they would *overlap*, not only when the values
+// are exactly equal. The pile-up is the whole point of a dot plot, and equality
+// is the wrong test for it: one extreme value stretches the scale until nine
+// distinct readings sit a few pixels apart and smear into a single blob, which
+// is precisely the case this chart illustrates.
+const placed: { cx: number; depth: number }[] = [];
 
-const x = (v: number) => marginX + ((v - domainMin) / (domainMax - domainMin)) * plotWidth;
+const points = sorted.map((v) => {
+  const cx = x(v);
 
-const baselineY = height * 0.55;
+  // The lowest row with nothing already sitting within a dot's width of this
+  // position — so a cluster stacks into a column rather than a diagonal.
+  let depth = 0;
 
-const dotRadius = 6;
+  while (placed.some((p) => p.depth === depth && Math.abs(p.cx - cx) < dotRadius * 2 + 1.5)) {
+    depth += 1;
+  }
 
-const points = sorted.map((v) => ({
-  v,
-  cx: x(v),
-  isOutlier: v < lowerFence || v > upperFence,
-}));
+  placed.push({ cx, depth });
 
-const meanX = x(m);
-
-const medianX = x(med);
+  return {
+    v,
+    cx,
+    cy: baselineY - dotRadius - 3 - depth * dotStep,
+    isOutlier: v < lowerFence || v > upperFence,
+  };
+});
 
 const withUnit = (v: number) => (unit ? `${v} ${unit}` : `${v}`);
+
+const axisTicks = ticks(domain, 6);
+
+// Mean on the upper tier, median below it: the mean is the value the caption
+// is about, so it gets the position the eye reaches first.
+const markers = [
+  { at: m, text: `mean ${withUnit(round(m))}`, y: 20, tone: 'c-value', guide: 'c-guide-accent' },
+  { at: med, text: `median ${withUnit(round(med))}`, y: 46, tone: 'c-value c-value-ink', guide: 'c-guide-ink' },
+];
+
+const height = 182;
+
+// An outlier is a diamond, not just a differently-coloured dot: accent versus
+// muted puts the entire distinction in hue, which is the one channel a
+// colour-blind reader does not have. The shape carries it, and the legend
+// below names it outright.
+const diamondR = dotRadius * 1.35;
+
+const diamond = (cx: number, cy: number) =>
+  `${cx},${cy - diamondR} ${cx + diamondR},${cy} ${cx},${cy + diamondR} ${cx - diamondR},${cy}`;
 ---
 
-<svg viewBox={`0 0 ${width} ${height}`} role="img">
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <line x1={x(domainMin)} y1={baselineY} x2={x(domainMax)} y2={baselineY} stroke="var(--color-border)" stroke-width="1" />
-
   {
-    points.map((p) => (
-      <circle
-        cx={p.cx}
-        cy={baselineY}
-        r={dotRadius}
-        fill={p.isOutlier ? 'var(--color-accent)' : 'var(--color-text-muted)'}
+    markers.map((marker) => (
+      <line
+        x1={x(marker.at)}
+        y1={marker.y + 6}
+        x2={x(marker.at)}
+        y2={baselineY}
+        class={marker.guide}
+        aria-hidden="true"
       />
     ))
   }
 
-  <line x1={medianX} y1={baselineY - 34} x2={medianX} y2={baselineY + 10} stroke="var(--color-border)" stroke-width="2" stroke-dasharray="4 3" />
+  <line x1={marginX} y1={baselineY} x2={width - marginX} y2={baselineY} class="c-axis" aria-hidden="true" />
 
-  <text x={medianX} y={baselineY - 40} text-anchor="middle" font-size="20" fill="var(--color-text-muted)">
-    median {withUnit(med)}
-  </text>
+  {
+    axisTicks.map((t) => (
+      <g aria-hidden="true">
+        <line x1={x(t)} y1={baselineY} x2={x(t)} y2={baselineY + 5} class="c-grid" />
 
-  <line x1={meanX} y1={baselineY - 10} x2={meanX} y2={baselineY + 34} stroke="var(--color-accent)" stroke-width="2" />
+        <text x={x(t)} y={baselineY + 20} class="c-tick c-mid">
+          {t}
+        </text>
+      </g>
+    ))
+  }
 
-  <text x={meanX} y={baselineY + 48} text-anchor="middle" font-size="20" fill="var(--color-accent)">
-    mean {withUnit(Math.round(m * 100) / 100)}
-  </text>
+  {
+    points.map((p) =>
+      p.isOutlier ? (
+        <polygon points={diamond(p.cx, p.cy)} class="c-dot" aria-hidden="true" />
+      ) : (
+        <circle cx={p.cx} cy={p.cy} r={dotRadius} class="c-dot-muted" aria-hidden="true" />
+      ),
+    )
+  }
+
+  {
+    points.some((p) => p.isOutlier) && (
+      <g aria-hidden="true">
+        <polygon points={diamond(marginX + 5, height - 12)} class="c-dot" />
+
+        <text x={marginX + 15} y={height - 8} class="c-tick">
+          outlier
+        </text>
+      </g>
+    )
+  }
+
+  {
+    markers.map((marker) => (
+      <text x={x(marker.at)} y={marker.y} class={`${marker.tone} c-mid c-halo`} aria-hidden="true">
+        {marker.text}
+      </text>
+    ))
+  }
+
 </svg>

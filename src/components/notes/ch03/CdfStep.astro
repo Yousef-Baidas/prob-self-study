@@ -1,9 +1,15 @@
 ---
+import { AXIS_PADDING, CHART_WIDTH, plot, scale } from '../chartkit';
+
 // Discrete CDF staircase. `steps` gives the jump points in x order; the
 // segment before step i sits at cumulative height `steps[i - 1].f` (0 for the
 // first) and jumps to `steps[i].f` exactly at `steps[i].x` — a closed circle
-// marks the value F actually takes there, an open circle marks the height it
-// approaches from the left but never reaches.
+// marks the value the running total actually takes there, an open circle marks
+// the height it approaches from the left but never reaches.
+//
+// The vertical risers are drawn faintly rather than omitted: without them the
+// treads read as four unrelated line segments, and the jump — which is the
+// whole content of the figure — is invisible.
 interface Step {
   x: number;
 
@@ -17,115 +23,100 @@ interface Props {
 
   title: string;
 
-  width?: number;
+  /** Name of the quantity along the bottom, e.g. `airbagCount`. */
+  axisLabel?: string;
 
-  height?: number;
+  width?: number;
 }
 
-const { steps, title, width = 320, height = 200 } = Astro.props;
+const { steps, title, axisLabel, width = CHART_WIDTH.cdfStep } = Astro.props;
 
-const padding = { top: 24, right: 24, bottom: 32, left: 36 };
+const height = 224;
 
-const chartWidth = width - padding.left - padding.right;
-const chartHeight = height - padding.top - padding.bottom;
+const p = plot(width, height, { ...AXIS_PADDING, bottom: axisLabel ? 48 : 34 });
+
+if (steps.length === 0) {
+  // Reading steps[0].x below would throw during the static build and take the
+  // whole page down, which is a poor trade for a figure with nothing to draw.
+  throw new Error('CdfStep needs at least one step');
+}
 
 const xMin = steps[0].x - 1;
+
 const xMax = steps[steps.length - 1].x + 1;
 
-const xScale = (x: number) => padding.left + ((x - xMin) / (xMax - xMin)) * chartWidth;
-const yScale = (f: number) => padding.top + (1 - f) * chartHeight;
+const x = scale([xMin, xMax], [p.left, p.right]);
 
-const segments = steps.map((step, index) => {
+const y = scale([0, 1], [p.baseline, p.top]);
+
+const treads = steps.map((step, index) => {
   const prevF = index === 0 ? 0 : steps[index - 1].f;
 
   const startX = index === 0 ? xMin : steps[index - 1].x;
 
   return {
-    x1: xScale(startX),
-    x2: xScale(step.x),
-    y: yScale(prevF),
-    openCircle: { cx: xScale(step.x), cy: yScale(prevF) },
-    closedCircle: { cx: xScale(step.x), cy: yScale(step.f) },
+    x1: x(startX),
+    x2: x(step.x),
+    y: y(prevF),
+    riserTo: y(step.f),
     label: step.label,
-    labelX: xScale(step.x),
+    labelX: x(step.x),
   };
 });
 
 const lastStep = steps[steps.length - 1];
 
-const finalSegment = {
-  x1: xScale(lastStep.x),
-  x2: xScale(xMax),
-  y: yScale(lastStep.f),
-};
+const gridLines = [0, 0.25, 0.5, 0.75, 1];
 ---
 
-<svg
-  width={width}
-  height={height}
-  viewBox={`0 0 ${width} ${height}`}
-  role="img"
-  aria-label={title}
->
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
   <title>{title}</title>
 
-  <line
-    x1={padding.left}
-    y1={padding.top + chartHeight}
-    x2={width - padding.right}
-    y2={padding.top + chartHeight}
-    stroke="var(--color-border)"
-    stroke-width="1"
-    aria-hidden="true"
-  />
+  {
+    gridLines.map((f) => (
+      <g aria-hidden="true">
+        <line x1={p.left} y1={y(f)} x2={p.right} y2={y(f)} class="c-grid" />
 
-  <line
-    x1={padding.left}
-    y1={padding.top}
-    x2={padding.left}
-    y2={padding.top + chartHeight}
-    stroke="var(--color-border)"
-    stroke-width="1"
-    aria-hidden="true"
-  />
+        {(f === 0 || f === 1) && (
+          <text x={p.left - 8} y={y(f) + 4} class="c-tick c-end">
+            {f}
+          </text>
+        )}
+      </g>
+    ))
+  }
 
-  <text x={padding.left - 8} y={padding.top + 4} text-anchor="end" font-size="11" fill="var(--color-text-muted)">
-    1
-  </text>
+  <line x1={p.left} y1={p.top} x2={p.left} y2={p.baseline} class="c-axis" aria-hidden="true" />
 
-  <text x={padding.left - 8} y={padding.top + chartHeight + 4} text-anchor="end" font-size="11" fill="var(--color-text-muted)">
-    0
-  </text>
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">running total</text>
 
   {
-    segments.map((segment) => (
-      <g>
-        <line
-          x1={segment.x1}
-          y1={segment.y}
-          x2={segment.x2}
-          y2={segment.y}
-          stroke="var(--color-accent)"
-          stroke-width="2.5"
-        />
+    treads.map((tread) => (
+      <g aria-hidden="true">
+        <line x1={tread.x2} y1={tread.y} x2={tread.x2} y2={tread.riserTo} class="c-guide-accent" />
 
-        <circle cx={segment.openCircle.cx} cy={segment.openCircle.cy} r="4" fill="var(--color-surface)" stroke="var(--color-accent)" stroke-width="2" />
+        <line x1={tread.x1} y1={tread.y} x2={tread.x2} y2={tread.y} class="c-data" />
 
-        <circle cx={segment.closedCircle.cx} cy={segment.closedCircle.cy} r="4" fill="var(--color-accent)" />
+        <circle cx={tread.x2} cy={tread.y} r="4.5" class="c-dot-open" />
 
-        <text x={segment.labelX} y={padding.top + chartHeight + 18} text-anchor="middle" font-size="12" fill="var(--color-text-muted)">
-          {segment.label}
+        <circle cx={tread.x2} cy={tread.riserTo} r="4.5" class="c-dot" />
+
+        <text x={tread.labelX} y={p.baseline + 20} class="c-tick c-mid">
+          {tread.label}
         </text>
       </g>
     ))
   }
 
-  <line
-    x1={finalSegment.x1}
-    y1={finalSegment.y}
-    x2={finalSegment.x2}
-    y2={finalSegment.y}
-    stroke="var(--color-accent)"
-    stroke-width="2.5"
-  />
+  <line x1={x(lastStep.x)} y1={y(lastStep.f)} x2={p.right} y2={y(lastStep.f)} class="c-data" aria-hidden="true" />
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
 </svg>

@@ -30,6 +30,18 @@
 
   --color-error: #b3261e;
 
+  /* Charts — a second data voice, so a figure can distinguish the quantity it
+     measures (accent, Burnt Rust) from the reference it measures against
+     (ink, deep teal). Before this every line was rust-or-grey and the two
+     roles were indistinguishable. Plate/grid are the figure's own furniture,
+     deliberately weaker than --color-surface/--color-border so a chart reads
+     as an inset printed plate rather than a second card. */
+  --color-chart-ink: #2c5f66;
+
+  --color-chart-plate: #fffaf1;
+
+  --color-chart-grid: #e9dfcc;
+
   /* Typography */
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
@@ -120,6 +132,12 @@
   --color-success: #6bbf8a;
 
   --color-error: #f05561;
+
+  --color-chart-ink: #6fb0b8;
+
+  --color-chart-plate: #1d1712;
+
+  --color-chart-grid: #33291f;
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
 
