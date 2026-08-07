@@ -28,7 +28,8 @@ export const allTemplates: QuestionTemplate[] = [
 ];
 
 export type SelectOptions = {
-  chapter?: string;
+  /** One chapter slug, or several — a worksheet may span chapters. */
+  chapter?: string | readonly string[];
 
   topic?: string;
 
@@ -41,8 +42,12 @@ export type SelectOptions = {
 export function selectTemplates(opts: SelectOptions = {}): QuestionTemplate[] {
   const { chapter, topic, source, difficulty } = opts;
 
+  // An empty array means "no chapters selected", not "every chapter" — a caller
+  // that wants everything omits the key entirely.
+  const wanted = chapter == null ? null : typeof chapter === 'string' ? [chapter] : chapter;
+
   return allTemplates.filter((t) => {
-    if (chapter && t.chapter !== chapter) return false;
+    if (wanted && !wanted.includes(t.chapter)) return false;
 
     if (topic && t.topic !== topic) return false;
 

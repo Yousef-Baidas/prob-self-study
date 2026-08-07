@@ -48,8 +48,8 @@
 {#if run.status === 'error'}
   <div class="ws-error">
     <p>
-      {#if run.reason === 'chapter'}That chapter isn’t available yet.
-      {:else if run.reason === 'topic'}That topic isn’t in this chapter.
+      {#if run.reason === 'chapter'}Pick at least one chapter that’s available.
+      {:else if run.reason === 'topic'}That topic isn’t in the chapters you picked.
       {:else if run.reason === 'source'}That question source isn’t valid.
       {:else}No questions match this selection.{/if}
     </p>

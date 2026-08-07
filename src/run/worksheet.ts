@@ -6,7 +6,7 @@ import type { WorksheetSession, WorksheetSpec } from '../modes/worksheet';
 import { chapters } from '../lib/site';
 import { buildSearch, resolveSeed } from './core';
 import { COUNT_MAX, COUNT_MIN, SOURCES, WORKSHEET_DEFAULTS } from './defaults';
-import { optionalEnum, optionalInt, requireSlug } from './params';
+import { optionalEnum, optionalInt, requireSlugs } from './params';
 
 export type WorksheetRunError = 'chapter' | 'source' | 'topic' | 'empty';
 
@@ -29,9 +29,13 @@ export function startWorksheetRun(search: string, deps: WorksheetRunDeps): Works
   const params = new URLSearchParams(search);
   if (!params.has('chapter')) return { status: 'idle' };
 
-  const slug = requireSlug(params.get('chapter'), chapters.map((c) => c.slug), 'chapter' as const);
-  if (!slug.ok) return { status: 'error', reason: slug.reason };
-  const chapter = chapters.find((c) => c.slug === slug.value)!;
+  const slugs = requireSlugs(params.getAll('chapter'), chapters.map((c) => c.slug), 'chapter' as const);
+  if (!slugs.ok) return { status: 'error', reason: slugs.reason };
+  // A topic belongs to one chapter, so across a multi-chapter sheet the valid
+  // topics are the union — picking one narrows the sheet to that chapter.
+  const topics = new Set(
+    chapters.filter((c) => slugs.value.includes(c.slug)).flatMap((c) => c.topics),
+  );
 
   const source = optionalEnum(
     params.get('source'),
@@ -45,12 +49,12 @@ export function startWorksheetRun(search: string, deps: WorksheetRunDeps): Works
   // every topic in the chapter rather than a topic that failed to validate.
   const rawTopic = params.get('topic');
   const topic = rawTopic ? rawTopic : undefined;
-  if (topic && !chapter.topics.includes(topic)) return { status: 'error', reason: 'topic' };
+  if (topic && !topics.has(topic)) return { status: 'error', reason: 'topic' };
 
   const seed = resolveSeed(params.get('seed'), deps.roll);
   const count = optionalInt(params.get('count'), COUNT_MIN, COUNT_MAX, WORKSHEET_DEFAULTS.count);
 
-  return build({ chapter: slug.value, topic, source: source.value, count, seed }, search);
+  return build({ chapters: slugs.value, topic, source: source.value, count, seed }, search);
 }
 
 /** Same spec, fresh seed, a new sheet. */

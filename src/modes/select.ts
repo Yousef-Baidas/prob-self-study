@@ -18,7 +18,12 @@ export interface DrawResult {
   capped: boolean;
 }
 
-export function drawTemplates(chapter: string, source: ExamSource, count: number, topic?: string): DrawResult {
+export function drawTemplates(
+  chapter: string | readonly string[],
+  source: ExamSource,
+  count: number,
+  topic?: string,
+): DrawResult {
   const pool = orderByDifficulty(selectTemplates({ chapter, topic, source }));
   let templates: QuestionTemplate[];
   if (source === 'book' || pool.length === 0 || pool.length >= count) {

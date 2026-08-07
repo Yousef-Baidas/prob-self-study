@@ -20,6 +20,24 @@ export function requireSlug<R extends string>(
   return { ok: true, value: raw };
 }
 
+/**
+ * A repeatable required parameter, e.g. `?chapter=a&chapter=b` from a checkbox
+ * group. Commas are also accepted inside a value so a hand-written link can say
+ * `?chapter=a,b`. The result is deduplicated and returned in `allowed` order, so
+ * two links naming the same chapters produce the same sheet whatever the order.
+ * Empty, or naming anything unrecognised, fails.
+ */
+export function requireSlugs<R extends string>(
+  raw: readonly string[],
+  allowed: readonly string[],
+  reason: R,
+): Parsed<string[], R> {
+  const named = new Set(raw.flatMap((v) => v.split(',')).map((v) => v.trim()).filter(Boolean));
+  if (named.size === 0) return { ok: false, reason };
+  for (const v of named) if (!allowed.includes(v)) return { ok: false, reason };
+  return { ok: true, value: allowed.filter((a) => named.has(a)) };
+}
+
 /** A parameter with a default: absent takes the fallback, supplied-and-wrong fails. */
 export function optionalEnum<T extends string, R extends string>(
   raw: string | null,

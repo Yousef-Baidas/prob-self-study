@@ -4,7 +4,8 @@ import { mulberry32 } from '../engine/rng';
 import type { ExamSource, ExamQuestion } from './types';
 
 export interface WorksheetSpec {
-  chapter: string;
+  /** One or more chapter slugs — a sheet may mix chapters in any combination. */
+  chapters: string[];
   topic?: string;
   source: ExamSource;
   count: number;
@@ -20,7 +21,7 @@ export interface WorksheetSession {
 }
 
 export function buildWorksheetSession(spec: WorksheetSpec): WorksheetSession {
-  const draw = drawTemplates(spec.chapter, spec.source, spec.count, spec.topic);
+  const draw = drawTemplates(spec.chapters, spec.source, spec.count, spec.topic);
   const seeds = deriveQuestionSeeds(spec.seed, draw.templates.length);
   const questions = draw.templates.map((template, i) => ({
     template,

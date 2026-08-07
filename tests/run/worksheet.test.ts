@@ -75,6 +75,62 @@ describe('startWorksheetRun', () => {
     expect(run.session.spec.topic).toBe('Counting techniques');
   });
 
+  test('accepts a repeated chapter parameter, the shape a checkbox group submits', () => {
+    const run = ready('?chapter=intro&chapter=random-variables');
+    expect(run.session.spec.chapters).toEqual(['intro', 'random-variables']);
+  });
+
+  test('accepts a comma-separated chapter list from a hand-written link', () => {
+    expect(ready('?chapter=intro,random-variables').session.spec.chapters).toEqual([
+      'intro',
+      'random-variables',
+    ]);
+  });
+
+  test('normalises order and duplicates so equivalent links build the same sheet', () => {
+    const a = ready('?chapter=random-variables&chapter=intro&chapter=intro&seed=7');
+    const b = ready('?chapter=intro&chapter=random-variables&seed=7');
+    expect(a.session.spec.chapters).toEqual(b.session.spec.chapters);
+    expect(a.session.questions.map((q) => q.instance.prompt)).toEqual(
+      b.session.questions.map((q) => q.instance.prompt),
+    );
+  });
+
+  test('a single chapter still works, so old links keep building', () => {
+    expect(ready('?chapter=probability').session.spec.chapters).toEqual(['probability']);
+  });
+
+  test('rejects the whole selection if any chapter is unknown', () => {
+    expect(startWorksheetRun('?chapter=intro&chapter=astrology', { roll: roll(42) })).toEqual({
+      status: 'error',
+      reason: 'chapter',
+    });
+  });
+
+  test('rejects a chapter parameter that is present but empty', () => {
+    expect(startWorksheetRun('?chapter=', { roll: roll(42) })).toEqual({
+      status: 'error',
+      reason: 'chapter',
+    });
+  });
+
+  test('accepts a topic belonging to any one of the chosen chapters', () => {
+    const run = ready('?chapter=intro&chapter=probability&topic=Counting%20techniques');
+    expect(run.session.spec.topic).toBe('Counting techniques');
+    expect(run.session.questions.every((q) => q.template.topic === 'Counting techniques')).toBe(true);
+  });
+
+  test('rejects a topic from a chapter that was not chosen', () => {
+    expect(
+      startWorksheetRun('?chapter=intro&topic=Counting%20techniques', { roll: roll(42) }),
+    ).toEqual({ status: 'error', reason: 'topic' });
+  });
+
+  test('a reroll keeps every chapter that was chosen', () => {
+    const run = rerollWorksheet(ready('?chapter=intro&chapter=random-variables'), roll(4242));
+    expect(run.session.spec.chapters).toEqual(['intro', 'random-variables']);
+  });
+
   test('writes the resolved seed into the url', () => {
     expect(ready().url).toContain('seed=42');
   });

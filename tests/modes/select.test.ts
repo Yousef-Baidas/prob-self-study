@@ -15,6 +15,27 @@ describe('orderByDifficulty', () => {
   });
 });
 
+describe('drawTemplates across chapters', () => {
+  it('an array of chapters pools all of them', () => {
+    const ids = drawTemplates(['intro', 'probability'], 'both', 99).templates.map((t) => t.id);
+    const expected = [
+      ...selectTemplates({ chapter: 'intro', source: 'both' }),
+      ...selectTemplates({ chapter: 'probability', source: 'both' }),
+    ].map((t) => t.id);
+    expect(new Set(ids)).toEqual(new Set(expected));
+  });
+
+  it('a one-element array matches the bare string', () => {
+    expect(drawTemplates(['intro'], 'both', 10).templates.map((t) => t.id)).toEqual(
+      drawTemplates('intro', 'both', 10).templates.map((t) => t.id),
+    );
+  });
+
+  it('an empty chapter list draws nothing', () => {
+    expect(drawTemplates([], 'both', 10).delivered).toBe(0);
+  });
+});
+
 describe('drawTemplates', () => {
   it('is deterministic (same args → same id sequence)', () => {
     const a = drawTemplates('intro', 'generated', 10).templates.map((t) => t.id);

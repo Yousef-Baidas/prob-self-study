@@ -9,11 +9,15 @@ const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', gener
 ---
 <form class="ws-setup" method="get" action={action}>
   <h1>Build a worksheet</h1>
-  <label>Chapter
-    <select name="chapter" id="ws-chapter">
-      {chapters.map((c) => <option value={c.slug} data-topics={c.topics.join('|')}>{`Ch ${c.number} — ${c.title}`}</option>)}
-    </select>
-  </label>
+  <fieldset id="ws-chapters">
+    <legend>Chapters</legend>
+    {chapters.map((c, i) => (
+      <label>
+        <input type="checkbox" name="chapter" value={c.slug} data-topics={c.topics.join('|')} checked={i === 0} />
+        {`Ch ${c.number} — ${c.title}`}
+      </label>
+    ))}
+  </fieldset>
   <label>Topic
     <select name="topic" id="ws-topic"><option value="">All topics</option></select>
   </label>
@@ -26,15 +30,28 @@ const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', gener
       <label><input type="radio" name="source" value={s} checked={s === WORKSHEET_DEFAULTS.source} /> {sourceLabels[s]}</label>
     ))}
   </fieldset>
-  <button type="submit">Build worksheet</button>
+  <button type="submit" id="ws-submit">Build worksheet</button>
 </form>
 <script is:inline>
   (function () {
-    var chapterSel = document.getElementById('ws-chapter');
+    var boxes = Array.prototype.slice.call(
+      document.querySelectorAll('#ws-chapters input[name="chapter"]'),
+    );
     var topicSel = document.getElementById('ws-topic');
+    var submit = document.getElementById('ws-submit');
     function refresh() {
-      var opt = chapterSel.options[chapterSel.selectedIndex];
-      var topics = (opt.getAttribute('data-topics') || '').split('|').filter(Boolean);
+      // Topics are the union across the checked chapters, matching what the
+      // parser in src/run/worksheet.ts will accept for this selection.
+      var checked = boxes.filter(function (b) { return b.checked; });
+      var seen = {};
+      var topics = [];
+      checked.forEach(function (b) {
+        (b.getAttribute('data-topics') || '').split('|').filter(Boolean).forEach(function (t) {
+          if (!seen[t]) { seen[t] = 1; topics.push(t); }
+        });
+      });
+      // Keep the learner's topic if unchecking a chapter did not remove it.
+      var previous = topicSel.value;
       topicSel.innerHTML = '<option value="">All topics</option>';
       topics.forEach(function (t) {
         var o = document.createElement('option');
@@ -42,8 +59,11 @@ const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', gener
         o.textContent = t;
         topicSel.appendChild(o);
       });
+      if (seen[previous]) topicSel.value = previous;
+      // A sheet needs at least one chapter; an empty submit would only error.
+      submit.disabled = checked.length === 0;
     }
-    chapterSel.addEventListener('change', refresh);
+    boxes.forEach(function (b) { b.addEventListener('change', refresh); });
     refresh();
   })();
 </script>
@@ -65,9 +85,14 @@ const sourceLabels: Record<string, string> = { both: 'Both', book: 'Book', gener
   fieldset { display: flex; flex-direction: column; gap: var(--space-sm); padding: var(--space-md); border: 1px solid var(--color-border); border-radius: var(--radius-sm); }
   legend { padding-inline: var(--space-xs); color: var(--color-text-muted); font-size: var(--font-size-label); }
   fieldset label { flex-direction: row; align-items: center; gap: var(--space-sm); font-weight: var(--font-weight-regular); }
+  /* Chapter titles are long enough to wrap in a 40ch column, so the box sits at
+     the first line rather than centred against a two-line label. */
+  #ws-chapters label { align-items: flex-start; }
+  #ws-chapters input { margin-top: 0.2em; flex: none; }
   button[type='submit'] {
     padding: var(--space-sm) var(--space-lg); background: var(--color-accent); color: var(--color-accent-ink);
     border: none; border-radius: var(--radius-pill); font: inherit; font-weight: var(--font-weight-semibold); cursor: pointer;
   }
   button[type='submit']:hover { background: var(--color-accent-hover); }
+  button[type='submit']:disabled { background: var(--color-border); color: var(--color-text-muted); cursor: not-allowed; }
 </style>
