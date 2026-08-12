@@ -1,0 +1,491 @@
+import Notation from '../components/notes/Notation.astro';
+import Figure from '../components/notes/Figure.astro';
+import BalancePoint from '../components/notes/ch04/BalancePoint.astro';
+import SpreadPair from '../components/notes/ch04/SpreadPair.astro';
+import ChebyshevFence from '../components/notes/ch04/ChebyshevFence.astro';
+import CovarianceScatter from '../components/notes/ch04/CovarianceScatter.astro';
+
+import { CHART_WIDTH } from '../components/notes/chartkit';
+
+## 4.1 Mean of a random variable
+
+Toss two coins together, sixteen times, and count the heads on each toss. Call that count
+`headCount`. Over the sixteen tosses, no heads turns up $4$ times, one head turns up $7$
+times, and two heads turns up $5$ times. Averaging the count the ordinary way,
+
+$$
+\frac{(0)(4)+(1)(7)+(2)(5)}{16}=1.06.
+$$
+
+Regroup the same arithmetic around the *fractions* of tosses landing on each value —
+$4/16$, $7/16$, $5/16$ — and the total number of tosses drops out entirely:
+
+$$
+(0)\left(\frac{4}{16}\right)+(1)\left(\frac{7}{16}\right)+(2)\left(\frac{5}{16}\right)=1.06.
+$$
+
+Those fractions are exactly the long-run relative frequencies for `headCount`, so this
+same $1.06$ is what a person tossing two coins over and over would see as the *average*
+number of heads per toss — whether the total number of tosses were $16$ or $16{,}000$.
+This long-run average is the **mean of the random variable**, also called the
+**mathematical expectation** or **expected value**.
+
+<Notation
+  rows={[
+    { name: 'headCount', symbol: 'X' },
+    { name: 'the mean of headCount', symbol: '\\mu_X,\\ \\text{or just}\\ \\mu,\\ \\text{or}\\ E(X)' },
+  ]}
+/>
+
+An average need not be a value the measurement ever actually takes — $1.06$ heads never
+happens on a single toss, just as a salesperson's average monthly income rarely equals any
+one month's paycheque. The mean is a summary of the whole distribution, not a prediction
+about any one outcome.
+
+**Definition 4.1.** For a discrete measurement, weight every value by its own probability
+and add:
+
+$$
+\mu=E(X)=\sum_x xf(x).
+$$
+
+For a continuous measurement, the sum becomes an integral over the density:
+
+$$
+\mu=E(X)=\int_{-\infty}^{\infty} xf(x)\,dx.
+$$
+
+Unlike the *sample mean* of Chapter 1, which averages data you actually collected, $E(X)$
+is computed straight from the probability distribution — it describes the population the
+data would be drawn from, before any sampling happens.
+
+> **Worked example** (Walpole §4.1, Example 4.1). A lot of $7$ components holds $4$ good and
+> $3$ defective ones. A sample of $3$ is drawn. Call the number of good components in the
+> sample `goodCount`, written $X$. Its pmf is hypergeometric,
+>
+> $$
+> f(x)=\frac{\dbinom{4}{x}\dbinom{3}{3-x}}{\dbinom{7}{3}},\qquad x=0,1,2,3,
+> $$
+>
+> giving $f(0)=\tfrac{1}{35}$, $f(1)=\tfrac{12}{35}$, $f(2)=\tfrac{18}{35}$,
+> $f(3)=\tfrac{4}{35}$. Then
+>
+> $$
+> \mu=E(X)=(0)\frac{1}{35}+(1)\frac{12}{35}+(2)\frac{18}{35}+(3)\frac{4}{35}=\frac{12}{7}=1.7.
+> $$
+>
+> A sample of $3$, drawn over and over from this lot, contains on average $1.7$ good
+> components — a number `goodCount` itself can never equal, since it only takes whole
+> values.
+
+<Figure width={CHART_WIDTH.balancePoint} caption="The mean is where the distribution balances — not necessarily on top of a bar, and not necessarily the biggest bar.">
+  <BalancePoint
+    title="Probability mass function of goodCount, with the mean marked as a fulcrum"
+    axisLabel="goodCount"
+    mean={12 / 7}
+    meanLabel="μ = 12/7"
+    bars={[
+      { x: 0, p: 1 / 35, label: '1/35' },
+      { x: 1, p: 12 / 35, label: '12/35' },
+      { x: 2, p: 18 / 35, label: '18/35' },
+      { x: 3, p: 4 / 35, label: '4/35' },
+    ]}
+  />
+</Figure>
+
+> **Worked example** (Walpole §4.1, Example 4.3). A device's life in hours, `deviceLife`, has
+> density $f(x)=20{,}000/x^3$ for $x>100$. Then
+>
+> $$
+> \mu=E(X)=\int_{100}^{\infty} x\cdot\frac{20{,}000}{x^3}\,dx=\int_{100}^{\infty}\frac{20{,}000}{x^2}\,dx=200,
+> $$
+>
+> so this type of device lasts, on average, $200$ hours.
+
+### A function of the measurement
+
+Often the quantity worth averaging is not `headCount` itself but something built from it —
+twice `headCount` minus one, or `headCount` squared. Call such a rule `g`, so the new
+quantity is $g(X)$. Whenever `headCount` takes the value $2$, $g(X)$ takes the value
+$g(2)$: the two are linked value-for-value.
+
+**Theorem 4.1.** The mean of $g(X)$ is found the same way as the mean of $X$ itself, just
+weighting $g(x)$ instead of $x$:
+
+$$
+\mu_{g(X)}=E[g(X)]=\sum_x g(x)f(x) \quad\text{(discrete)},
+\qquad
+\mu_{g(X)}=E[g(X)]=\int_{-\infty}^{\infty} g(x)f(x)\,dx \quad\text{(continuous)}.
+$$
+
+<Notation
+  rows={[
+    { name: 'a rule built from headCount', symbol: 'g(X)' },
+    { name: 'the mean of that rule', symbol: '\\mu_{g(X)}=E[g(X)]' },
+  ]}
+/>
+
+> **Worked example** (Walpole §4.1, Example 4.4). Cars passing a car wash between 4 and 5
+> p.m., `carCount` (written $X$), has pmf $f(4)=\tfrac{1}{12}$, $f(5)=\tfrac{1}{12}$,
+> $f(6)=\tfrac{1}{4}$, $f(7)=\tfrac{1}{4}$, $f(8)=\tfrac{1}{6}$, $f(9)=\tfrac{1}{6}$. The
+> attendant is paid $g(X)=2X-1$ dollars. His expected pay is
+>
+> $$
+> E[2X-1]=\sum_{x=4}^{9}(2x-1)f(x)\approx\$12.67.
+> $$
+
+**Do not compute $g(E(X))$ instead of $E[g(X)]$.** For the example above,
+$g(E(X))=2E(X)-1$ happens to equal $E[2X-1]$ *only because $g$ is linear* — Theorem 4.5,
+next section, is exactly the statement that a linear $g$ commutes with the mean. For a
+non-linear $g$, such as $g(X)=X^2$, the two numbers are generally different, and computing
+$g(\mu)$ in place of $E[g(X)]$ is one of the most common errors in this chapter.
+
+Extending Theorem 4.1 to two measurements $X$ and $Y$ with a joint distribution:
+
+**Definition 4.2.** The mean of $g(X,Y)$ is
+
+$$
+\mu_{g(X,Y)}=E[g(X,Y)]=\sum_x\sum_y g(x,y)f(x,y) \quad\text{(discrete)},
+\qquad
+\mu_{g(X,Y)}=E[g(X,Y)]=\int\!\!\int g(x,y)f(x,y)\,dx\,dy \quad\text{(continuous)}.
+$$
+
+Setting $g(X,Y)=X$ recovers $E(X)$ from the joint table by summing $x$ against the
+*marginal* $g(x)$ of §3.4 — the joint table and the marginal agree on $E(X)$, because
+collapsing the other variable away never changes a sum already taken over every value of
+$x$.
+
+## 4.2 Variance and covariance of random variables
+
+Two companies each send out an average of $2$ cars a day for official business — same
+mean, `carCount` for company A and company B alike. But company A's daily count sits
+tightly around $2$, while company B's count swings from $0$ to $4$. The mean alone cannot
+tell these two situations apart; a second number is needed to describe how *spread out*
+the distribution is.
+
+<Figure width={CHART_WIDTH.spreadPair} caption="Same mean, µ = 2, in both panels — but company B's bars reach further from it. Variance is what makes that difference a number instead of just a picture.">
+  <SpreadPair
+    title="Two probability mass functions with equal means and unequal spread"
+    axisLabel="carCount"
+    mean={2}
+    left={{
+      caption: 'company A (tight)',
+      bars: [
+        { x: 1, p: 0.3, label: '0.3' },
+        { x: 2, p: 0.4, label: '0.4' },
+        { x: 3, p: 0.3, label: '0.3' },
+      ],
+    }}
+    right={{
+      caption: 'company B (spread out)',
+      bars: [
+        { x: 0, p: 0.2, label: '0.2' },
+        { x: 1, p: 0.1, label: '0.1' },
+        { x: 2, p: 0.3, label: '0.3' },
+        { x: 3, p: 0.3, label: '0.3' },
+        { x: 4, p: 0.1, label: '0.1' },
+      ],
+    }}
+  />
+</Figure>
+
+**Definition 4.3.** The **variance** of `carCount`, written $\sigma^2$ or $\text{Var}(X)$,
+is the mean squared distance of the measurement from its own mean:
+
+$$
+\sigma^2=E[(X-\mu)^2]=\sum_x(x-\mu)^2f(x) \quad\text{(discrete)},
+\qquad
+\sigma^2=\int_{-\infty}^{\infty}(x-\mu)^2f(x)\,dx \quad\text{(continuous)}.
+$$
+
+The positive square root, $\sigma$, is the **standard deviation**. Squaring the deviations
+before averaging is what keeps a value below the mean from cancelling one above it; it
+also means $\sigma^2$ carries the *square* of whatever unit `carCount` is measured in,
+while $\sigma$ carries the same unit as `carCount` itself. A variance in litres-squared is
+not directly comparable to one in litres, which is exactly why the standard deviation,
+not the variance, is the number quoted alongside a mean.
+
+<Notation
+  rows={[
+    { name: 'the variance', symbol: '\\sigma^2,\\ \\text{or}\\ \\text{Var}(X)' },
+    { name: 'the standard deviation', symbol: '\\sigma' },
+  ]}
+/>
+
+**Theorem 4.2** gives a computational shortcut that avoids re-centring every value before
+squaring it:
+
+$$
+\sigma^2=E(X^2)-\mu^2.
+$$
+
+> **Worked example** (Walpole §4.2, Example 4.9). The number of defective parts,
+> `defectCount`, out of $3$ sampled has $f(0)=0.51$, $f(1)=0.38$, $f(2)=0.10$,
+> $f(3)=0.01$. Then $\mu=0.61$ and $E(X^2)=0.87$, so
+>
+> $$
+> \sigma^2=0.87-(0.61)^2=0.4979.
+> $$
+
+Variance is never negative — it averages squared distances, and a square cannot be
+negative. That single fact is worth holding onto, because covariance, defined next, does
+not share it.
+
+**Theorem 4.3** extends Definition 4.3 to a function of the measurement, exactly as
+Theorem 4.1 extended the mean: $\sigma^2_{g(X)}=E\{[g(X)-\mu_{g(X)}]^2\}$, computed by
+weighting $[g(x)-\mu_{g(X)}]^2$ by $f(x)$.
+
+### Covariance: do two measurements move together?
+
+Draw two refills from a box of pens — `blueCount` and `redCount` from §3.4 — and ask
+whether a large `blueCount` tends to come with a large or a small `redCount`.
+
+**Definition 4.4.** The **covariance** of `blueCount` and `redCount`, written $\sigma_{XY}$
+or $\text{Cov}(X,Y)$, is
+
+$$
+\sigma_{XY}=E[(X-\mu_X)(Y-\mu_Y)]=\sum_x\sum_y(x-\mu_X)(y-\mu_Y)f(x,y).
+$$
+
+If large `blueCount` tends to pair with large `redCount` (and small with small), the
+deviations $(X-\mu_X)$ and $(Y-\mu_Y)$ tend to share a sign, their product tends to be
+positive, and the covariance comes out positive. If large tends to pair with small, the
+covariance comes out negative. **Covariance can be negative — unlike variance, which never
+is.**
+
+<Figure width={CHART_WIDTH.covarianceScatter} caption="A filled dot means the pair's two deviations from their own means share a sign; an open diamond means they don't. More filled dots than open ones is what a positive covariance looks like.">
+  <CovarianceScatter
+    title="Paired measurements scattered about their two means"
+    axisLabelX="firstImpurity"
+    axisLabelY="secondImpurity"
+    meanX={3}
+    meanY={3}
+    points={[
+      { x: 1, y: 1.4 },
+      { x: 1.6, y: 2.2 },
+      { x: 2.4, y: 1.8 },
+      { x: 2.8, y: 3.4 },
+      { x: 3.6, y: 3.9 },
+      { x: 4.2, y: 4.6 },
+      { x: 4.6, y: 3.3 },
+      { x: 5.1, y: 4.9 },
+      { x: 2.2, y: 3.6 },
+      { x: 4.8, y: 2.1 },
+    ]}
+  />
+</Figure>
+
+**Theorem 4.4** gives the same kind of computational shortcut Theorem 4.2 gave for
+variance:
+
+$$
+\sigma_{XY}=E(XY)-\mu_X\mu_Y.
+$$
+
+> **Worked example** (Walpole §4.2, Example 4.13). For the pen table of §3.4,
+> $E(XY)=\tfrac{3}{14}$, $\mu_X=\tfrac{3}{4}$, $\mu_Y=\tfrac{1}{2}$, so
+>
+> $$
+> \sigma_{XY}=\frac{3}{14}-\left(\frac{3}{4}\right)\left(\frac{1}{2}\right)=-\frac{9}{56}.
+> $$
+>
+> Drawing more blue pens leaves fewer red ones to draw, so the two counts move in opposite
+> directions — exactly what the negative sign says.
+
+**If `blueCount` and `redCount` are statistically independent, their covariance is $0$**
+(Corollary 4.5, next section). **The converse fails**: a zero covariance does *not* prove
+independence. Covariance only measures a *linear* tendency to move together; two
+measurements can be tangled in a curved, nonlinear way that leaves the covariance at
+exactly $0$ while the measurements remain dependent.
+
+### The correlation coefficient
+
+The size of $\sigma_{XY}$ depends on the units `blueCount` and `redCount` happen to be
+measured in, so a covariance of $-9/56$ cannot, by itself, say whether the relationship is
+*strong*. Rescaling by both standard deviations removes the units.
+
+**Definition 4.5.** The **correlation coefficient** is
+
+$$
+\rho_{XY}=\frac{\sigma_{XY}}{\sigma_X\sigma_Y}.
+$$
+
+<Notation
+  rows={[
+    { name: 'the covariance', symbol: '\\sigma_{XY},\\ \\text{or}\\ \\text{Cov}(X,Y)' },
+    { name: 'the correlation coefficient', symbol: '\\rho_{XY}' },
+  ]}
+/>
+
+$\rho_{XY}$ is free of whatever units $X$ and $Y$ carry, and it always satisfies
+$-1\le\rho_{XY}\le1$: it is $0$ exactly when $\sigma_{XY}=0$, and it reaches $\pm1$ only
+when $Y$ is an *exact* linear function of $X$. Because $\rho_{XY}$ is unit-free and bounded,
+it — not the raw covariance — is the number to compare across two different pairs of
+measurements.
+
+> **Worked example** (Walpole §4.2, Example 4.15). Continuing the pen example,
+> $\sigma_X^2=\tfrac{45}{112}$ and $\sigma_Y^2=\tfrac{9}{28}$, so
+>
+> $$
+> \rho_{XY}=\frac{-9/56}{\sqrt{(45/112)(9/28)}}=-\frac{1}{\sqrt5}\approx-0.447.
+> $$
+>
+> A *larger* covariance in magnitude does not automatically mean a *stronger* relationship
+> — Walpole's Example 4.16 has a smaller covariance than this one but a larger $|\rho_{XY}|$,
+> which is exactly why the raw covariance is the wrong number to compare.
+
+## 4.3 Means and variances of linear combinations of random variables
+
+If `machineA` and `machineB` each produce some items per day, `machineA + machineB` is the
+combined daily output of the plant. This section collects the rules for means and
+variances of such combinations — rules that hold for *any* distribution, discrete or
+continuous, and need no more than the means, variances and covariances already in hand.
+
+**Theorem 4.5.** For constants $a$ and $b$,
+
+$$
+E(aX+b)=aE(X)+b.
+$$
+
+Two special cases are worth naming: setting $a=0$ gives $E(b)=b$ (Corollary 4.1 — the mean
+of a constant is that constant), and setting $b=0$ gives $E(aX)=aE(X)$ (Corollary 4.2).
+
+**Theorem 4.6.** The mean of a sum or difference of functions of one measurement is the sum
+or difference of their means: $E[g(X)\pm h(X)]=E[g(X)]\pm E[h(X)]$.
+
+**Theorem 4.7 and Corollary 4.4.** The same holds across two measurements:
+$E[g(X,Y)\pm h(X,Y)]=E[g(X,Y)]\pm E[h(X,Y)]$, and in particular
+$E(X\pm Y)=E(X)\pm E(Y)$ — always, whether or not $X$ and $Y$ are independent.
+
+**Theorem 4.8 and Corollary 4.5.** If $X$ and $Y$ are independent, $E(XY)=E(X)E(Y)$, and it
+follows that $\sigma_{XY}=0$. (This is the fact used in §4.2 above; independence forces
+zero covariance, but — as stressed there — not the other way around.)
+
+### Combining variances
+
+**Theorem 4.9.** For constants $a$, $b$, $c$,
+
+$$
+\sigma^2_{aX+bY+c}=a^2\sigma_X^2+b^2\sigma_Y^2+2ab\,\sigma_{XY}.
+$$
+
+<Notation
+  rows={[
+    { name: 'the combined measurement', symbol: 'aX+bY+c' },
+    { name: 'its variance', symbol: '\\sigma^2_{aX+bY+c}' },
+  ]}
+/>
+
+> **Worked example** (Walpole §4.3, Example 4.22). $X$ and $Y$ have $\sigma_X^2=2$,
+> $\sigma_Y^2=4$, $\sigma_{XY}=-2$. For $Z=3X-4Y+8$,
+>
+> $$
+> \sigma_Z^2=(3)^2(2)+(-4)^2(4)+2(3)(-4)(-2)=18+64+48=130.
+> $$
+
+A handful of corollaries fall out of Theorem 4.9 by setting terms to zero:
+
+- **Corollaries 4.6–4.7.** Shifting by a constant never changes variance:
+  $\sigma^2_{aX+c}=a^2\sigma_X^2$, and in particular $\sigma^2_{X+c}=\sigma_X^2$. Adding or
+  subtracting a constant slides every value the same distance without changing how spread
+  out they are.
+- **Corollary 4.8.** Scaling by a constant scales variance by its *square*:
+  $\sigma^2_{aX}=a^2\sigma_X^2$.
+- **Corollaries 4.9–4.11.** If $X$ and $Y$ are independent, the cross term vanishes
+  (Corollary 4.5) and Theorem 4.9 simplifies to
+  $\sigma^2_{aX\pm bY}=a^2\sigma_X^2+b^2\sigma_Y^2$ — note the **plus** sign even for the
+  *difference* $aX-bY$, because the term being removed, $2ab\sigma_{XY}$, was already zero.
+  The pattern extends to any number of mutually independent measurements:
+  $\sigma^2_{a_1X_1+\cdots+a_nX_n}=a_1^2\sigma_{X_1}^2+\cdots+a_n^2\sigma_{X_n}^2$.
+
+Independence is what removes the covariance term; nothing else in Theorem 4.9 depends on
+the distributions of $X$ and $Y$ at all.
+
+## 4.4 Chebyshev's theorem
+
+Suppose a machine fills bags with a mean weight of $500$ grams, but its exact distribution
+of fill weights is unknown — only the mean and the standard deviation have been measured.
+How much of the output can still be guaranteed to fall near the mean?
+
+**Theorem 4.10 (Chebyshev's theorem).** For *any* random variable $X$ with mean $\mu$ and
+standard deviation $\sigma$, and any real number $k>1$,
+
+$$
+P(\mu-k\sigma<X<\mu+k\sigma)\ge1-\frac{1}{k^2}.
+$$
+
+<Notation
+  rows={[
+    { name: 'the fence k standard deviations either side of the mean', symbol: '\\mu\\pm k\\sigma' },
+    { name: 'the guaranteed floor on the probability inside it', symbol: '1-\\dfrac{1}{k^2}' },
+  ]}
+/>
+
+For $k=2$, at least $1-\tfrac{1}{4}=\tfrac34$ of the distribution lies within two standard
+deviations of the mean — for *every* distribution, whatever its shape. For $k=3$, at least
+$\tfrac89$ lies within three. The complementary form is often more directly useful:
+
+$$
+P(|X-\mu|\ge k\sigma)\le\frac{1}{k^2}.
+$$
+
+<Figure width={CHART_WIDTH.chebyshevFence} caption="Whatever the true shape of the curve turns out to be, the hatched area between the fences is guaranteed to hold at least this much probability.">
+  <ChebyshevFence
+    title="A density with Chebyshev fences at μ ± 2σ and the guaranteed area hatched"
+    axisLabel="fillWeight"
+    guaranteedLabel="≥ 3/4"
+    mean={5}
+    sigma={1}
+    k={2}
+    domain={[1, 9]}
+    fn={(x) => Math.exp(-((x - 5) ** 2) / 2) / Math.sqrt(2 * Math.PI)}
+  />
+</Figure>
+
+> **Worked example** (Walpole §4.4, Example 4.27). A measurement has $\mu=8$,
+> $\sigma^2=9$ (so $\sigma=3$), distribution otherwise unknown.
+>
+> $$
+> P(-4<X<20)=P\!\left(8-(4)(3)<X<8+(4)(3)\right)\ge1-\frac{1}{4^2}=\frac{15}{16},
+> $$
+>
+> $$
+> P(|X-8|\ge6)=P\!\left(|X-8|\ge(2)(3)\right)\le\frac{1}{2^2}=\frac14.
+> $$
+
+**Chebyshev's theorem is distribution-free**, which is exactly its strength and its
+weakness. It holds no matter what the true distribution is, which is why the bound it
+gives is only a *floor*: the true probability inside $\mu\pm k\sigma$ could be — and
+usually is — considerably higher than $1-1/k^2$ once the actual distribution is known. The
+theorem is used precisely when the distribution is *not* known; once it is, the exact
+probability from that distribution is always the better answer. It also has nothing useful
+to say for $k\le1$: $1-1/k^2$ is zero or negative there, a true but empty guarantee.
+
+## 4.5 Potential misconceptions and hazards
+
+Mistakes this chapter actually punishes, gathered in one place:
+
+- **$E[g(X)]\neq g(E(X))$ in general.** The two agree when $g$ is linear (Theorem 4.5) and
+  otherwise generally differ. Plugging $\mu$ into $g$ instead of averaging $g(x)$ over the
+  whole distribution is the single most common shortcut error in this chapter.
+- **Zero covariance does not prove independence.** Independence forces $\sigma_{XY}=0$
+  (Corollary 4.5); the converse is false. Covariance only detects a *linear* tendency to
+  move together, so two measurements tangled nonlinearly can show $\sigma_{XY}=0$ while
+  remaining thoroughly dependent.
+- **Variance is never negative; covariance can be.** $\sigma^2$ averages squared
+  deviations, so it is always $\ge0$. $\sigma_{XY}$ averages a *product* of two deviations
+  that can carry opposite signs, so it can land anywhere in $[-\sigma_X\sigma_Y,\
+  \sigma_X\sigma_Y]$, including negative values.
+- **Variance and standard deviation carry different units.** $\sigma^2$ is in the squared
+  unit of the measurement; $\sigma$ is in the same unit as the measurement itself. A
+  variance is not comparable across two measurements with different units, and neither
+  variance nor standard deviation from one kind of measurement (heights) is comparable to
+  either from an unrelated kind (aptitude scores) — only distributions sharing a unit are
+  worth comparing this way.
+- **Chebyshev's theorem gives a bound, not the actual probability.** It is a guaranteed
+  floor that holds for every distribution, so the true probability is usually higher once
+  the actual distribution is known. It is also uninformative for $k\le1$, where
+  $1-1/k^2\le0$ says nothing at all.
+- **A mean can be a value the measurement never takes.** `headCount` averaging $1.06$ heads
+  per toss, or `goodCount` averaging $12/7$ good components, are both long-run averages —
+  neither number is ever the outcome of any single trial.

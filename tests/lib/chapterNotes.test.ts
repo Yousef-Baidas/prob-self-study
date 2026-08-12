@@ -6,7 +6,13 @@ import { chapters } from '../../src/lib/site';
 
 describe('chapterNotes', () => {
   it('reads the notes that exist rather than a hand-kept list', () => {
-    expect([...notedSlugs].sort()).toEqual(['intro', 'probability', 'random-variables']);
+    expect([...notedSlugs].sort()).toEqual([
+      'discrete-distributions',
+      'expectation',
+      'intro',
+      'probability',
+      'random-variables',
+    ]);
   });
 
   it('calls a chapter available exactly when its notes exist', () => {

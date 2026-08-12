@@ -5,6 +5,14 @@ describe('drillTopics', () => {
   it('returns exactly the generator-backed topics', () => {
     const keys = drillTopics().map((d) => `${d.chapter}/${d.topic}`).sort();
     expect(keys).toEqual([
+      'discrete-distributions/Binomial and multinomial',
+      'discrete-distributions/Geometric and negative binomial',
+      'discrete-distributions/Hypergeometric',
+      'discrete-distributions/Poisson',
+      "expectation/Chebyshev's theorem",
+      'expectation/Expected value',
+      'expectation/Linear combinations',
+      'expectation/Variance and covariance',
       'intro/Descriptive statistics',
       'intro/Study design',
       'probability/Additive rules',

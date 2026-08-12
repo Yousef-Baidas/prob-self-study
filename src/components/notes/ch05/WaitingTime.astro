@@ -1,0 +1,105 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { AXIS_PADDING, CHART_WIDTH, plot, uid } from '../chartkit';
+
+// Geometric mass bars: decaying heights over x = 1, 2, 3, ... — trials until
+// the first success, never a count of successes. The axis label says
+// "trials", not "successes", on purpose: this is the off-by-one this chapter
+// warns about in prose. Math is computed by the caller.
+interface Bar {
+  x: string;
+
+  p: number;
+
+  label: string;
+}
+
+interface Props {
+  bars: Bar[];
+
+  title: string;
+
+  axisLabel?: string;
+
+  width?: number;
+}
+
+const { bars, title, axisLabel, width = CHART_WIDTH.waitingTime } = Astro.props;
+
+const height = 224;
+
+const p = plot(width, height, { ...AXIS_PADDING, bottom: axisLabel ? 48 : 34 });
+
+const maxP = Math.max(...bars.map((bar) => bar.p)) || 1;
+
+const domainMax = maxP * 1.25;
+
+const barGap = 8;
+
+const barWidth = (p.innerWidth - barGap * (bars.length - 1)) / bars.length;
+
+const hatchId = uid('waiting-hatch');
+
+const plotted = bars.map((bar, index) => {
+  const barHeight = (bar.p / domainMax) * p.innerHeight;
+
+  return {
+    ...bar,
+    xPos: p.left + index * (barWidth + barGap),
+    yPos: p.baseline - barHeight,
+    barHeight,
+  };
+});
+
+const gridLines = [0.25, 0.5, 0.75, 1].map((f) => ({
+  value: f,
+  y: p.baseline - (f * maxP * p.innerHeight) / domainMax,
+}));
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={6} />
+
+  {gridLines.map((line) => <line x1={p.left} y1={line.y} x2={p.right} y2={line.y} class="c-grid" aria-hidden="true" />)}
+
+  <line x1={p.left} y1={p.top} x2={p.left} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">chance</text>
+
+  {
+    plotted.map((bar) => (
+      <g aria-hidden="true">
+        <rect
+          x={bar.xPos}
+          y={bar.yPos}
+          width={barWidth}
+          height={bar.barHeight}
+          fill={`url(#${hatchId})`}
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+        />
+
+        <text x={bar.xPos + barWidth / 2} y={bar.yPos - 8} class="c-value c-mid c-halo">
+          {bar.label}
+        </text>
+
+        <text x={bar.xPos + barWidth / 2} y={p.baseline + 20} class="c-tick c-mid">
+          {bar.x}
+        </text>
+      </g>
+    ))
+  }
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

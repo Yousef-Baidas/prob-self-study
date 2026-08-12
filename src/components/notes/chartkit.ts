@@ -26,6 +26,14 @@ export const CHART_WIDTH = {
   cdfStep: 380,
   densityArea: 380,
   continuousCdf: 380,
+  balancePoint: 380,
+  spreadPair: 560,
+  chebyshevFence: 380,
+  covarianceScatter: 380,
+  binomialShape: 560,
+  samplingContrast: 560,
+  waitingTime: 380,
+  poissonShape: 560,
 } as const;
 
 /**

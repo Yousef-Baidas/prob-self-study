@@ -1,0 +1,119 @@
+---
+import { CHART_WIDTH, padDomain, plot, scale } from '../chartkit';
+
+// Paired points about their two means. Splitting the plate into quadrants by
+// dashed lines through meanX and meanY is what makes "same-sign deviations"
+// a region a reader can see rather than a sign they have to compute: a point
+// is a filled accent circle when its two deviations share a sign (its product
+// pulls covariance the way the figure claims) and an open ink diamond when
+// they do not -- shape carries the distinction as well as colour, so it
+// survives for a colour-blind reader too.
+interface Point {
+  x: number;
+
+  y: number;
+}
+
+interface Props {
+  points: Point[];
+
+  meanX: number;
+
+  meanY: number;
+
+  title: string;
+
+  axisLabelX?: string;
+
+  axisLabelY?: string;
+
+  width?: number;
+}
+
+const { points, meanX, meanY, title, axisLabelX, axisLabelY, width = CHART_WIDTH.covarianceScatter } = Astro.props;
+
+const height = 224;
+
+const p = plot(width, height, { top: 26, right: 20, bottom: axisLabelX ? 48 : 34, left: axisLabelY ? 40 : 22 });
+
+const xs = points.map((pt) => pt.x);
+
+const ys = points.map((pt) => pt.y);
+
+const xDomain = padDomain(Math.min(...xs, meanX), Math.max(...xs, meanX), 0.18);
+
+const yDomain = padDomain(Math.min(...ys, meanY), Math.max(...ys, meanY), 0.18);
+
+const x = scale(xDomain, [p.left, p.right]);
+
+const y = scale(yDomain, [p.baseline, p.top]);
+
+const plotted = points.map((pt) => ({
+  ...pt,
+  cx: x(pt.x),
+  cy: y(pt.y),
+  sameSign: (pt.x - meanX) * (pt.y - meanY) >= 0,
+}));
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <line x1={p.left} y1={p.top} x2={p.left} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <line x1={x(meanX)} y1={p.top} x2={x(meanX)} y2={p.baseline} class="c-guide-ink" aria-hidden="true" />
+
+  <line x1={p.left} y1={y(meanY)} x2={p.right} y2={y(meanY)} class="c-guide-ink" aria-hidden="true" />
+
+  <text x={x(meanX)} y={p.top - 10} class="c-value c-value-ink c-mid c-halo" aria-hidden="true">
+    μx
+  </text>
+
+  <text x={p.left - 8} y={y(meanY) + 4} class="c-value c-value-ink c-end c-halo" aria-hidden="true">
+    μy
+  </text>
+
+  {
+    plotted.map((pt) =>
+      pt.sameSign ? (
+        <circle cx={pt.cx} cy={pt.cy} r="4.5" class="c-dot" aria-hidden="true" />
+      ) : (
+        <rect
+          x={pt.cx - 4.5}
+          y={pt.cy - 4.5}
+          width="9"
+          height="9"
+          transform={`rotate(45 ${pt.cx} ${pt.cy})`}
+          fill={`var(--color-chart-plate)`}
+          stroke="var(--color-chart-ink)"
+          stroke-width="2"
+          aria-hidden="true"
+        />
+      ),
+    )
+  }
+
+  {
+    axisLabelY && (
+      <text
+        x="12"
+        y={(p.top + p.baseline) / 2}
+        class="c-axis-name c-mid"
+        transform={`rotate(-90 12 ${(p.top + p.baseline) / 2})`}
+        aria-hidden="true"
+      >
+        {axisLabelY}
+      </text>
+    )
+  }
+
+  {
+    axisLabelX && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabelX}
+      </text>
+    )
+  }
+</svg>

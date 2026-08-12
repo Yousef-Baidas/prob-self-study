@@ -1,0 +1,456 @@
+import Notation from '../components/notes/Notation.astro';
+import Figure from '../components/notes/Figure.astro';
+import BinomialShape from '../components/notes/ch05/BinomialShape.astro';
+import SamplingContrast from '../components/notes/ch05/SamplingContrast.astro';
+import WaitingTime from '../components/notes/ch05/WaitingTime.astro';
+import PoissonShape from '../components/notes/ch05/PoissonShape.astro';
+
+import { CHART_WIDTH } from '../components/notes/chartkit';
+
+## 5.1 Introduction and motivation
+
+A handful of shapes describe almost every count you will meet in this course. Once you
+recognise which shape a scenario has, the probability is a plug-in — the hard part is picking
+the right one. This chapter names five of them and, more importantly, teaches how to tell
+them apart from the words of a problem rather than from its formula.
+
+Before any formula, here is the question to ask first: **how is the count produced?**
+
+- **A fixed number of independent trials, each success or failure, with the same chance of
+  success every time** — count the successes. That is a **binomial** count (§5.2). If each
+  trial can land in more than two categories, it is a **multinomial** count.
+- **A fixed-size sample drawn without replacement from a finite lot that has a known number
+  of successes in it** — count the successes in the sample. That is a **hypergeometric**
+  count (§5.3). The lot shrinks as you draw, so the chance of success moves from draw to
+  draw.
+- **Keep trying, with the same chance of success every time, until something happens** —
+  count the *trials it took*, not the successes. Stopping at the first success gives a
+  **geometric** count; stopping at the $k$th success gives a **negative binomial** count
+  (§5.4).
+- **Count how many events land in a fixed stretch of time, space or material, where events
+  are rare, independent and cannot occur two-at-once** — that is a **Poisson** count (§5.5).
+
+The rest of this chapter fills in each formula, but the decision above is the one a real
+problem actually tests. Two mistakes to watch for from the start: replacing an item after you
+draw it (binomial) versus not replacing it (hypergeometric) changes the distribution, not just
+the numbers; and counting *trials until* something versus counting *successes among* a fixed
+number of trials are different questions with different supports.
+
+## 5.2 Binomial and multinomial distributions
+
+Test three electronic components as they come off a line and record each as defective or
+not. Call a defective item a **success** — an arbitrary but convenient labelling choice.
+This is a **Bernoulli trial**, and a sequence of them is a **Bernoulli process** exactly when
+four things hold:
+
+1. The experiment consists of repeated trials.
+2. Every trial ends in success or failure, and nothing else.
+3. The chance of success, `successChance`, stays the same from trial to trial.
+4. The trials are independent.
+
+<Notation
+  rows={[
+    { name: 'the chance of success on one trial', symbol: 'p' },
+    { name: 'the chance of failure on one trial', symbol: 'q = 1 - p' },
+    { name: 'the number of trials', symbol: 'n' },
+    { name: 'defectiveCount — successes in n trials', symbol: 'X' },
+  ]}
+/>
+
+Drawing a card from a shuffled deck and checking whether it is a heart is *not* a Bernoulli
+trial if the card stays out of the deck for the next draw: the chance of a heart on the second
+draw becomes $13/51$ or $12/51$ depending on the first, so condition 3 fails. Put the card
+back and reshuffle, and it is a Bernoulli trial again. This distinction — replace, or don't —
+is exactly what separates this section from §5.3.
+
+**Binomial distribution.** `defectiveCount`, the number of successes in `n` independent
+Bernoulli trials, is a **binomial random variable**. Its distribution is written `b(x; n, p)`:
+
+$$
+b(x; n, p) = \binom{n}{x} p^x q^{n-x}, \qquad x = 0, 1, 2, \ldots, n.
+$$
+
+Read it as counting: $p^x q^{n-x}$ is the chance of *one particular order* of $x$ successes
+and $n-x$ failures, and $\binom{n}{x}$ counts how many orders give that same total. With
+$n = 3$ defectives labelled success and $p = 1/4$ for a process producing 25% defectives, this
+reproduces the table
+
+$$
+f(0) = \tfrac{27}{64}, \quad f(1) = \tfrac{27}{64}, \quad f(2) = \tfrac{9}{64}, \quad f(3) = \tfrac{1}{64},
+$$
+
+built earlier by multiplying out each of the eight ordered outcomes directly.
+
+> **Worked example** (Walpole Example 5.1). The probability a certain component survives a
+> shock test is $3/4$. Find the probability that exactly 2 of the next 4 components tested
+> survive.
+>
+> $$
+> b\!\left(2; 4, \tfrac{3}{4}\right) = \binom{4}{2}\left(\tfrac{3}{4}\right)^2\left(\tfrac{1}{4}\right)^2 = 6 \cdot \tfrac{9}{16} \cdot \tfrac{1}{16} = \tfrac{27}{128}.
+> $$
+
+> **Worked example** (Walpole Example 5.4). An impurity is conjectured to exist in 30% of all
+> wells in a rural community; 10 wells are tested. (a) The probability exactly 3 are impure is
+> $b(3; 10, 0.3) = 0.2668$. (b) The probability more than 3 are impure is
+> $P(X > 3) = 1 - P(X \le 3) = 1 - 0.6496 = 0.3504$.
+
+Because $(q+p)^n$ expands into exactly the terms $\binom{n}{x}p^x q^{n-x}$, the binomial
+distribution is named for the binomial expansion, and $\sum_{x=0}^n b(x; n, p) = 1$ falls out
+of $p + q = 1$ for free — one more instance of the pmf conditions from Chapter 3.
+
+**Mean and variance.** Write `defectiveCount` as a sum of $n$ indicator variables, one per
+trial, each $1$ with chance $p$ and $0$ with chance $q$. Summing their means and variances
+(Chapter 4) gives:
+
+$$
+\mu = np, \qquad \sigma^2 = npq.
+$$
+
+<Figure width={CHART_WIDTH.binomialShape} caption="The same n = 10 trials, two values of p. A low p piles mass on small x and tails off to the right; a high p mirrors that pile onto large x. Neither bar set is symmetric except near p = 0.5.">
+  <BinomialShape
+    title="Binomial mass function at n = 10, for p = 0.2 and p = 0.7"
+    axisLabel="defectiveCount"
+    series={[
+      { label: 'p = 0.7', tone: 'accent', bars: [
+        { x: '0', p: 0.0000 }, { x: '1', p: 0.0001 }, { x: '2', p: 0.0014 }, { x: '3', p: 0.0090 },
+        { x: '4', p: 0.0368 }, { x: '5', p: 0.1029 }, { x: '6', p: 0.2001 }, { x: '7', p: 0.2668 },
+        { x: '8', p: 0.2335 }, { x: '9', p: 0.1211 }, { x: '10', p: 0.0282 },
+      ] },
+      { label: 'p = 0.2', tone: 'ink', bars: [
+        { x: '0', p: 0.1074 }, { x: '1', p: 0.2684 }, { x: '2', p: 0.3020 }, { x: '3', p: 0.2013 },
+        { x: '4', p: 0.0881 }, { x: '5', p: 0.0264 }, { x: '6', p: 0.0055 }, { x: '7', p: 0.0008 },
+        { x: '8', p: 0.0001 }, { x: '9', p: 0.0000 }, { x: '10', p: 0.0000 },
+      ] },
+    ]}
+  />
+</Figure>
+
+**Multinomial distribution.** A binomial experiment becomes a **multinomial experiment** the
+moment a trial can land in more than two categories. Classifying manufactured parts as light,
+heavy or acceptable is one; so is recording which of several airport runways a plane uses.
+With $k$ categories $E_1, \ldots, E_k$ carrying chances $p_1, \ldots, p_k$ that sum to $1$, and
+$X_i$ counting how often $E_i$ occurs in $n$ trials with $x_1 + \cdots + x_k = n$:
+
+$$
+f(x_1, \ldots, x_k;\, p_1, \ldots, p_k,\, n) = \binom{n}{x_1, x_2, \ldots, x_k} p_1^{x_1} p_2^{x_2} \cdots p_k^{x_k}.
+$$
+
+The binomial is the $k = 2$ case of this formula, and the multinomial coefficient
+$\binom{n}{x_1, \ldots, x_k} = n! / (x_1! \, x_2! \cdots x_k!)$ counts orderings exactly as
+$\binom{n}{x}$ did before.
+
+> **Worked example** (Walpole Example 5.7). A commercial jet uses runway 1, 2 or 3 with
+> chances $2/9$, $1/6$ and $11/18$. For 6 arriving planes, the chance that runways 1, 2, 3 are
+> used $2$, $1$, $3$ times respectively is
+>
+> $$
+> f\!\left(2,1,3;\, \tfrac{2}{9}, \tfrac{1}{6}, \tfrac{11}{18},\, 6\right) = \frac{6!}{2!\,1!\,3!} \left(\tfrac{2}{9}\right)^2 \left(\tfrac{1}{6}\right)^1 \left(\tfrac{11}{18}\right)^3 \approx 0.1127.
+> $$
+
+## 5.3 Hypergeometric distribution
+
+A box of 10 injection parts contains some unknown number of defectives. Draw 3 without
+putting any back and count the defectives among them — call it `sampleDefects`. This is not
+a Bernoulli process: pulling one part out changes the composition of what is left, so the
+chance of a defective on the second draw depends on what happened on the first. That
+dependence is exactly the feature the binomial distribution cannot handle, and it is the whole
+reason this section exists.
+
+<Notation
+  rows={[
+    { name: 'lot size', symbol: 'N' },
+    { name: 'successes in the lot', symbol: 'k' },
+    { name: 'sample size drawn without replacement', symbol: 'n' },
+    { name: 'sampleDefects — successes in the sample', symbol: 'X' },
+  ]}
+/>
+
+A **hypergeometric experiment** draws a sample of size `n` without replacement from `N`
+items, `k` of which are successes. Counting favourable samples the way Chapter 2 counts
+anything — choose the successes, then the failures, over all possible samples — gives:
+
+$$
+h(x; N, n, k) = \frac{\dbinom{k}{x}\dbinom{N-k}{n-x}}{\dbinom{N}{n}}, \qquad \max\{0,\, n-(N-k)\} \le x \le \min\{n, k\}.
+$$
+
+The support bound is not decoration: $x$ successes and $n - x$ failures both have to actually
+exist in the lot, so $x$ cannot exceed the number of successes $k$ or the sample size $n$, and
+$n - x$ cannot exceed the number of failures $N - k$.
+
+> **Worked example** (Walpole Example 5.9). A lot of 40 components has 3 defectives. Sample 5
+> without replacement. The chance of exactly 1 defective is
+>
+> $$
+> h(1; 40, 5, 3) = \frac{\dbinom{3}{1}\dbinom{37}{4}}{\dbinom{40}{5}} \approx 0.3011.
+> $$
+
+**Mean and variance.**
+
+$$
+\mu = \frac{nk}{N}, \qquad \sigma^2 = \frac{N-n}{N-1} \cdot n \cdot \frac{k}{N} \left(1 - \frac{k}{N}\right).
+$$
+
+The factor $(N-n)/(N-1)$ is new — it is the **finite population correction**, and it is what
+distinguishes this variance from the binomial's. Sampling without replacement leaves less
+uncertainty behind than sampling with replacement does, and the correction is always at most
+$1$, so hypergeometric variance never exceeds the matching binomial variance.
+
+> **Worked example** (Walpole Example 5.11, continuing Example 5.9). With $N=40$, $n=5$,
+> $k=3$: $\mu = (5)(3)/40 = 0.375$ and $\sigma^2 = \frac{35}{39}(5)\frac{3}{40}\left(1 -
+> \frac{3}{40}\right) \approx 0.3113$, so $\sigma \approx 0.558$.
+
+**When can a binomial stand in for a hypergeometric?** If the sample is small next to the lot,
+removing one item barely changes what is left, so the "without replacement" penalty becomes
+negligible. The rule of thumb is $n/N \le 0.05$: replace $k/N$ with a binomial `p` and use
+$b(x; n, k/N)$ instead of $h(x; N, n, k)$. The means agree exactly — both are $nk/N$ — and the
+variances differ only by that finite-population correction, which is what shrinks to
+negligible.
+
+<Figure width={CHART_WIDTH.samplingContrast} caption="Same n = 10 draws, same proportion 9/30 = 0.3 marked. Sampling without replacement (hypergeometric) sits narrower around the mean than sampling with replacement (binomial) — here n/N = 1/3, well above the 0.05 rule of thumb, so the gap is visible rather than negligible.">
+  <SamplingContrast
+    title="Hypergeometric (N = 30, k = 9, n = 10) against binomial (n = 10, p = 0.3)"
+    axisLabel="sampleDefects"
+    series={[
+      { label: 'without replacement', tone: 'accent', bars: [
+        { x: '0', p: 0.0117 }, { x: '1', p: 0.0880 }, { x: '2', p: 0.2438 }, { x: '3', p: 0.3251 },
+        { x: '4', p: 0.2276 }, { x: '5', p: 0.0853 }, { x: '6', p: 0.0167 }, { x: '7', p: 0.0016 },
+        { x: '8', p: 0.0001 }, { x: '9', p: 0.0000 },
+      ] },
+      { label: 'with replacement', tone: 'ink', bars: [
+        { x: '0', p: 0.0282 }, { x: '1', p: 0.1211 }, { x: '2', p: 0.2335 }, { x: '3', p: 0.2668 },
+        { x: '4', p: 0.2001 }, { x: '5', p: 0.1029 }, { x: '6', p: 0.0368 }, { x: '7', p: 0.0090 },
+        { x: '8', p: 0.0014 }, { x: '9', p: 0.0001 },
+      ] },
+    ]}
+  />
+</Figure>
+
+> **Worked example** (Walpole Example 5.12). Of 5000 tires, 1000 are blemished; buy 10 at
+> random. Since $N=5000$ is large next to $n=10$, approximate with $b(3; 10, 0.2) = 0.8791 -
+> 0.6778 = 0.2013$. The exact hypergeometric value is $h(3; 5000, 10, 1000) = 0.2015$ —
+> close enough that the approximation is doing its job.
+
+**Multivariate hypergeometric.** When the lot splits into more than two categories — $N$
+items in $k$ cells of sizes $a_1, \ldots, a_k$ — the same counting argument extends the
+formula:
+
+$$
+f(x_1, \ldots, x_k;\, a_1, \ldots, a_k,\, N, n) = \frac{\dbinom{a_1}{x_1}\dbinom{a_2}{x_2} \cdots \dbinom{a_k}{x_k}}{\dbinom{N}{n}}.
+$$
+
+> **Worked example** (Walpole Example 5.13). A group of 10 has 3 type-O, 4 type-A and 3
+> type-B individuals. Sampling 5 without replacement, the chance of getting 1, 2 and 2 of
+> each type respectively is
+>
+> $$
+> f(1,2,2;\, 3,4,3,\, 10, 5) = \frac{\dbinom{3}{1}\dbinom{4}{2}\dbinom{3}{2}}{\dbinom{10}{5}} = \frac{3}{14}.
+> $$
+
+## 5.4 Negative binomial and geometric distributions
+
+A drug is effective in 60% of patients who take it. Rather than fixing the number of patients
+and counting successes, ask instead: how many patients does it take to see the fifth one who
+responds? Call that `trialsToFifth`. Unlike §5.2, the number of trials is now what varies —
+the number of successes is fixed in advance.
+
+<Notation
+  rows={[
+    { name: 'the chance of success on one trial', symbol: 'p' },
+    { name: 'successes wanted', symbol: 'k' },
+    { name: 'trialsToKth — trials needed to reach the kth success', symbol: 'X' },
+  ]}
+/>
+
+**Negative binomial distribution.** The $k$th success lands exactly on trial `x` when the
+first $x-1$ trials contain exactly $k-1$ successes in some order, followed by one more
+success on trial `x` itself. Counting orders of the first $x-1$ trials the same way §5.2 did:
+
+$$
+b^*(x; k, p) = \binom{x-1}{k-1} p^k q^{x-k}, \qquad x = k, k+1, k+2, \ldots.
+$$
+
+The support starts at $x = k$, not at $x = 0$: you cannot reach $k$ successes in fewer than
+$k$ trials. This is the first of two off-by-one traps this chapter sets — the second is below.
+
+> **Worked example** (Walpole Example 5.14). In a best-of-7 series, team A wins each game
+> with chance $0.55$. (a) The chance A wins the series in exactly 6 games is
+> $b^*(6; 4, 0.55) = \binom{5}{3}(0.55)^4(0.45)^2 \approx 0.1853$. (b) The chance A wins the
+> series at all sums $b^*(x; 4, 0.55)$ over $x = 4, 5, 6, 7$: $0.0915 + 0.1647 + 0.1853 +
+> 0.1668 \approx 0.6083$.
+
+**Geometric distribution.** Setting $k=1$ asks for the trial on which the *first* success
+lands — tossing a coin until the first head, testing items until the first defective. The
+negative binomial collapses to:
+
+$$
+g(x; p) = p\,q^{x-1}, \qquad x = 1, 2, 3, \ldots.
+$$
+
+`trialsToKth` with $k=1$ is renamed `trialsToFirst` here, and it is the quantity every
+geometric question is actually asking for: *how many trials, including the successful one
+itself, until the first success.*
+
+> **Worked example** (Walpole Example 5.15). On average 1 in 100 items is defective. The
+> chance the fifth item inspected is the first defective is
+> $g(5; 0.01) = (0.01)(0.99)^4 \approx 0.0096$.
+
+<Figure width={CHART_WIDTH.waitingTime} caption="Each bar is smaller than the last by the same factor, 1 - p. The horizontal axis counts trials, not successes — the bar at x = 1 is the chance of succeeding immediately.">
+  <WaitingTime
+    title="Geometric mass function, p = 0.3: trials until the first success"
+    axisLabel="trialsToFirst"
+    bars={[
+      { x: '1', p: 0.3000, label: '0.300' },
+      { x: '2', p: 0.2100, label: '0.210' },
+      { x: '3', p: 0.1470, label: '0.147' },
+      { x: '4', p: 0.1029, label: '0.103' },
+      { x: '5', p: 0.0720, label: '0.072' },
+      { x: '6', p: 0.0504, label: '0.050' },
+      { x: '7', p: 0.0353, label: '0.035' },
+      { x: '8', p: 0.0247, label: '0.025' },
+    ]}
+  />
+</Figure>
+
+**Mean and variance of the geometric distribution.**
+
+$$
+\mu = \frac{1}{p}, \qquad \sigma^2 = \frac{1-p}{p^2}.
+$$
+
+> **Worked example** (Walpole Example 5.16). During a busy period a phone connection
+> succeeds with chance $p=0.05$. The chance 5 attempts are needed is
+> $g(5; 0.05) = (0.05)(0.95)^4 \approx 0.041$, and the *expected* number of attempts needed is
+> $\mu = 1/0.05 = 20$ — a number worth knowing before redesigning the exchange.
+
+## 5.5 Poisson distribution and the Poisson process
+
+A radioactive counter registers particles arriving over a stretch of time; a page of text
+carries typing errors over a stretch of space. Neither has a natural "number of trials" —
+there is no upper bound on how many particles *could* arrive in a millisecond. Call the count
+of arrivals in one fixed interval `arrivalCount`. Counts like this come from a **Poisson
+process**, one that satisfies three conditions:
+
+1. Arrivals in one interval do not affect the chance of arrivals in any other, disjoint
+   interval — the process has no memory.
+2. Over a very short interval, the chance of exactly one arrival is proportional to the
+   interval's length, regardless of what happens outside it.
+3. The chance of *more than one* arrival in a very short interval is negligible.
+
+<Notation
+  rows={[
+    { name: 'average rate of arrivals per unit time/space', symbol: '\\lambda' },
+    { name: 'the length of interval actually asked about', symbol: 't' },
+    { name: 'the mean arrivals over that interval', symbol: '\\mu = \\lambda t' },
+    { name: 'arrivalCount — arrivals in that interval', symbol: 'X' },
+  ]}
+/>
+
+**Poisson distribution.**
+
+$$
+p(x; \lambda t) = \frac{e^{-\lambda t} (\lambda t)^x}{x!}, \qquad x = 0, 1, 2, \ldots.
+$$
+
+The parameter is $\lambda t$, not $\lambda$ alone: `λ` is a *rate* — particles per millisecond,
+calls per minute — and has to be scaled to the length of the interval the question actually
+asks about before it becomes a mean. Asking for a rate of 4 particles per millisecond over 3
+milliseconds means $\lambda t = 12$, not $4$.
+
+> **Worked example** (Walpole Example 5.17). A counter registers on average 4 radioactive
+> particles per millisecond. The chance 6 particles arrive in one millisecond is
+> $p(6; 4) = e^{-4} 4^6 / 6! \approx 0.1042$.
+
+> **Worked example** (Walpole Example 5.18). A port receives on average 10 tankers a day and
+> can handle at most 15. The chance tankers are turned away on a given day is
+> $P(X > 15) = 1 - P(X \le 15) = 1 - 0.9513 \approx 0.0487$.
+
+**Mean and variance.**
+
+$$
+\mu = \lambda t, \qquad \sigma^2 = \lambda t.
+$$
+
+The Poisson distribution's mean and variance are *the same number*. This is not a
+coincidence of the examples above — it is a property of the distribution itself, and it is
+testable: a count that is supposed to be Poisson but whose sample variance sits far from its
+sample mean is a count worth questioning.
+
+<Figure width={CHART_WIDTH.poissonShape} caption="Small λt piles mass near 0 with a long right tail. As λt grows the peak moves right and the shape grows more symmetric — the same drift the binomial shows as p moves toward 0.5.">
+  <PoissonShape
+    title="Poisson mass function for λt = 2 and λt = 8"
+    axisLabel="arrivalCount"
+    series={[
+      { label: 'λt = 8', tone: 'accent', bars: [
+        { x: '0', p: 0.0003 }, { x: '1', p: 0.0027 }, { x: '2', p: 0.0107 }, { x: '3', p: 0.0286 },
+        { x: '4', p: 0.0573 }, { x: '5', p: 0.0916 }, { x: '6', p: 0.1221 }, { x: '7', p: 0.1396 },
+        { x: '8', p: 0.1396 }, { x: '9', p: 0.1241 }, { x: '10', p: 0.0993 }, { x: '11', p: 0.0722 },
+        { x: '12', p: 0.0481 }, { x: '13', p: 0.0296 }, { x: '14', p: 0.0169 }, { x: '15', p: 0.0090 },
+      ] },
+      { label: 'λt = 2', tone: 'ink', bars: [
+        { x: '0', p: 0.1353 }, { x: '1', p: 0.2707 }, { x: '2', p: 0.2707 }, { x: '3', p: 0.1804 },
+        { x: '4', p: 0.0902 }, { x: '5', p: 0.0361 }, { x: '6', p: 0.0120 }, { x: '7', p: 0.0034 },
+        { x: '8', p: 0.0009 }, { x: '9', p: 0.0002 }, { x: '10', p: 0.0000 }, { x: '11', p: 0.0000 },
+        { x: '12', p: 0.0000 }, { x: '13', p: 0.0000 }, { x: '14', p: 0.0000 }, { x: '15', p: 0.0000 },
+      ] },
+    ]}
+  />
+</Figure>
+
+**The binomial-to-Poisson limit.** The Poisson process's second condition looks like
+independence, and its third looks like a small chance of success per short interval — which
+is exactly a binomial experiment with a huge number of trials `n` and a tiny chance of success
+`p` per trial. Formally, as $n \to \infty$ and $p \to 0$ with $np \to \mu$ held fixed:
+
+$$
+b(x; n, p) \longrightarrow p(x; \mu).
+$$
+
+So whenever `n` is large and `p` is small, the Poisson distribution with $\mu = np$
+approximates the binomial — no table of $\binom{n}{x}$ required.
+
+> **Worked example** (Walpole Example 5.19). An accident occurs on any given day with chance
+> $0.005$, independently. Over $n=400$ days, $np = 2$. (a) The chance of exactly one accident
+> day is $P(X=1) = e^{-2}2^1 \approx 0.271$. (b) The chance of at most three accident days is
+> $P(X \le 3) = \sum_{x=0}^3 e^{-2}2^x/x! \approx 0.857$.
+
+> **Worked example** (Walpole Example 5.20). One in 1000 glass items has a bubble; a sample of
+> 8000 is drawn. With $n=8000$ and $p=0.001$, $\mu = np = 8$. The chance fewer than 7 items
+> have bubbles is $P(X<7) = \sum_{x=0}^{6} b(x; 8000, 0.001) \approx p(x \le 6; 8) \approx
+> 0.3134$.
+
+## 5.6 Potential misconceptions and hazards
+
+Mistakes this chapter actually punishes, gathered in one place:
+
+- **With replacement or without is what separates binomial from hypergeometric.** Sampling
+  without replacement from a finite lot changes `p` from draw to draw, which breaks the
+  Bernoulli process outright. Reaching for the binomial formula anyway is the single most
+  common error in this chapter — check the sampling method *before* picking a formula, not
+  after.
+- **`x` counts different things in different sections.** In §5.2 (binomial), `x` counts
+  *successes* among a fixed number of trials, and its support starts at $0$. In §5.4
+  (geometric and negative binomial), `x` counts *trials*, and its support starts at $1$ (or at
+  $k$, for the $k$th success). Mixing the two up is an off-by-one factory: "the third head on
+  the fifth flip" is a negative-binomial question about trials, not a binomial question about
+  successes.
+- **The Poisson mean equals its variance.** This is not a coincidence to memorise and forget —
+  it is a property you can check. A dataset that is supposed to follow a Poisson distribution
+  but whose sample variance is far from its sample mean is telling you the Poisson model does
+  not fit, before you compute a single probability with it.
+- **`λ` is a rate; `λt` is a mean.** The Poisson formula's parameter is always $\lambda t$, the
+  rate scaled to the length of the interval actually asked about. Plugging in a rate quoted
+  "per minute" while the question asks about a 3-minute window, without multiplying by $3$
+  first, is a scaling error, not a formula error.
+- **An approximation has a validity condition, and it is not automatically satisfied.** The
+  binomial approximates the hypergeometric only when $n/N$ is small (rule of thumb: $\le
+  0.05$); the Poisson approximates the binomial only when `n` is large and `p` is small enough
+  that $np$ stays a sensible mean. Quoting the limiting formula without checking the condition
+  gives a number, but not necessarily a correct one.
+- **`p` has to actually be constant for a binomial model to apply.** A parameter estimated from
+  historical data can drift — a process changes, conditions vary from "slow times" to "busy
+  times" — and a distribution fit to a `p` or a `λ` that no longer holds will misprice every
+  probability computed from it. This is exactly the failure behind one of the most famous
+  misuses of the binomial distribution: in 1961, a magazine predicted (using the binomial
+  distribution with `p` estimated from career home-run rates) that Mickey Mantle, not Roger
+  Maris, would break Babe Ruth's home-run record — Maris broke it, Mantle did not, because a
+  career-average `p` was a poor stand-in for each player's rate that particular season.

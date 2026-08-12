@@ -1,0 +1,141 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { AXIS_PADDING, CHART_WIDTH, plot, uid } from '../chartkit';
+
+// Grouped mass bars for two Poisson series at different values of lambda*t,
+// so the drift from a sharp, skewed peak toward a wider, more symmetric shape
+// is visible directly rather than asserted. Math is computed by the caller.
+interface Series {
+  label: string;
+
+  tone: 'accent' | 'ink';
+
+  bars: { x: string; p: number }[];
+}
+
+interface Props {
+  series: Series[];
+
+  title: string;
+
+  axisLabel?: string;
+
+  width?: number;
+}
+
+const { series, title, axisLabel, width = CHART_WIDTH.poissonShape } = Astro.props;
+
+const height = 258;
+
+const p = plot(width, height, { ...AXIS_PADDING, top: 46, bottom: axisLabel ? 48 : 34 });
+
+const categories = series[0]?.bars.map((b) => b.x) ?? [];
+
+const maxP = Math.max(...series.flatMap((s) => s.bars.map((b) => b.p)), 0) || 1;
+
+const domainMax = maxP * 1.2;
+
+const groupWidth = p.innerWidth / Math.max(categories.length, 1);
+
+const innerGap = 4;
+
+const barWidth = (groupWidth - innerGap * 2) / series.length;
+
+const hatchId = uid('poisson-hatch');
+
+const groups = categories.map((x, i) => ({
+  x,
+  bars: series.map((s, si) => {
+    const value = s.bars[i]?.p ?? 0;
+
+    const barHeight = (value / domainMax) * p.innerHeight;
+
+    return {
+      tone: s.tone,
+      value,
+      xPos: p.left + i * groupWidth + innerGap + si * barWidth,
+      yPos: p.baseline - barHeight,
+      barHeight,
+    };
+  }),
+}));
+
+const gridLines = [0.25, 0.5, 0.75, 1].map((f) => ({
+  value: f,
+  y: p.baseline - (f * maxP * p.innerHeight) / domainMax,
+}));
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={6} />
+
+  {gridLines.map((line) => <line x1={p.left} y1={line.y} x2={p.right} y2={line.y} class="c-grid" aria-hidden="true" />)}
+
+  <line x1={p.left} y1={p.top} x2={p.left} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">chance</text>
+
+  {
+    groups.map((group) => (
+      <g aria-hidden="true">
+        {group.bars.map((bar) =>
+          bar.tone === 'accent' ? (
+            <rect
+              x={bar.xPos}
+              y={bar.yPos}
+              width={barWidth}
+              height={bar.barHeight}
+              fill={`url(#${hatchId})`}
+              stroke="var(--color-accent)"
+              stroke-width="1.5"
+            />
+          ) : (
+            <rect
+              x={bar.xPos}
+              y={bar.yPos}
+              width={barWidth}
+              height={bar.barHeight}
+              fill="none"
+              stroke="var(--color-chart-ink)"
+              stroke-width="1.75"
+              stroke-dasharray="4 3"
+            />
+          ),
+        )}
+
+        <text x={p.left + categories.indexOf(group.x) * groupWidth + groupWidth / 2} y={p.baseline + 20} class="c-tick c-mid">
+          {group.x}
+        </text>
+      </g>
+    ))
+  }
+
+  {
+    series.map((s, si) => (
+      <g aria-hidden="true">
+        {s.tone === 'accent' ? (
+          <rect x={p.right - 150} y={16 + si * 16} width="12" height="12" fill={`url(#${hatchId})`} stroke="var(--color-accent)" stroke-width="1.5" />
+        ) : (
+          <rect x={p.right - 150} y={16 + si * 16} width="12" height="12" fill="none" stroke="var(--color-chart-ink)" stroke-width="1.75" stroke-dasharray="4 3" />
+        )}
+
+        <text x={p.right - 132} y={26 + si * 16} class={s.tone === 'accent' ? 'c-value' : 'c-value c-value-ink'}>
+          {s.label}
+        </text>
+      </g>
+    ))
+  }
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

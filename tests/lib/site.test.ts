@@ -6,7 +6,7 @@ import { topicsForChapter } from '../../src/engine/registry';
 
 describe('site.ts', () => {
   it('lists every written chapter in order', () => {
-    expect(chapters.map((c) => c.number)).toEqual([1, 2, 3]);
+    expect(chapters.map((c) => c.number)).toEqual([1, 2, 3, 4, 5]);
   });
 
   it('uses chapter slugs that resolve to real engine templates', () => {

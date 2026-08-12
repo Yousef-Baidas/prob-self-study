@@ -661,17 +661,24 @@ const inclusionExclusionThreeTemplate = generatedQuestion({
 
 // --- Additive rules (§2.5): complement rule over a hypergeometric sample ---
 //
-// n is drawn from [2, N - d - 1], strictly less than the pool of
-// non-defective boards -- "choose all n from the good boards" is always a
-// well-defined count, so the "no defectives" combination can never divide
-// by, or produce, something nonsensical. The "- 1" margin (rather than just
-// N - d) matters: at n = N - d exactly, "no defectives" means filling the
-// sample entirely from an equal-sized pool of good boards, which drives
-// P(none) below 0.00005 for several (N, d) pairs in range -- it then rounds
-// to a *displayed* 0.0000 / 1.0000 at the 4-dp precision used throughout,
-// visibly contradicting the "strictly between 0 and 1" guarantee. Requiring
-// one spare good board keeps P(none) >= 0.0001 across the whole (N, d)
-// range, so it always displays as genuinely fractional.
+// n is drawn well below the pool of non-defective boards, so "choose all n
+// from the good boards" is always a well-defined count and P(none) stays a
+// number worth asking for.
+//
+// The margin has to be generous, and the reason is worth stating because the
+// first attempt at this guard got it wrong. Requiring only one spare good
+// board (n <= N - d - 1) does keep P(none) strictly above zero, and the test
+// here asserted exactly that -- but "above zero" is the wrong bar. At
+// N = 25, d = 5, n = 19 the true P(none) is 0.000113, which displays as
+// 0.0001 against a tolerance of 0.001: a learner who answers 0, or who
+// guesses, is graded correct. An answer must clear its own tolerance, not
+// merely clear zero.
+//
+// P(none) = C(N - n, d) / C(N, d), so it shrinks fast as n approaches N - d.
+// Capping n at 8 and at N - d - 4 holds P(none) above 0.02 across the whole
+// (N, d) range -- twenty times the tolerance, and still a wide spread of
+// sample sizes. Enforced for every generator by
+// tests/engine/generators/no-degenerate-answers.test.ts.
 const hypergeometricAtLeastOneTemplate = generatedQuestion({
   id: 'ch02-gen-hypergeometric-at-least-one',
 
@@ -686,7 +693,7 @@ const hypergeometricAtLeastOneTemplate = generatedQuestion({
 
     const d = rng.int(2, 5);
 
-    const n = rng.int(2, N - d - 1);
+    const n = rng.int(2, Math.min(8, N - d - 4));
 
     const totalWays = nCr(N, n);
 

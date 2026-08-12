@@ -1,0 +1,128 @@
+---
+import { CHART_WIDTH, plot, uid } from '../chartkit';
+
+import Hatch from '../Hatch.astro';
+
+// Two probability mass panels side by side, same mean, different spread --
+// the picture behind "variance measures dispersion, not location". Both
+// panels share one probability scale (so bar heights are honestly
+// comparable) and the mean is drawn as the same dashed ink line in both,
+// which is what makes "same mean" a claim the reader can check rather than
+// one they have to take on faith.
+interface Bar {
+  x: number;
+
+  p: number;
+
+  label: string;
+}
+
+interface Panel {
+  caption: string;
+
+  bars: Bar[];
+}
+
+interface Props {
+  left: Panel;
+
+  right: Panel;
+
+  mean: number;
+
+  title: string;
+
+  axisLabel?: string;
+
+  width?: number;
+}
+
+const { left, right, mean, title, axisLabel, width = CHART_WIDTH.spreadPair } = Astro.props;
+
+const height = 224;
+
+const gap = 28;
+
+const panelWidth = (width - gap) / 2;
+
+const maxP = Math.max(...left.bars.map((b) => b.p), ...right.bars.map((b) => b.p)) || 1;
+
+const domainMax = maxP * 1.25;
+
+const barGap = 14;
+
+const makePanel = (panel: Panel, offsetX: number) => {
+  const pl = plot(panelWidth, height, { top: 40, right: 12, bottom: axisLabel ? 48 : 34, left: 12 });
+
+  const barWidth = (pl.innerWidth - barGap * (panel.bars.length - 1)) / panel.bars.length;
+
+  const step = barWidth + barGap;
+
+  const bars = panel.bars.map((bar, index) => {
+    const barHeight = (bar.p / domainMax) * pl.innerHeight;
+
+    return {
+      ...bar,
+      xPos: offsetX + pl.left + index * step,
+      yPos: pl.baseline - barHeight,
+      barHeight,
+    };
+  });
+
+  const meanX = offsetX + pl.left + barWidth / 2 + (mean - panel.bars[0].x) * step;
+
+  return { pl, bars, barWidth, meanX, offsetX };
+};
+
+const leftPanel = makePanel(left, 0);
+
+const rightPanel = makePanel(right, panelWidth + gap);
+
+const hatchId = uid('spread-hatch');
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={6} />
+
+  {
+    [leftPanel, rightPanel].map((panel, idx) => (
+      <g aria-hidden="true">
+        <text x={panel.offsetX + panel.pl.left} y="16" class="c-caps">
+          {idx === 0 ? left.caption : right.caption}
+        </text>
+
+        <line x1={panel.offsetX + panel.pl.left} y1={panel.pl.baseline} x2={panel.offsetX + panel.pl.right} y2={panel.pl.baseline} class="c-axis" />
+
+        <line x1={panel.meanX} y1={panel.pl.top} x2={panel.meanX} y2={panel.pl.baseline} class="c-guide-ink" />
+
+        {panel.bars.map((bar) => (
+          <g>
+            <rect
+              x={bar.xPos}
+              y={bar.yPos}
+              width={panel.barWidth}
+              height={bar.barHeight}
+              fill={`url(#${hatchId})`}
+              stroke="var(--color-accent)"
+              stroke-width="1.5"
+            />
+
+            <text x={bar.xPos + panel.barWidth / 2} y={panel.pl.baseline + 20} class="c-tick c-mid">
+              {bar.x}
+            </text>
+          </g>
+        ))}
+      </g>
+    ))
+  }
+
+  {
+    axisLabel && (
+      <text x={width / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

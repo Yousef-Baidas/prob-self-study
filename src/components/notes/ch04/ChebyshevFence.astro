@@ -1,0 +1,120 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { AXIS_PADDING, CHART_WIDTH, plot, samplePoints, scale, uid } from '../chartkit';
+
+// A density curve with two fences at mean - k*sigma and mean + k*sigma, and
+// the region between them hatched as "at least this much area is guaranteed
+// here, whatever the curve's actual shape is". The curve itself is drawn thin
+// and muted rather than in the accent voice: Chebyshev's claim holds for
+// *any* distribution, so the specific curve shown is only an illustration,
+// not the point of the figure -- the hatched region and its fences are.
+interface Props {
+  fn: (x: number) => number;
+
+  domain: [number, number];
+
+  mean: number;
+
+  sigma: number;
+
+  k: number;
+
+  guaranteedLabel: string;
+
+  title: string;
+
+  axisLabel?: string;
+
+  width?: number;
+
+  samples?: number;
+}
+
+const {
+  fn,
+  domain,
+  mean,
+  sigma,
+  k,
+  guaranteedLabel,
+  title,
+  axisLabel,
+  width = CHART_WIDTH.chebyshevFence,
+  samples = 96,
+} = Astro.props;
+
+const height = 224;
+
+const p = plot(width, height, { ...AXIS_PADDING, left: 22, bottom: axisLabel ? 48 : 34 });
+
+const points = samplePoints(fn, domain, samples);
+
+const yMax = Math.max(...points.map((point) => point.y)) * 1.2;
+
+const x = scale(domain, [p.left, p.right]);
+
+const y = scale([0, yMax], [p.baseline, p.top]);
+
+const curvePoints = points.map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
+
+const fenceLow = mean - k * sigma;
+
+const fenceHigh = mean + k * sigma;
+
+const shadeXs = points.filter((point) => point.x >= fenceLow && point.x <= fenceHigh);
+
+const shadePath =
+  `M ${x(fenceLow)},${p.baseline} ` +
+  `L ${x(fenceLow)},${y(fn(fenceLow))} ` +
+  shadeXs.map((point) => `L ${x(point.x)},${y(point.y)}`).join(' ') +
+  ` L ${x(fenceHigh)},${y(fn(fenceHigh))} L ${x(fenceHigh)},${p.baseline} Z`;
+
+const hatchId = uid('chebyshev-hatch');
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={7} />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">curve height</text>
+
+  <path d={shadePath} fill={`url(#${hatchId})`} aria-hidden="true" />
+
+  <line x1={x(mean)} y1={p.baseline} x2={x(mean)} y2={y(fn(mean))} class="c-guide-ink" aria-hidden="true" />
+
+  {
+    [fenceLow, fenceHigh].map((bound) => (
+      <line x1={x(bound)} y1={p.baseline} x2={x(bound)} y2={y(fn(bound))} stroke="var(--color-accent)" stroke-width="1.5" stroke-dasharray="4 3" aria-hidden="true" />
+    ))
+  }
+
+  <polyline points={curvePoints} class="c-connector" aria-hidden="true" />
+
+  <text x={x(mean)} y={p.top - 12} class="c-value c-value-ink c-mid c-halo" aria-hidden="true">
+    μ
+  </text>
+
+  {
+    [fenceLow, fenceHigh].map((bound) => (
+      <text x={x(bound)} y={p.baseline + 20} class="c-tick c-mid" aria-hidden="true">
+        {bound === fenceLow ? 'μ − kσ' : 'μ + kσ'}
+      </text>
+    ))
+  }
+
+  <text x={(x(fenceLow) + x(fenceHigh)) / 2} y={p.top + 20} class="c-value c-mid c-halo" aria-hidden="true">
+    {guaranteedLabel}
+  </text>
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

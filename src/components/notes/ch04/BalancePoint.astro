@@ -1,0 +1,132 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { AXIS_PADDING, CHART_WIDTH, plot, uid } from '../chartkit';
+
+// Probability mass bar chart with the mean drawn as a fulcrum underneath the
+// axis, the way a see-saw balances under unequal weights. `bars` carry
+// consecutive integer x values one unit apart, which is what lets the
+// fulcrum's pixel position be found by linear interpolation from the first
+// bar's own pixel centre rather than a second, independent scale that could
+// silently disagree with the bars above it.
+interface Bar {
+  x: number;
+
+  p: number;
+
+  label: string;
+}
+
+interface Props {
+  bars: Bar[];
+
+  mean: number;
+
+  meanLabel: string;
+
+  title: string;
+
+  /** Name of the quantity along the bottom, e.g. `defectiveCount`. */
+  axisLabel?: string;
+
+  width?: number;
+}
+
+const { bars, mean, meanLabel, title, axisLabel, width = CHART_WIDTH.balancePoint } = Astro.props;
+
+const height = 224;
+
+const fulcrumRoom = 34;
+
+const p = plot(width, height, { ...AXIS_PADDING, bottom: (axisLabel ? 48 : 34) + fulcrumRoom });
+
+const maxP = Math.max(...bars.map((bar) => bar.p)) || 1;
+
+const domainMax = maxP * 1.25;
+
+const barGap = 20;
+
+const barWidth = (p.innerWidth - barGap * (bars.length - 1)) / bars.length;
+
+const step = barWidth + barGap;
+
+const plotted = bars.map((bar, index) => {
+  const barHeight = (bar.p / domainMax) * p.innerHeight;
+
+  return {
+    ...bar,
+    xPos: p.left + index * step,
+    yPos: p.baseline - barHeight,
+    barHeight,
+  };
+});
+
+// The fulcrum's x is found by walking the same one-unit-per-bar spacing used
+// above, from the first bar's own centre -- never a second scale that could
+// disagree with where the bars themselves were drawn.
+const fulcrumX = p.left + barWidth / 2 + (mean - bars[0].x) * step;
+
+const fulcrumY = p.baseline + 10;
+
+const fulcrumHalfWidth = 12;
+
+const hatchId = uid('balance-hatch');
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={6} />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">chance</text>
+
+  {
+    plotted.map((bar) => (
+      <g aria-hidden="true">
+        <rect
+          x={bar.xPos}
+          y={bar.yPos}
+          width={barWidth}
+          height={bar.barHeight}
+          fill={`url(#${hatchId})`}
+          stroke="var(--color-accent)"
+          stroke-width="1.5"
+        />
+
+        <text x={bar.xPos + barWidth / 2} y={bar.yPos - 8} class="c-value c-mid c-halo">
+          {bar.label}
+        </text>
+
+        <text x={bar.xPos + barWidth / 2} y={p.baseline + 20} class="c-tick c-mid">
+          {bar.x}
+        </text>
+      </g>
+    ))
+  }
+
+  {/* The fulcrum: a triangle in the reference ink, planted under the axis, so
+      the picture reads as a physical balance rather than a second data mark
+      competing with the bars above it. */}
+  <g aria-hidden="true">
+    <line x1={fulcrumX} y1={p.baseline} x2={fulcrumX} y2={fulcrumY} class="c-guide-ink" />
+
+    <polygon
+      points={`${fulcrumX - fulcrumHalfWidth},${fulcrumY + 16} ${fulcrumX + fulcrumHalfWidth},${fulcrumY + 16} ${fulcrumX},${fulcrumY}`}
+      fill="var(--color-chart-ink)"
+    />
+
+    <text x={fulcrumX} y={fulcrumY + 30} class="c-value c-value-ink c-mid">
+      {meanLabel}
+    </text>
+  </g>
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

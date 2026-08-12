@@ -6,11 +6,19 @@ import { ch02Generators } from './generators/ch02';
 
 import { ch03Generators } from './generators/ch03';
 
+import { ch04Generators } from './generators/ch04';
+
+import { ch05Generators } from './generators/ch05';
+
 import { ch01Book } from './questions/ch01.book';
 
 import { ch02Book } from './questions/ch02.book';
 
 import { ch03Book } from './questions/ch03.book';
+
+import { ch04Book } from './questions/ch04.book';
+
+import { ch05Book } from './questions/ch05.book';
 
 /** Every question template — book and generated, every chapter — in one array. */
 export const allTemplates: QuestionTemplate[] = [
@@ -20,11 +28,19 @@ export const allTemplates: QuestionTemplate[] = [
 
   ...ch03Generators,
 
+  ...ch04Generators,
+
+  ...ch05Generators,
+
   ...ch01Book,
 
   ...ch02Book,
 
   ...ch03Book,
+
+  ...ch04Book,
+
+  ...ch05Book,
 ];
 
 export type SelectOptions = {
