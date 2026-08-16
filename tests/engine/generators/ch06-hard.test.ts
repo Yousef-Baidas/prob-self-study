@@ -44,30 +44,6 @@ const independentInvNormalCdf = (p: number): number => {
   return (lo + hi) / 2;
 };
 
-const independentFactorial = (n: number): number => {
-  let r = 1;
-
-  for (let i = 2; i <= n; i++) r *= i;
-
-  return r;
-};
-
-const independentPoissonPmf = (lambda: number, x: number): number =>
-  (Math.exp(-lambda) * lambda ** x) / independentFactorial(x);
-
-/** P(Gamma(alpha, beta) <= x) for integer alpha, via the gamma-Poisson tail
- * relationship -- the same identity ch06.ts uses, reimplemented from scratch
- * here rather than imported, so a shared bug cannot cancel out. */
-const independentGammaCdf = (alpha: number, beta: number, x: number): number => {
-  const lambda = x / beta;
-
-  let tailBelow = 0;
-
-  for (let k = 0; k < alpha; k++) tailBelow += independentPoissonPmf(lambda, k);
-
-  return 1 - tailBelow;
-};
-
 const byId = (id: string) => {
   const t = ch06Generators.find((g) => g.id === id);
 
@@ -177,77 +153,139 @@ describe('ch06 normalApproxBinomialRange', () => {
   });
 });
 
-describe('ch06 gammaPoissonCdf', () => {
-  const t = byId('ch06-gen-gamma-poisson-cdf');
+// Asserts one numeric part against an independently recomputed value, by
+// position. The hard file has no bulk `expectNumericParts`, so each template
+// below states the order of its own answers explicitly.
+const expectNumericAt = (
+  parts: ReturnType<ReturnType<typeof byId>['generate']>['parts'],
+  index: number,
+  expected: number,
+  tolPad = 0,
+) => {
+  const part = parts.filter((p) => p.kind === 'numeric')[index];
+
+  expect(part?.kind).toBe('numeric');
+
+  if (part?.kind === 'numeric') {
+    expect(Math.abs(part.answer - expected)).toBeLessThanOrEqual(part.tol + tolPad);
+  }
+};
+
+describe('ch06 exponentialSeriesSystem', () => {
+  const t = byId('ch06-gen-exponential-series-system');
 
   it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
     assertStableWording(t);
   });
 
-  it('P(X<=x) matches the gamma-Poisson relationship, cross-checked against Walpole Example 6.18', () => {
-    // alpha=2, beta=1/5, x=1 -> 0.9596, the book's own worked value (rounds to 0.96).
-    expect(independentGammaCdf(2, 1 / 5, 1)).toBeCloseTo(0.9596, 4);
-
+  it('rates add for a series system, and the system mean falls below every component mean', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { alpha, beta, x } = inst.params as Record<string, number>;
+      const { rate1, rate2, rate3, t: time } = inst.params as Record<string, number>;
 
-      expect(alpha).toBeGreaterThanOrEqual(2);
+      const lambdaTotal = rate1 + rate2 + rate3;
 
-      expect(alpha).toBeLessThanOrEqual(5);
+      expectNumericAt(inst.parts, 0, lambdaTotal);
 
-      expect(x).toBeGreaterThan(0);
+      expectNumericAt(inst.parts, 1, 1 / lambdaTotal, 0.05);
 
-      const probability = independentGammaCdf(alpha, beta, x);
+      expectNumericAt(inst.parts, 2, Math.exp(-lambdaTotal * time), 0.0005);
 
-      expect(probability).toBeGreaterThan(0);
+      // The examinable trap: a series system is worse than its worst part.
+      // Adding rates means the system mean is strictly below the shortest
+      // individual mean -- never the average of the three means.
+      const shortestComponentMean = 1 / Math.max(rate1, rate2, rate3);
 
-      expect(probability).toBeLessThan(1);
-
-      const part = inst.parts[0];
-
-      expect(part.kind).toBe('numeric');
-
-      if (part.kind === 'numeric') expect(Math.abs(part.answer - probability)).toBeLessThanOrEqual(part.tol);
+      expect(1 / lambdaTotal).toBeLessThan(shortestComponentMean);
 
       expectMaterialNumericParts(inst.parts);
     }
   });
 });
 
-describe('ch06 chiSquaredGammaLink', () => {
-  const t = byId('ch06-gen-chi-squared-gamma-link');
+describe('ch06 exponentialParallelRedundancy', () => {
+  const t = byId('ch06-gen-exponential-parallel-redundancy');
 
   it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
     assertStableWording(t);
   });
 
-  it('v is always even so alpha=v/2 is a positive integer, and P(X<=x) matches the gamma-Poisson relationship', () => {
+  it('the redundant station always outlasts a single unit, via 1-(1-p)^2', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { v, alpha, beta, x } = inst.params as Record<string, number>;
+      const { lambda, t: time } = inst.params as Record<string, number>;
 
-      expect(v % 2).toBe(0);
+      const survivesOne = Math.exp(-lambda * time);
 
-      expect(alpha).toBe(v / 2);
+      const stationSurvives = 1 - (1 - survivesOne) ** 2;
 
-      expect(Number.isInteger(alpha)).toBe(true);
+      expectNumericAt(inst.parts, 0, survivesOne, 0.0005);
 
-      expect(beta).toBe(2);
+      expectNumericAt(inst.parts, 1, stationSurvives, 0.0005);
 
-      const probability = independentGammaCdf(alpha, beta, x);
+      // Parallel redundancy must help, and must not manufacture certainty.
+      expect(stationSurvives).toBeGreaterThan(survivesOne);
 
-      expect(probability).toBeGreaterThan(0);
+      expect(stationSurvives).toBeLessThan(1);
 
-      expect(probability).toBeLessThan(1);
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
 
-      const part = inst.parts[0];
+describe('ch06 normalSolveMeanFromTail', () => {
+  const t = byId('ch06-gen-normal-solve-mean-from-tail');
 
-      expect(part.kind).toBe('numeric');
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
 
-      if (part.kind === 'numeric') expect(Math.abs(part.answer - probability)).toBeLessThanOrEqual(part.tol);
+  it('recovers mu from a stated lower-tail percentage, with a negative z', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { sigma, lowerLimit, pct } = inst.params as Record<string, number>;
+
+      const z = Math.round(independentInvNormalCdf(pct / 100) * 100) / 100;
+
+      // A lower-tail percentage under 50% must give a negative z, so the mean
+      // sits above the specification limit. Adding z instead of z*sigma, or
+      // dropping the sign, is the classic wrong answer here.
+      expect(z).toBeLessThan(0);
+
+      expectNumericAt(inst.parts, 0, z, 0.005);
+
+      expectNumericAt(inst.parts, 1, lowerLimit - z * sigma, 0.05);
+
+      expect(lowerLimit - z * sigma).toBeGreaterThan(lowerLimit);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch06 normalSolveSigmaFromTail', () => {
+  const t = byId('ch06-gen-normal-solve-sigma-from-tail');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('recovers sigma as the raw deviation divided by z, never the raw deviation itself', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { mu, upperLimit, pct } = inst.params as Record<string, number>;
+
+      const z = Math.round(independentInvNormalCdf(1 - pct / 100) * 100) / 100;
+
+      expect(z).toBeGreaterThan(0);
+
+      expectNumericAt(inst.parts, 0, z, 0.005);
+
+      expectNumericAt(inst.parts, 1, (upperLimit - mu) / z, 0.05);
 
       expectMaterialNumericParts(inst.parts);
     }
