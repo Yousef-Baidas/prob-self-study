@@ -3,7 +3,7 @@ import Figure from '../components/notes/Figure.astro';
 import NormalCurve from '../components/notes/ch06/NormalCurve.astro';
 import Standardization from '../components/notes/ch06/Standardization.astro';
 import BinomialNormalOverlay from '../components/notes/ch06/BinomialNormalOverlay.astro';
-import GammaFamily from '../components/notes/ch06/GammaFamily.astro';
+import Memoryless from '../components/notes/ch06/Memoryless.astro';
 
 import { CHART_WIDTH } from '../components/notes/chartkit';
 
@@ -48,6 +48,17 @@ $$
 Both are exactly what you would guess without any calculus: the mean sits at the interval's
 midpoint by symmetry, and the variance grows with the square of the interval's width, the
 same way it did for every distribution in Chapter 4.
+
+**Cumulative distribution function.** Integrating the flat density from `A` up to `x` gives
+
+$$
+F(x) = \begin{cases} 0, & x < A, \\[4pt] \dfrac{x-A}{B-A}, & A \le x < B, \\[4pt] 1, & x \ge B. \end{cases}
+$$
+
+Because the density is constant, $F$ climbs in a straight line from $0$ at $x=A$ to $1$ at
+$x=B$ — the CDF of a uniform variable is as flat-out simple as CDFs get, and it hands back
+$P(x_1 \le X \le x_2) = F(x_2) - F(x_1) = (x_2-x_1)/(B-A)$ without ever touching the density
+directly.
 
 ## 6.2 Normal distribution
 
@@ -241,7 +252,8 @@ $$
 P(X \le x) \approx P\!\left(Z \le \frac{x + 0.5 - np}{\sqrt{npq}}\right),
 $$
 
-and the approximation is good once both `np` and `n(1-p)` are at least `5`.
+and the approximation is good whenever **both** `np > 5` **and** `n(1-p) > 5` hold — check
+both, not just one; a `p` near $0$ or $1$ can satisfy one and badly fail the other.
 
 <Figure width={CHART_WIDTH.binomialNormalOverlay} caption="The dashed bars are the exact binomial masses b(x; 15, 0.4); the solid curve is the normal density with the same mean and variance. The hatched slice from 3.5 to 4.5 is the curve's stand-in for the single bar at x = 4 — close to it, but not equal to it.">
   <BinomialNormalOverlay
@@ -274,210 +286,151 @@ improves for sums of several bars at once.
 > corrected boundaries $24.5$ and $30.5$, giving $z_1 = 1.16$, $z_2 = 2.71$, so
 > $P(25 \le X \le 30) \approx P(1.16 < Z < 2.71) = 0.9966 - 0.8770 = 0.1196$.
 
-## 6.6 Gamma and exponential distributions
+## 6.6 Exponential distribution
 
-Waiting times — how long until the next customer arrives, how long a component runs before
-it fails — are never negative and tend to pile up near zero with a long right tail, which is
-a shape the symmetric normal curve cannot make. Call such a wait `waitTime`. The **gamma
-distribution** is the family built for exactly this shape, and it is named after the
-**gamma function**,
+A Poisson process (§5.5) counts events — cars passing an intersection, calls reaching a
+switchboard, particles hitting a detector — over a fixed stretch of time. But "how many
+events in the next hour" is not the only question that stretch of time supports. Turn the
+question around: instead of fixing the time and counting events, fix your attention on *one*
+event and ask how long you wait for it. Call that wait `waitTime`.
 
-$$
-\Gamma(\alpha) = \int_0^\infty x^{\alpha - 1} e^{-x}\,dx, \qquad \alpha > 0,
-$$
-
-which satisfies $\Gamma(\alpha) = (\alpha-1)\Gamma(\alpha-1)$, so that $\Gamma(n) = (n-1)!$
-for a positive integer `n`, and $\Gamma(1) = 1$.
+Suppose cars arrive at an intersection at an average rate of $\lambda = 6$ cars per hour.
+Asking *"how many cars arrive in the next 10 minutes?"* fixes the time window and counts a
+number that can only be $0, 1, 2, \dots$ — a discrete random variable, so this is a **Poisson**
+question. Asking instead *"how long until the next car arrives?"* fixes nothing about time in
+advance; the answer might be $0.5$ minutes or $2.37$ minutes or $4.128$ minutes — a continuous
+random variable, so this is an **exponential** question. Same process, same rate `λ`, two
+different random variables depending on which quantity is held fixed and which is measured.
 
 <Notation
   rows={[
-    { name: 'waitTime', symbol: 'X' },
-    { name: 'shape parameter — number of events being waited for', symbol: '\\alpha' },
-    { name: 'scale parameter — mean wait per event', symbol: '\\beta' },
+    { name: 'rate of events per unit time', symbol: '\\lambda' },
+    { name: 'waitTime — time to the next event', symbol: 'X' },
+    { name: 'the exponential density at x', symbol: 'f(x; \\lambda)' },
   ]}
 />
 
-**Gamma distribution.**
+**Exponential distribution.** The waiting time to the first event of a Poisson process with
+rate `λ` is an **exponential random variable** with parameter `λ`:
 
 $$
-f(x; \alpha, \beta) = \frac{1}{\beta^\alpha \Gamma(\alpha)}\, x^{\alpha-1} e^{-x/\beta}, \qquad x > 0.
+f(x; \lambda) = \lambda e^{-\lambda x}, \qquad x \ge 0.
 $$
 
-Setting $\alpha = 1$ collapses this to the **exponential distribution**,
+**Where the formula comes from.** `waitTime` exceeds some value `x` exactly when *zero*
+events land in the interval $[0, x]$ — a Poisson question with mean $\lambda x$, answered by
+the Poisson formula at $0$: $p(0; \lambda x) = e^{-\lambda x}$. So the **survival function**
+of `waitTime` is
 
 $$
-f(x; \beta) = \frac{1}{\beta}\,e^{-x/\beta}, \qquad x > 0,
+P(X > x) = e^{-\lambda x},
 $$
 
-the special case that is by far the most common member of the family in practice.
+and its cumulative distribution function is the complement,
 
-<Figure width={CHART_WIDTH.gammaFamily} caption="Same β = 1 in both curves. The exponential (α = 1) peaks at x = 0 and falls away immediately; the α = 4 gamma rises from 0, peaks away from the origin, and only then starts to look bell-shaped.">
-  <GammaFamily
-    title="Gamma density at β = 1, for α = 1 (exponential) and α = 4"
-    axisLabel="waitTime"
-    domain={[0, 12]}
-    curves={[
-      { label: 'α = 4, β = 1', tone: 'accent', fn: (x) => (x <= 0 ? 0 : (1 / 6) * Math.pow(x, 3) * Math.exp(-x)) },
-      { label: 'α = 1, β = 1 (exponential)', tone: 'ink', fn: (x) => (x < 0 ? 0 : Math.exp(-x)) },
-    ]}
+$$
+F(x) = P(X \le x) = 1 - e^{-\lambda x}, \qquad x \ge 0.
+$$
+
+Differentiating $F$ recovers the density above. Every exponential fact this section uses
+traces back to this one survival function, so it is worth keeping in view rather than
+memorising the density in isolation.
+
+**Mean and variance.**
+
+$$
+\mu = E(X) = \frac{1}{\lambda}, \qquad \sigma^2 = V(X) = \frac{1}{\lambda^2}.
+$$
+
+Since $\sigma = \sqrt{\sigma^2} = 1/\lambda$ too, **the exponential distribution's mean and
+standard deviation are the same number**, $1/\lambda$. This is the flip side of a fact from
+Chapter 5: **the Poisson distribution's mean and variance are the same number**, $\lambda t$.
+The two contrasts are easy to swap under exam pressure — Poisson matches mean to *variance*,
+exponential matches mean to *standard deviation* — so it is worth saying explicitly rather
+than trusting memory for which one is which.
+
+> **Worked example** (corporate log-ons). User log-ons to a large corporate network form a
+> Poisson process averaging $\lambda = 25$ log-ons per hour. Let `waitTime`, in hours, be the
+> time from the start of an interval until the first log-on.
+>
+> (a) The chance there are no log-ons in the next $6$ minutes ($0.1$ hour):
+>
+> $$
+> P(X > 0.1) = e^{-25(0.1)} = e^{-2.5} \approx 0.082.
+> $$
+>
+> (b) The chance the wait is between $2$ and $3$ minutes ($0.033$ and $0.05$ hour):
+>
+> $$
+> P(0.033 < X < 0.05) = F(0.05) - F(0.033) = e^{-25(0.033)} - e^{-25(0.05)} \approx 0.152.
+> $$
+>
+> (c) The interval of time such that the chance *no* log-on occurs during it is $0.90$: solve
+> $e^{-25x} = 0.90$ for `x`,
+>
+> $$
+> -25x = \ln(0.90) \implies x = \frac{-\ln(0.90)}{25} \approx 0.0042 \text{ hour} \approx 0.25 \text{ minute}.
+> $$
+>
+> (d) The mean and standard deviation of the wait until the next log-on are both
+> $1/\lambda = 1/25 = 0.04$ hour $= 2.4$ minutes — the mean-equals-standard-deviation fact
+> above, not a coincidence of this example.
+
+**The lack-of-memory property.** For an exponential `waitTime`, the chance of waiting `t₂`
+*more* time units, given that `t₁` time units have already passed with nothing happening, is
+exactly the same as the chance of waiting `t₂` time units from scratch:
+
+$$
+P(X < t_1 + t_2 \mid X > t_1) = P(X < t_2).
+$$
+
+This is not an extra assumption bolted onto the exponential — it falls straight out of the
+survival function derived above. Writing the conditional probability out and using
+$P(X>t_1)=e^{-\lambda t_1}$:
+
+$$
+P(X < t_1+t_2 \mid X > t_1) = 1 - P(X > t_1 + t_2 \mid X > t_1)
+= 1 - \frac{P(X > t_1+t_2)}{P(X > t_1)}
+= 1 - \frac{e^{-\lambda(t_1+t_2)}}{e^{-\lambda t_1}} = 1 - e^{-\lambda t_2} = P(X < t_2).
+$$
+
+The $e^{-\lambda t_1}$ in the numerator and denominator cancel exactly, leaving no trace of
+`t₁` behind. That cancellation is the whole property: the tail of the curve beyond `t₁`,
+rescaled by dividing out $P(X>t_1)$, is not merely *similar in shape* to the original curve —
+it is the *same curve*, restarted at zero.
+
+<Figure width={CHART_WIDTH.memoryless} caption="Left: the survival curve S(x) = e^(−λx) beyond t₁, hatched over [t₁, t₁+t₂]. Right: the identical curve replotted from 0, hatched over [0, t₂]. Dividing the left panel by S(t₁) reproduces the right panel exactly — the tail is a rescaled copy of the whole curve, not just a shape that resembles it.">
+  <Memoryless
+    title="Lack-of-memory property: the survival curve beyond t₁ rescales to the original curve"
+    lambda={1}
+    t1={1.5}
+    t2={1}
+    axisLabelX="waitTime"
   />
 </Figure>
 
-**Theorem 6.4 and Corollary 6.1.**
-
-$$
-\mu = \alpha\beta, \quad \sigma^2 = \alpha\beta^2 \qquad \text{(gamma)}; \qquad
-\mu = \beta, \quad \sigma^2 = \beta^2 \qquad \text{(exponential)}.
-$$
-
-**Where the exponential comes from.** Recall the Poisson process from §5.5: events arrive at
-rate `λ` per unit time. The chance zero events land in a span of length `t` is
-$p(0;\lambda t) = e^{-\lambda t}$. Let `waitTime` be the time to the *first* event; then
-`waitTime` exceeds `x` exactly when nothing has arrived by `x`, so
-$P(X > x) = e^{-\lambda x}$, giving cdf $1 - e^{-\lambda x}$ and density $f(x) = \lambda
-e^{-\lambda x}$ — the exponential distribution with $\beta = 1/\lambda$. So whenever a
-Poisson process describes the *count* of arrivals, the exponential describes the *time*
-between them, and $\beta$ is the mean time between events — in reliability work, the **mean
-time between failures**.
-
-> **Worked example** (Walpole Example 6.17). A component's lifetime is exponential with
-> $\beta = 5$ years. The chance one survives past $8$ years is $P(T > 8) = e^{-8/5} \approx
-> 0.2$. With $5$ components installed independently, the chance at least $2$ are still
-> running at year $8$ uses the *binomial* on top of that: $P(X \ge 2) = 1 - \sum_{x=0}^1
-> b(x; 5, 0.2) = 1 - 0.7373 = 0.2627$.
-
-The gamma distribution extends the same idea to waiting for the `α`th event rather than the
-first: time (or space) until `α` Poisson events have occurred follows a gamma distribution
-with the process's own `β = 1/λ`.
-
-> **Worked example** (Walpole Example 6.18). Calls arrive at $5$ per minute. The chance the
-> 2nd call arrives within $1$ minute uses $\alpha=2$, $\beta=1/5$:
+> **Worked example** (Geiger counter). Let `waitTime` be the time between particle detections
+> on a Geiger counter, exponential with $E(X) = 1.4$ minutes, so $\lambda = 1/1.4$. The chance
+> a particle is detected in the next $30$ seconds ($0.5$ minute):
 >
 > $$
-> P(X \le 1) = 25\int_0^1 x e^{-5x}\,dx = 1 - e^{-5}(1+5) = 0.96.
+> P(X < 0.5) = F(0.5) = 1 - e^{-0.5/1.4} \approx 0.300.
 > $$
+>
+> Now suppose $3$ minutes have passed with *no* detection. Does the wait become more likely to
+> end soon because a detection is somehow "due"? Compute the conditional probability directly:
+>
+> $$
+> P(X < 3.5 \mid X > 3) = \frac{F(3.5) - F(3)}{1 - F(3)} = \frac{0.035}{0.117} \approx 0.30.
+> $$
+>
+> Exactly the same $0.30$ as the unconditional answer above. **No** — a quiet spell carries no
+> information about how soon the next detection arrives; the counter has no memory of the last
+> $3$ minutes at all. This is the intuition behind the name: a component or process with this
+> property neither wears out nor "warms up" with age, so betting that an overdue event is
+> close is a bet the mathematics does not support.
 
-**The memoryless property.** For an exponential `waitTime`, the chance of lasting `t` more
-hours given it has already lasted `t₀` hours equals the chance of lasting `t` hours from
-scratch: $P(X \ge t_0 + t \mid X \ge t_0) = P(X \ge t)$. A component with this property
-carries no memory of wear — it neither strengthens nor weakens with age. That makes the
-exponential the right model exactly when age genuinely does not matter, and the wrong one
-whenever gradual wear does; the gamma distribution (or the Weibull, §6.10) is what to reach
-for instead once wear is part of the story.
-
-## 6.7 Chi-squared distribution
-
-Setting the gamma distribution's shape parameter to $\alpha = v/2$ and its scale to
-$\beta = 2$, for a positive integer `v`, produces the **chi-squared distribution**:
-
-$$
-f(x; v) = \frac{1}{2^{v/2}\Gamma(v/2)}\, x^{v/2 - 1} e^{-x/2}, \qquad x > 0.
-$$
-
-<Notation
-  rows={[
-    { name: 'degrees of freedom', symbol: 'v' },
-    { name: 'the chi-squared density', symbol: 'f(x; v)' },
-  ]}
-/>
-
-**Theorem 6.5.** $\mu = v$, $\sigma^2 = 2v$ — both fall straight out of the gamma
-distribution's own mean and variance formulas at $\alpha = v/2$, $\beta = 2$.
-
-The chi-squared distribution earns its own section here even though it is only a special
-case of the gamma, because it becomes the backbone of statistical inference later in the
-book: sampling distributions, analysis of variance, and nonparametric methods (Chapters 8,
-9, and 16) all lean on it directly, even though no application is developed yet in this
-chapter.
-
-## 6.8 Beta distribution
-
-The uniform distribution assumed every value on `[A, B]` was equally likely; the **beta
-distribution** relaxes that to allow a continuous random variable confined to `(0, 1)` — a
-proportion, a fraction defective, a probability itself — to be *more* likely near one end
-than the other.
-
-$$
-f(x) = \frac{1}{B(\alpha,\beta)}\, x^{\alpha - 1}(1-x)^{\beta - 1}, \qquad 0 < x < 1,
-$$
-
-where the **beta function** $B(\alpha,\beta) = \int_0^1 x^{\alpha-1}(1-x)^{\beta-1}dx =
-\Gamma(\alpha)\Gamma(\beta)/\Gamma(\alpha+\beta)$ is what keeps the density's total area at
-$1$. Setting $\alpha = \beta = 1$ recovers the uniform distribution on $(0,1)$ exactly.
-
-**Theorem 6.6.**
-
-$$
-\mu = \frac{\alpha}{\alpha+\beta}, \qquad \sigma^2 = \frac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)}.
-$$
-
-At $\alpha=\beta=1$ these give $\mu = 1/2$ and $\sigma^2 = 1/12$ — matching §6.1's uniform
-formulas exactly, as they must.
-
-## 6.9 Lognormal distribution
-
-Some measurements are not themselves bell-shaped, but their *logarithm* is. A `pollutantLevel`
-that can only take positive values and tends to have a long right tail is a typical case.
-
-**Lognormal distribution.** `pollutantLevel`, written $X$, has a lognormal distribution when
-$\ln(X)$ is normal with some mean `logMean` and standard deviation `logSigma`:
-
-$$
-f(x; \mu, \sigma) = \frac{1}{\sqrt{2\pi}\,\sigma x}\, e^{-\frac{1}{2\sigma^2}[\ln(x)-\mu]^2}, \qquad x \ge 0,
-$$
-
-where $\mu$ and $\sigma$ here name `logMean` and `logSigma` — the mean and standard
-deviation of $\ln(X)$, not of $X$ itself.
-
-**Theorem 6.7.** The mean and variance of `pollutantLevel` itself are
-
-$$
-\mu_X = e^{\mu + \sigma^2/2}, \qquad \sigma_X^2 = e^{2\mu+\sigma^2}\left(e^{\sigma^2}-1\right).
-$$
-
-> **Worked example** (Walpole Example 6.22). `pollutantLevel` is lognormal with `logMean`
-> $= 3.2$, `logSigma` $= 1$. Since $\ln(X)$ is normal, $P(X \le 8) = \Phi\!\left(\frac{\ln(8) -
-> 3.2}{1}\right) = \Phi(-1.12) = 0.1314$. **Flagging a book inconsistency, per this site's
-> policy of not silently fixing textbook numbers:** the source text's own final sentence
-> reports this $0.1314$ as the chance the concentration *exceeds* $8$ ppm, but the quantity
-> it just computed is $P(X \le 8)$, and $P(X > 8) = 1 - P(X \le 8)$ was the stated goal at
-> the top of the example — so $P(X > 8) = 1 - 0.1314 = 0.8686$ is the number that actually
-> answers the question asked. The $0.1314$ figure itself is correct as $P(X \le 8)$.
-
-## 6.10 Weibull distribution
-
-Failures caused by gradual wear — a fuse burning out, a steel column buckling — do not
-respect the exponential's memoryless assumption. The **Weibull distribution**, introduced by
-Waloddi Weibull in 1939, adds a second parameter that lets the failure rate itself change
-over time.
-
-$$
-f(x; \alpha, \beta) = \alpha\beta x^{\beta - 1} e^{-\alpha x^\beta}, \qquad x > 0.
-$$
-
-Setting $\beta = 1$ collapses the Weibull back to the exponential, matching §6.6's family
-exactly. Its cumulative distribution function has a closed form,
-$F(x) = 1 - e^{-\alpha x^\beta}$, which makes probabilities easy to compute directly.
-
-**Theorem 6.8.**
-
-$$
-\mu = \alpha^{-1/\beta}\Gamma\!\left(1 + \frac{1}{\beta}\right), \qquad
-\sigma^2 = \alpha^{-2/\beta}\left[\Gamma\!\left(1 + \frac{2}{\beta}\right) - \Gamma\!\left(1 + \frac{1}{\beta}\right)^2\right].
-$$
-
-**The failure rate.** Writing $R(t) = 1 - F(t)$ for the chance a component survives past
-time `t`, the instantaneous failure rate is $Z(t) = f(t)/R(t) = \alpha\beta t^{\beta-1}$. Its
-shape tells a direct story: at $\beta = 1$ the rate is the constant $\alpha$ (the memoryless
-exponential case); for $\beta > 1$ the rate climbs with age, so the component wears; for
-$\beta < 1$ the rate falls with age, so the component effectively hardens over time.
-
-> **Worked example** (Walpole Example 6.24). An item's life, in hours, is Weibull with
-> $\alpha = 0.01$, $\beta = 2$. The chance it fails before $8$ hours is
-> $P(X < 8) = F(8) = 1 - e^{-(0.01)(64)} = 1 - 0.527 = 0.473$. Since $\beta = 2 > 1$, this
-> item wears with age rather than failing at a constant rate.
-
-## 6.11 Potential misconceptions and hazards
+## 6.7 Potential misconceptions and hazards
 
 Mistakes this chapter actually punishes, gathered in one place:
 
@@ -488,22 +441,34 @@ Mistakes this chapter actually punishes, gathered in one place:
 - **Skipping the continuity correction.** Approximating a discrete count with a continuous
   curve without shifting the boundary by $\pm 0.5$ systematically mismatches the bar being
   approximated with the wrong slice of curve — the error is small for a single bar but
-  compounds across a sum of many.
+  compounds across a sum of many. Confirm `np > 5` **and** `n(1-p) > 5` before trusting the
+  approximation at all.
 - **Standardizing is a change of variable, not a new formula.** $Z = (X-\mu)/\sigma$ turns
   *this* normal curve into *the* standard one so a single table suffices; skipping the
   standardization step and reading $x$ off the standard-normal table directly reads the
   wrong number entirely.
-- **Complementary probabilities need their complement actually taken.** §6.9's flagged
-  example is exactly this failure: computing $P(X \le 8)$ correctly and then reporting it as
-  $P(X > 8)$ without the final subtraction. Whatever quantity a problem asks for, checking
-  that the *last* line of arithmetic actually answers it — not an intermediate line — is
-  worth doing every time.
-- **The memoryless property is a property, not a default.** It holds for the exponential
-  distribution and nothing else in this chapter. Modelling a component that wears or hardens
-  with age using the exponential (rather than the gamma or the Weibull) quietly assumes away
-  the very wear the model is supposed to capture.
+- **Table A.3 is a left-tail table.** It tabulates $P(Z < z)$ — the area to the *left* of
+  `z` — not the area to the right. Reading a table value as $P(Z > z)$ without taking the
+  complement $1 - P(Z<z)$ silently flips every right-tail answer to its complement.
+- **Using `β` where the problem gives `λ`.** This course's exponential is parameterised by
+  the rate `λ` (events per unit time), with $f(x)=\lambda e^{-\lambda x}$, $\mu = 1/\lambda$,
+  and $\sigma^2 = 1/\lambda^2$ — not by Walpole's mean `β`, where $f(x) = (1/\beta)e^{-x/\beta}$
+  and $\mu = \beta$. The two are reciprocals of each other: plugging a rate directly into a
+  mean-parameterised formula (or vice versa) gives the reciprocal of the correct answer, not
+  a number that is merely off.
+- **Assuming the exponential's mean is also its median.** The exponential is right-skewed, so
+  the two are not the same value. Solving $F(x) = 0.5$ gives the median
+  $x = \ln(2)/\lambda \approx 0.693/\lambda$, strictly *less* than the mean $1/\lambda$ — more
+  than half of the probability sits below the mean, not evenly split around it the way it
+  would be for a symmetric normal curve.
+- **The lack-of-memory property is a property, not a default.** It holds for the exponential
+  distribution and nothing else in this chapter. A component that genuinely wears with age
+  does not stop wearing just because the exponential is convenient to compute with — check
+  that memorylessness is a reasonable assumption for the process at hand before reaching for
+  this distribution, rather than after.
 - **Every parameter in this chapter's examples was treated as known.** In practice, `μ`,
-  `σ`, `α`, `β` all have to be estimated from data, and an estimate carries its own
+  `σ`, and `λ` all have to be estimated from data, and an estimate carries its own
   uncertainty that a plugged-in "known" parameter does not. Chapters 9 onward take up
   estimation directly; this chapter's exact answers all rest on the parameters being exactly
   what the problem states them to be.
+

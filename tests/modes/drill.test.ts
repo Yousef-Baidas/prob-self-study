@@ -6,13 +6,10 @@ describe('drillTopics', () => {
     const keys = drillTopics().map((d) => `${d.chapter}/${d.topic}`).sort();
     expect(keys).toEqual([
       'continuous-distributions/Applications of the normal distribution',
-      'continuous-distributions/Chi-squared distribution',
       'continuous-distributions/Continuous uniform',
       'continuous-distributions/Exponential distribution',
-      'continuous-distributions/Gamma distribution',
       'continuous-distributions/Normal approximation to the binomial',
       'continuous-distributions/Normal distribution',
-      'continuous-distributions/Weibull distribution',
       'discrete-distributions/Binomial and multinomial',
       'discrete-distributions/Geometric and negative binomial',
       'discrete-distributions/Hypergeometric',

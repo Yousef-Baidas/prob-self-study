@@ -2,30 +2,7 @@ import type { QuestionTemplate } from '../types';
 
 import { generatedQuestion } from '../authoring';
 
-import { factorial, invNormalCdf, normalCdf, round } from '../mathx';
-
-/** p(x; λ), the Poisson pmf — used below only to compute gamma/chi-squared
- * CDFs through their exact relationship to the Poisson tail (Walpole 9e
- * §6.6, Example 6.18), never to model a Poisson question directly (that is
- * Chapter 5's territory). */
-const poissonPmf = (lambda: number, x: number): number => (Math.exp(-lambda) * lambda ** x) / factorial(x);
-
-/**
- * P(Gamma(alpha, beta) <= x) for a positive integer `alpha`, via the
- * gamma-Poisson relationship: the time until the `alpha`th Poisson event has
- * already happened by time x exactly when a Poisson(x/beta) count has
- * reached at least `alpha`. Verified against Walpole 9e Example 6.18
- * (alpha=2, beta=1/5, x=1 gives 0.9596, matching the book's 0.96).
- */
-const gammaCdfIntegerAlpha = (alpha: number, beta: number, x: number): number => {
-  const lambda = x / beta;
-
-  let tailBelow = 0;
-
-  for (let k = 0; k < alpha; k++) tailBelow += poissonPmf(lambda, k);
-
-  return 1 - tailBelow;
-};
+import { invNormalCdf, normalCdf, round } from '../mathx';
 
 const uniformProbabilityMeanVarianceTemplate = generatedQuestion({
   id: 'ch06-gen-uniform-probability-mean-variance',
@@ -474,99 +451,6 @@ const normalApproxBinomialRangeTemplate = generatedQuestion({
   },
 });
 
-const gammaMeanVarianceTemplate = generatedQuestion({
-  id: 'ch06-gen-gamma-mean-variance',
-
-  chapter: 'continuous-distributions',
-
-  topic: 'Gamma distribution',
-
-  difficulty: 'easy',
-
-  generate: (rng) => {
-    const alpha = rng.int(2, 8);
-
-    const beta = rng.int(2, 10);
-
-    const mean = alpha * beta;
-
-    const variance = alpha * beta * beta;
-
-    return {
-      prompt:
-        `A random variable $X$ has a gamma distribution with $\\alpha=${alpha}$ and $\\beta=${beta}$. Find the ` +
-        `mean and the variance of $X$.`,
-
-      params: { alpha, beta },
-
-      parts: [
-        { kind: 'numeric', label: 'mean', answer: mean, tol: 0.0005 },
-
-        { kind: 'numeric', label: 'variance', answer: variance, tol: 0.0005 },
-      ],
-
-      solution: [
-        {
-          text: `The mean and variance of the gamma distribution are $\\mu=\\alpha\\beta=${alpha}\\cdot${beta}=${mean}$ and $\\sigma^2=\\alpha\\beta^2=${alpha}\\cdot${beta}^2=${variance}$.`,
-        },
-      ],
-    };
-  },
-});
-
-const gammaPoissonCdfTemplate = generatedQuestion({
-  id: 'ch06-gen-gamma-poisson-cdf',
-
-  chapter: 'continuous-distributions',
-
-  topic: 'Gamma distribution',
-
-  difficulty: 'hard',
-
-  generate: (rng) => {
-    const alpha = rng.int(2, 5); // the number of Poisson events being waited for
-
-    const beta = rng.int(2, 6);
-
-    // The Poisson rate x/beta is windowed to within 0.8 standard deviations
-    // of alpha (its value when x = alpha*beta exactly), which by the normal
-    // approximation to the Poisson keeps P(Poisson >= alpha) roughly between
-    // Phi(-0.8) ~ 0.21 and Phi(0.8) ~ 0.79 -- comfortably away from 0 or 1.
-    const sd = Math.sqrt(alpha);
-
-    const offsetSteps = rng.int(-8, 8); // -0.8..0.8 standard deviations
-
-    const lambdaTarget = Math.max(0.5, alpha + (offsetSteps / 10) * sd);
-
-    const x = round(lambdaTarget * beta, 2);
-
-    const lambda = x / beta;
-
-    const probability = round(gammaCdfIntegerAlpha(alpha, beta, x), 4);
-
-    return {
-      prompt:
-        `Calls arrive at a switchboard following a Poisson process at a rate matching $\\beta=${beta}$ minutes ` +
-        `between calls on average. Let $X$ be the time, in minutes, until the $\\alpha=${alpha}$th call arrives ` +
-        `-- a gamma random variable with $\\alpha=${alpha}$ and $\\beta=${beta}$. Find $P(X\\le${x})$.`,
-
-      params: { alpha, beta, x },
-
-      parts: [{ kind: 'numeric', answer: probability, tol: 0.0005 }],
-
-      solution: [
-        {
-          text: `Time until the $\\alpha$th Poisson event has already elapsed by time $x$ exactly when a Poisson count over $[0,x]$ has reached at least $\\alpha$: $P(X\\le x)=P(\\text{Poisson}(x/\\beta)\\ge\\alpha)$.`,
-        },
-
-        {
-          text: `Here $x/\\beta=${x}/${beta}=${round(lambda, 4)}$, so $P(X\\le${x})=1-\\sum_{k=0}^{${alpha - 1}}p(k;${round(lambda, 4)})\\approx${probability}$.`,
-        },
-      ],
-    };
-  },
-});
-
 const exponentialProbabilityTemplate = generatedQuestion({
   id: 'ch06-gen-exponential-probability',
 
@@ -577,25 +461,29 @@ const exponentialProbabilityTemplate = generatedQuestion({
   difficulty: 'easy',
 
   generate: (rng) => {
-    const beta = rng.int(3, 10); // mean life
+    // lambda is a rate ("per hour", "per year", ...), the deck's
+    // parameterization -- not Walpole's mean beta.
+    const lambda = round(rng.int(5, 30) / 100, 2);
 
-    // ratio = t/beta kept between 0.3 and 2.0, so e^{-ratio} (and its
+    // ratio = lambda*t kept between 0.3 and 2.0, so e^{-ratio} (and its
     // complement) always lie between e^{-2}~0.135 and e^{-0.3}~0.741 --
     // never within rounding distance of 0 or 1.
     const ratio = rng.int(3, 20) / 10;
 
-    const t = round(beta * ratio, 2);
+    const t = round(ratio / lambda, 2);
 
-    const probMore = round(Math.exp(-t / beta), 4);
+    const exponent = round(lambda * t, 4);
 
-    const probLess = round(1 - Math.exp(-t / beta), 4);
+    const probMore = round(Math.exp(-exponent), 4);
+
+    const probLess = round(1 - Math.exp(-exponent), 4);
 
     return {
       prompt:
-        `The time to failure $T$, in years, of a component has an exponential distribution with mean ` +
-        `$\\beta=${beta}$. Find $P(T>${t})$ and $P(T<${t})$.`,
+        `The time to failure $T$, in years, of a component has an exponential distribution with rate ` +
+        `$\\lambda=${lambda}$ failures per year. Find $P(T>${t})$ and $P(T<${t})$.`,
 
-      params: { beta, t },
+      params: { lambda, t },
 
       parts: [
         { kind: 'numeric', label: `P(T > ${t})`, answer: probMore, tol: 0.0005 },
@@ -605,7 +493,7 @@ const exponentialProbabilityTemplate = generatedQuestion({
 
       solution: [
         {
-          text: `The exponential cdf is $F(t)=1-e^{-t/\\beta}$, so $P(T>${t})=e^{-${t}/${beta}}\\approx${probMore}$.`,
+          text: `The exponential cdf is $F(t)=1-e^{-\\lambda t}$, so $P(T>${t})=e^{-\\lambda t}=e^{-${lambda}\\times${t}}=e^{-${exponent}}\\approx${probMore}$.`,
         },
 
         {
@@ -626,228 +514,359 @@ const exponentialMemorylessTemplate = generatedQuestion({
   difficulty: 'medium',
 
   generate: (rng) => {
-    const beta = rng.int(4, 12);
+    const lambda = round(rng.int(5, 25) / 100, 2); // rate per hour
 
-    // target = t/beta kept between 0.2 and 1.5, so the shared answer
+    // target = lambda*t kept between 0.2 and 1.5, so the shared answer
     // e^{-target} always lies between e^{-1.5}~0.223 and e^{-0.2}~0.819.
     const target = rng.int(2, 15) / 10;
 
-    const t = round(beta * target, 2);
+    const t = round(target / lambda, 2);
 
-    // t0 is an exact multiple of beta, chosen only so the "already survived"
-    // point is concrete in the prompt -- the memoryless property holds for
-    // any t0, which is exactly the point being demonstrated.
-    const t0 = beta * rng.int(1, 5);
+    // t0 is an exact multiple of 1/lambda, chosen only so the "already
+    // survived" point is concrete in the prompt -- the memoryless property
+    // holds for any t0, which is exactly the point being demonstrated.
+    const t0 = round(rng.int(1, 5) / lambda, 2);
 
-    const answer = round(Math.exp(-t / beta), 4);
+    const exponent = round(lambda * t, 4);
+
+    const answer = round(Math.exp(-exponent), 4);
 
     return {
       prompt:
-        `A component's lifetime $T$, in years, is exponential with mean $\\beta=${beta}$. Given that the ` +
-        `component has already survived $${t0}$ years, find the probability it survives at least $${t}$ more ` +
-        `years, i.e. $P(T>${t0}+${t}\\mid T>${t0})$.`,
+        `A component's lifetime $T$, in hours, is exponential with rate $\\lambda=${lambda}$ failures per hour. ` +
+        `Given that the component has already survived $${t0}$ hours, find the probability it survives at ` +
+        `least $${t}$ more hours, i.e. $P(T>${t0}+${t}\\mid T>${t0})$.`,
 
-      params: { beta, t0, t },
+      params: { lambda, t0, t },
 
       parts: [{ kind: 'numeric', answer, tol: 0.0005 }],
 
       solution: [
         {
-          text: `The exponential distribution is memoryless: $P(T>t_0+t\\mid T>t_0)=P(T>t)$, regardless of how large $t_0$ is.`,
+          text: `The exponential distribution is memoryless: $P(T>t_0+t\\mid T>t_0)=P(T>t)$, regardless of how large $t_0$ is -- a quiet spell never makes the next failure "due".`,
         },
 
         {
-          text: `So the answer is just $P(T>${t})=e^{-${t}/${beta}}\\approx${answer}$ -- the ${t0} already-survived years carry no information about what happens next.`,
+          text: `So the answer is just $P(T>${t})=e^{-\\lambda t}=e^{-${lambda}\\times${t}}\\approx${answer}$ -- the ${t0} already-survived hours carry no information about what happens next.`,
         },
       ],
     };
   },
 });
 
-const chiSquaredMeanVarianceTemplate = generatedQuestion({
-  id: 'ch06-gen-chi-squared-mean-variance',
+const exponentialSeriesSystemTemplate = generatedQuestion({
+  id: 'ch06-gen-exponential-series-system',
 
   chapter: 'continuous-distributions',
 
-  topic: 'Chi-squared distribution',
-
-  difficulty: 'easy',
-
-  generate: (rng) => {
-    const v = rng.int(3, 20);
-
-    const mean = v;
-
-    const variance = 2 * v;
-
-    return {
-      prompt: `A random variable $X$ has a chi-squared distribution with $v=${v}$ degrees of freedom. Find the mean and the variance of $X$.`,
-
-      params: { v },
-
-      parts: [
-        { kind: 'numeric', label: 'mean', answer: mean, tol: 0.0005 },
-
-        { kind: 'numeric', label: 'variance', answer: variance, tol: 0.0005 },
-      ],
-
-      solution: [
-        {
-          text: `By Theorem 6.5, the chi-squared distribution has $\\mu=v=${v}$ and $\\sigma^2=2v=${variance}$.`,
-        },
-      ],
-    };
-  },
-});
-
-const chiSquaredGammaLinkTemplate = generatedQuestion({
-  id: 'ch06-gen-chi-squared-gamma-link',
-
-  chapter: 'continuous-distributions',
-
-  topic: 'Chi-squared distribution',
+  topic: 'Exponential distribution',
 
   difficulty: 'hard',
 
   generate: (rng) => {
-    // v is drawn even so that alpha = v/2 is a positive integer, letting the
-    // same gamma-Poisson relationship used above compute the cdf exactly.
-    const v = rng.pick([4, 6, 8, 10, 12, 14, 16]);
+    // Three independent components in series, each with its own rate --
+    // scaled like the bank's own series-system item (rates ~0.0005-0.0020
+    // per hour).
+    const rate1 = round(rng.int(5, 20) / 10000, 4);
 
-    const alpha = v / 2;
+    const rate2 = round(rng.int(5, 20) / 10000, 4);
 
-    const beta = 2;
+    const rate3 = round(rng.int(5, 20) / 10000, 4);
 
-    // Same windowing rationale as the gamma cdf template above: x/beta
-    // stays within 0.8 standard deviations of alpha, keeping
-    // P(chi-squared <= x) away from both 0 and 1.
-    const sd = Math.sqrt(alpha);
+    const lambdaTotal = round(rate1 + rate2 + rate3, 4);
 
-    const offsetSteps = rng.int(-8, 8);
+    const meanLife = round(1 / lambdaTotal, 1);
 
-    const lambdaTarget = Math.max(0.5, alpha + (offsetSteps / 10) * sd);
+    // ratio = t/meanLife kept between 0.3 and 2.0, exactly as the other
+    // exponential templates keep their survival probability material.
+    const ratio = rng.int(3, 20) / 10;
 
-    const x = round(lambdaTarget * beta, 2);
+    const t = round(meanLife * ratio, 1);
 
-    const probability = round(gammaCdfIntegerAlpha(alpha, beta, x), 4);
+    const exponent = round(lambdaTotal * t, 4);
 
-    return {
-      prompt:
-        `A chi-squared random variable with $v=${v}$ degrees of freedom is the special case of the gamma ` +
-        `distribution with $\\alpha=v/2=${alpha}$ and $\\beta=2$. Using that relationship, find $P(X\\le${x})$.`,
-
-      params: { v, alpha, beta, x },
-
-      parts: [{ kind: 'numeric', answer: probability, tol: 0.0005 }],
-
-      solution: [
-        {
-          text: `With $v$ even, $\\alpha=v/2=${alpha}$ is a positive integer, so $P(X\\le x)$ can be computed exactly through the gamma-Poisson relationship rather than the incomplete gamma table.`,
-        },
-
-        {
-          text: `$P(X\\le${x})=P(\\text{Poisson}(${x}/2)\\ge${alpha})\\approx${probability}$.`,
-        },
-      ],
-    };
-  },
-});
-
-const weibullCdfTemplate = generatedQuestion({
-  id: 'ch06-gen-weibull-cdf',
-
-  chapter: 'continuous-distributions',
-
-  topic: 'Weibull distribution',
-
-  difficulty: 'medium',
-
-  generate: (rng) => {
-    const betaShape = rng.pick([1, 2, 3]);
-
-    const tBase = rng.int(2, 10);
-
-    // target = alpha * tBase^betaShape is chosen directly, then alpha is
-    // solved backward -- so the exponent hits target exactly (no rounding
-    // drift), and target in [0.3, 2.0] keeps F(t) between
-    // 1-e^{-0.3}~0.259 and 1-e^{-2}~0.865.
-    const target = rng.int(3, 20) / 10;
-
-    const alpha = target / tBase ** betaShape;
-
-    const probability = round(1 - Math.exp(-target), 4);
+    const probability = round(Math.exp(-exponent), 4);
 
     return {
       prompt:
-        `The length of life $X$, in hours, of an item has a Weibull distribution with $\\alpha\\approx${round(alpha, 6)}$ ` +
-        `and $\\beta=${betaShape}$. What is the probability that it fails before $${tBase}$ hours of usage?`,
+        `Three components are connected in series, so the system fails as soon as the first component fails. ` +
+        `Their lives are independent and exponential with rates $\\lambda_1=${rate1}$, $\\lambda_2=${rate2}$, and ` +
+        `$\\lambda_3=${rate3}$ per hour. Find the system's failure rate, the mean time to system failure, and ` +
+        `$P(T>${t})$.`,
 
-      params: { alpha, betaShape, tBase },
-
-      parts: [{ kind: 'numeric', answer: probability, tol: 0.0005 }],
-
-      solution: [
-        {
-          text: `The Weibull cdf is $F(t)=1-e^{-\\alpha t^{\\beta}}$, so $P(X<${tBase})=1-e^{-${round(alpha, 6)}(${tBase})^{${betaShape}}}=1-e^{-${target}}\\approx${probability}$.`,
-        },
-      ],
-    };
-  },
-});
-
-const weibullFailureRateTemplate = generatedQuestion({
-  id: 'ch06-gen-weibull-failure-rate',
-
-  chapter: 'continuous-distributions',
-
-  topic: 'Weibull distribution',
-
-  difficulty: 'medium',
-
-  generate: (rng) => {
-    const betaShape = rng.pick([0.5, 0.75, 1, 1.5, 2, 3]);
-
-    const t0 = rng.int(2, 10);
-
-    // Same backward-solve trick as the cdf template: target in [0.1, 3] is
-    // chosen first, then alpha is solved so Z(t0) hits target exactly,
-    // keeping the failure rate answer always at least 0.1 -- far clear of 0.
-    const target = rng.int(1, 30) / 10;
-
-    const alpha = target / (betaShape * t0 ** (betaShape - 1));
-
-    const classification =
-      betaShape > 1 ? 'increasing -- the component wears over time'
-      : betaShape < 1 ? 'decreasing -- the component strengthens over time'
-      : 'constant -- the memoryless, exponential case';
-
-    const choices = [
-      'increasing -- the component wears over time',
-      'decreasing -- the component strengthens over time',
-      'constant -- the memoryless, exponential case',
-    ];
-
-    return {
-      prompt:
-        `A component's lifetime follows a Weibull distribution with $\\alpha\\approx${round(alpha, 6)}$ and ` +
-        `$\\beta=${betaShape}$. Find the failure rate $Z(${t0})$, and state whether the failure rate is ` +
-        `increasing, decreasing, or constant over time.`,
-
-      params: { alpha, betaShape, t0 },
+      params: { rate1, rate2, rate3, t },
 
       parts: [
-        { kind: 'numeric', label: `Z(${t0})`, answer: round(target, 4), tol: 0.0005 },
+        { kind: 'numeric', label: 'system failure rate', answer: lambdaTotal, tol: 0.00005 },
 
-        { kind: 'mcq', label: 'behaviour over time', choices, answer: choices.indexOf(classification) },
+        { kind: 'numeric', label: 'mean time to failure', answer: meanLife, tol: 0.05 },
+
+        { kind: 'numeric', label: `P(T > ${t})`, answer: probability, tol: 0.0005 },
       ],
 
       solution: [
         {
-          text: `The Weibull failure rate is $Z(t)=\\alpha\\beta t^{\\beta-1}$, so $Z(${t0})=${round(alpha, 6)}\\cdot${betaShape}\\cdot(${t0})^{${betaShape}-1}\\approx${round(target, 4)}$.`,
+          text: `A series system survives only while every component survives, so the independent exponential rates simply add: $\\lambda=\\lambda_1+\\lambda_2+\\lambda_3=${rate1}+${rate2}+${rate3}=${lambdaTotal}$ per hour.`,
         },
 
         {
-          text: `Since $\\beta${betaShape > 1 ? '>1' : betaShape < 1 ? '<1' : '=1'}$, the failure rate is **${classification}**.`,
+          text: `The mean time to system failure is $\\mu=1/\\lambda\\approx${meanLife}$ hours -- note this is below any single component's own mean life, since adding more series components can only shorten the system's life.`,
+        },
+
+        {
+          text: `$P(T>${t})=e^{-\\lambda t}=e^{-${lambdaTotal}\\times${t}}\\approx${probability}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const exponentialParallelRedundancyTemplate = generatedQuestion({
+  id: 'ch06-gen-exponential-parallel-redundancy',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Exponential distribution',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const lambda = round(rng.int(5, 20) / 10000, 4); // rate per hour
+
+    const meanLife = round(1 / lambda, 1);
+
+    // ratio = t/meanLife kept between 0.3 and 2.0, so a single unit's
+    // survival probability stays comfortably between e^{-2} and e^{-0.3}.
+    const ratio = rng.int(3, 20) / 10;
+
+    const t = round(meanLife * ratio, 1);
+
+    const exponent = round(lambda * t, 4);
+
+    const survivesOne = round(Math.exp(-exponent), 4);
+
+    const stationSurvives = round(1 - (1 - survivesOne) ** 2, 4);
+
+    return {
+      prompt:
+        `Two identical pumps are installed in parallel; the station fails only when both pumps have failed. ` +
+        `Each pump has an independent exponential life with rate $\\lambda=${lambda}$ per hour. Find the ` +
+        `probability that one pump survives $${t}$ hours, and the probability that the station is still ` +
+        `operating after $${t}$ hours.`,
+
+      params: { lambda, t },
+
+      parts: [
+        { kind: 'numeric', label: 'P(one pump survives)', answer: survivesOne, tol: 0.0005 },
+
+        { kind: 'numeric', label: 'P(station survives)', answer: stationSurvives, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `A single pump survives $t$ hours with probability $P(T>${t})=e^{-\\lambda t}=e^{-${lambda}\\times${t}}\\approx${survivesOne}$.`,
+        },
+
+        {
+          text: `The station fails only when *both* pumps have failed, and the pumps fail independently, so $P(\\text{station survives})=1-(1-${survivesOne})^2\\approx${stationSurvives}$ -- redundancy makes the parallel system more reliable than either pump alone.`,
+        },
+      ],
+    };
+  },
+});
+
+const exponentialMedianVsMeanTemplate = generatedQuestion({
+  id: 'ch06-gen-exponential-median-vs-mean',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Exponential distribution',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const lambda = round(rng.int(5, 40) / 100, 2); // rate per hour
+
+    const mean = round(1 / lambda, 4);
+
+    const median = round(Math.LN2 / lambda, 4);
+
+    return {
+      prompt:
+        `A component's lifetime $T$, in hours, is exponential with rate $\\lambda=${lambda}$ per hour. Find ` +
+        `$E(T)$ and the median of $T$, and state whether the median is less than, equal to, or greater than ` +
+        `the mean.`,
+
+      params: { lambda },
+
+      parts: [
+        { kind: 'numeric', label: 'mean', answer: mean, tol: 0.0005 },
+
+        { kind: 'numeric', label: 'median', answer: median, tol: 0.0005 },
+
+        { kind: 'tf', label: 'median < mean', answer: true },
+      ],
+
+      solution: [
+        {
+          text: `The mean is $E(T)=1/\\lambda=${mean}$ hours.`,
+        },
+
+        {
+          text: `The median $m$ solves $F(m)=1-e^{-\\lambda m}=0.5$, so $m=\\dfrac{\\ln 2}{\\lambda}\\approx${median}$ hours.`,
+        },
+
+        {
+          text: `Since $\\ln 2\\approx0.693<1$, the median is always **less than** the mean: the exponential is right-skewed, so its long upper tail pulls the mean above the point that splits the probability in half.`,
+        },
+      ],
+    };
+  },
+});
+
+const exponentialPoissonEquivalenceTemplate = generatedQuestion({
+  id: 'ch06-gen-exponential-poisson-equivalence',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Exponential distribution',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const lambda = rng.int(2, 8); // events per hour
+
+    const tMinutes = rng.int(10, 50);
+
+    const tHours = round(tMinutes / 60, 4);
+
+    const exponent = round(lambda * tHours, 4);
+
+    const probability = round(Math.exp(-exponent), 4);
+
+    return {
+      prompt:
+        `Defects appear along a production line as a Poisson process at a mean rate of $\\lambda=${lambda}$ ` +
+        `defects per hour. Let $T$ be the waiting time until the next defect. Find $P(T>${tMinutes}\\text{ min})$ ` +
+        `two different ways: (a) directly, as an exponential survival probability, and (b) as the Poisson ` +
+        `probability of zero defects during that time.`,
+
+      params: { lambda, tMinutes },
+
+      parts: [
+        { kind: 'numeric', label: '(a) exponential survival', answer: probability, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(b) Poisson P(zero defects)', answer: probability, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `(a) $${tMinutes}$ minutes is $${tHours}$ hours, so $P(T>${tHours})=e^{-\\lambda t}=e^{-${lambda}\\times${tHours}}\\approx${probability}$.`,
+        },
+
+        {
+          text: `(b) "No defect yet at time $t$" is exactly the Poisson event of zero occurrences by $t$: $p(0;\\lambda t)=e^{-\\lambda t}\\dfrac{(\\lambda t)^0}{0!}=e^{-\\lambda t}\\approx${probability}$ -- the same number, because "wait longer than $t$" and "zero events by $t$" are the same event.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalSolveMeanFromTailTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-solve-mean-from-tail',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Applications of the normal distribution',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const sigma = rng.int(2, 10);
+
+    const lowerLimit = rng.int(40, 100);
+
+    // pct kept between 1 and 10 (a small "at most this fraction may fall
+    // below the limit" tail), matching the deck's filling-process example.
+    const pct = rng.int(1, 10);
+
+    const p = pct / 100;
+
+    const z = round(invNormalCdf(p), 2);
+
+    const mu = round(lowerLimit - z * sigma, 2);
+
+    return {
+      prompt:
+        `A filling process is normally distributed with a standard deviation of $\\sigma=${sigma}$. The lower ` +
+        `specification limit is $${lowerLimit}$, and at most $${pct}\\%$ of containers may fall below it. Find ` +
+        `the minimum acceptable mean fill $\\mu$.`,
+
+      params: { sigma, lowerLimit, pct },
+
+      parts: [
+        { kind: 'numeric', label: 'z', answer: z, tol: 0.01 },
+
+        { kind: 'numeric', label: 'mu', answer: mu, tol: 0.05 },
+      ],
+
+      solution: [
+        {
+          text: `We need the $z$ value leaving area $${p}$ to the left: from the standard normal curve, $z\\approx${z}$.`,
+        },
+
+        {
+          text: `Since $z=\\dfrac{${lowerLimit}-\\mu}{${sigma}}$, rearranging gives $\\mu=${lowerLimit}-${z}(${sigma})\\approx${mu}$ -- the smallest mean that still keeps the tail below the limit at or under $${pct}\\%$.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalSolveSigmaFromTailTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-solve-sigma-from-tail',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Applications of the normal distribution',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const mu = rng.int(30, 80);
+
+    const upperLimit = rng.int(mu + 3, mu + 20);
+
+    // pct kept between 5 and 25 (the fraction exceeding the upper limit),
+    // matching the deck's cure-time example (10% of batches exceed 60 min).
+    const pct = rng.int(5, 25);
+
+    const p = pct / 100;
+
+    const z = round(invNormalCdf(1 - p), 2);
+
+    const sigma = round((upperLimit - mu) / z, 2);
+
+    return {
+      prompt:
+        `A process quantity is normally distributed with a mean of $\\mu=${mu}$, and $${pct}\\%$ of readings ` +
+        `exceed $${upperLimit}$. Find the standard deviation $\\sigma$.`,
+
+      params: { mu, upperLimit, pct },
+
+      parts: [
+        { kind: 'numeric', label: 'z', answer: z, tol: 0.01 },
+
+        { kind: 'numeric', label: 'sigma', answer: sigma, tol: 0.05 },
+      ],
+
+      solution: [
+        {
+          text: `$P(Z>z)=${p}$ means $P(Z<z)=${round(1 - p, 4)}$, so from the standard normal curve $z\\approx${z}$.`,
+        },
+
+        {
+          text: `Since $z=\\dfrac{${upperLimit}-${mu}}{\\sigma}$, rearranging gives $\\sigma=\\dfrac{${upperLimit}-${mu}}{${z}}\\approx${sigma}$.`,
         },
       ],
     };
@@ -871,19 +890,19 @@ export const ch06Generators: QuestionTemplate[] = [
 
   normalApproxBinomialRangeTemplate,
 
-  gammaMeanVarianceTemplate,
-
-  gammaPoissonCdfTemplate,
-
   exponentialProbabilityTemplate,
 
   exponentialMemorylessTemplate,
 
-  chiSquaredMeanVarianceTemplate,
+  exponentialSeriesSystemTemplate,
 
-  chiSquaredGammaLinkTemplate,
+  exponentialParallelRedundancyTemplate,
 
-  weibullCdfTemplate,
+  exponentialMedianVsMeanTemplate,
 
-  weibullFailureRateTemplate,
+  exponentialPoissonEquivalenceTemplate,
+
+  normalSolveMeanFromTailTemplate,
+
+  normalSolveSigmaFromTailTemplate,
 ];

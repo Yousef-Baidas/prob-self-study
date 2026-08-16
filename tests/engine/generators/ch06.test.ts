@@ -288,30 +288,6 @@ describe('ch06 normalApproxBinomialSingle', () => {
   });
 });
 
-describe('ch06 gammaMeanVariance', () => {
-  const t = byId('ch06-gen-gamma-mean-variance');
-
-  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
-    assertStableWording(t);
-  });
-
-  it('mean = alpha*beta and variance = alpha*beta^2', () => {
-    for (let seed = 0; seed < SEEDS; seed++) {
-      const inst = t.generate(mulberry32(seed));
-
-      const { alpha, beta } = inst.params as Record<string, number>;
-
-      expect(alpha).toBeGreaterThanOrEqual(2);
-
-      expect(beta).toBeGreaterThanOrEqual(2);
-
-      expectNumericParts(inst.parts, [alpha * beta, alpha * beta * beta]);
-
-      expectMaterialNumericParts(inst.parts);
-    }
-  });
-});
-
 describe('ch06 exponentialProbability', () => {
   const t = byId('ch06-gen-exponential-probability');
 
@@ -323,19 +299,24 @@ describe('ch06 exponentialProbability', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { beta, t: tVal } = inst.params as Record<string, number>;
+      const { lambda, t: tVal } = inst.params as Record<string, number>;
 
-      const ratio = tVal / beta;
+      // The deck parameterizes by the rate lambda, so the dimensionless
+      // exponent is lambda*t -- not t/beta. Getting this backwards yields the
+      // reciprocal, which is the single most common exam error here.
+      const ratio = lambda * tVal;
 
-      expect(ratio).toBeGreaterThanOrEqual(0.3);
+      // t is rounded to 2dp after being derived from the target ratio, so the
+      // realized ratio drifts slightly off the intended [0.3, 2.0] band.
+      expect(ratio).toBeGreaterThanOrEqual(0.3 - 0.02);
 
-      expect(ratio).toBeLessThanOrEqual(2.0);
+      expect(ratio).toBeLessThanOrEqual(2.0 + 0.02);
 
       const probMore = Math.exp(-ratio);
 
       const probLess = 1 - probMore;
 
-      expectNumericParts(inst.parts, [probMore, probLess]);
+      expectNumericParts(inst.parts, [probMore, probLess], 0.0005);
 
       expectMaterialNumericParts(inst.parts);
 
@@ -359,118 +340,82 @@ describe('ch06 exponentialMemoryless', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { beta, t0, t: tVal } = inst.params as Record<string, number>;
+      const { lambda, t0, t: tVal } = inst.params as Record<string, number>;
 
-      const answer = Math.exp(-tVal / beta);
+      const answer = Math.exp(-lambda * tVal);
 
-      expectNumericParts(inst.parts, [answer]);
+      expectNumericParts(inst.parts, [answer], 0.0005);
 
       expectMaterialNumericParts(inst.parts);
 
       // The memoryless property itself, checked directly rather than assumed:
       // P(T > t0+t | T > t0) = P(T>t0+t)/P(T>t0) must equal P(T>t) exactly.
-      const conditional = Math.exp(-(t0 + tVal) / beta) / Math.exp(-t0 / beta);
+      // The t0 factors cancel algebraically, which is precisely why the
+      // elapsed wait t0 cannot influence the answer.
+      const conditional = Math.exp(-lambda * (t0 + tVal)) / Math.exp(-lambda * t0);
 
       expect(conditional).toBeCloseTo(answer, 10);
     }
   });
 });
 
-describe('ch06 chiSquaredMeanVariance', () => {
-  const t = byId('ch06-gen-chi-squared-mean-variance');
+describe('ch06 exponentialMedianVsMean', () => {
+  const t = byId('ch06-gen-exponential-median-vs-mean');
 
   it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
     assertStableWording(t);
   });
 
-  it('mean = v and variance = 2v, per Theorem 6.5', () => {
+  it('mean = 1/lambda, median = ln2/lambda, and the median is always the smaller', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { v } = inst.params as Record<string, number>;
+      const { lambda } = inst.params as Record<string, number>;
 
-      expect(v).toBeGreaterThanOrEqual(3);
+      expect(lambda).toBeGreaterThan(0);
 
-      expectNumericParts(inst.parts, [v, 2 * v]);
+      expectNumericParts(inst.parts, [1 / lambda, Math.LN2 / lambda]);
 
       expectMaterialNumericParts(inst.parts);
 
-      // Structural identity: chi-squared(v) is gamma(alpha=v/2, beta=2), so
-      // its mean and variance must equal the gamma formulas at those
-      // parameters too.
-      expect(v).toBeCloseTo((v / 2) * 2, 10);
+      // The whole point of the template: the exponential is right-skewed, so
+      // the long upper tail drags the mean above the median. ln2 < 1 makes
+      // this true for every lambda, which is why the true/false part is not
+      // seed-dependent.
+      const tfPart = inst.parts.find((p) => p.kind === 'tf');
 
-      expect(2 * v).toBeCloseTo((v / 2) * 2 * 2, 10);
+      expect(tfPart?.kind).toBe('tf');
+
+      if (tfPart?.kind === 'tf') expect(tfPart.answer).toBe(true);
+
+      expect(Math.LN2 / lambda).toBeLessThan(1 / lambda);
     }
   });
 });
 
-describe('ch06 weibullCdf', () => {
-  const t = byId('ch06-gen-weibull-cdf');
+describe('ch06 exponentialPoissonEquivalence', () => {
+  const t = byId('ch06-gen-exponential-poisson-equivalence');
 
   it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
     assertStableWording(t);
   });
 
-  it('P(X<tBase) matches the Weibull cdf exactly, with the target exponent always in [0.3, 2.0]', () => {
+  it('the exponential survival and the Poisson zero-event probability agree exactly', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { alpha, betaShape, tBase } = inst.params as Record<string, number>;
+      const { lambda, tMinutes } = inst.params as Record<string, number>;
 
-      const exponent = alpha * tBase ** betaShape;
+      const tHours = tMinutes / 60;
 
-      expect(exponent).toBeGreaterThanOrEqual(0.3 - 1e-9);
+      // Computed the long way round -- the Poisson pmf at k=0 with mean
+      // lambda*t -- rather than reusing exp(-lambda*t), so that the identity
+      // P(X > t) = P(N = 0) is genuinely re-derived rather than assumed.
+      const poissonZero = ((lambda * tHours) ** 0 / 1) * Math.exp(-(lambda * tHours));
 
-      expect(exponent).toBeLessThanOrEqual(2.0 + 1e-9);
-
-      const probability = 1 - Math.exp(-exponent);
-
-      expectNumericParts(inst.parts, [probability]);
+      expectNumericParts(inst.parts, [poissonZero, poissonZero], 0.0006);
 
       expectMaterialNumericParts(inst.parts);
-    }
-  });
-});
-
-describe('ch06 weibullFailureRate', () => {
-  const t = byId('ch06-gen-weibull-failure-rate');
-
-  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
-    assertStableWording(t);
-  });
-
-  it('Z(t0) matches alpha*beta*t0^(beta-1) exactly, and the classification matches beta vs 1', () => {
-    for (let seed = 0; seed < SEEDS; seed++) {
-      const inst = t.generate(mulberry32(seed));
-
-      const { alpha, betaShape, t0 } = inst.params as Record<string, number>;
-
-      const z = alpha * betaShape * t0 ** (betaShape - 1);
-
-      expect(z).toBeGreaterThanOrEqual(0.1 - 1e-9);
-
-      const numericPart = inst.parts.find((p) => p.kind === 'numeric');
-
-      expect(numericPart?.kind).toBe('numeric');
-
-      if (numericPart?.kind === 'numeric') {
-        expect(Math.abs(numericPart.answer - z)).toBeLessThanOrEqual(numericPart.tol);
-
-        expect(Math.abs(numericPart.answer)).toBeGreaterThan(numericPart.tol * 2);
-      }
-
-      const mcqPart = inst.parts.find((p) => p.kind === 'mcq');
-
-      expect(mcqPart?.kind).toBe('mcq');
-
-      if (mcqPart?.kind === 'mcq') {
-        const chosen = mcqPart.choices[mcqPart.answer];
-
-        if (betaShape > 1) expect(chosen).toContain('increasing');
-        else if (betaShape < 1) expect(chosen).toContain('decreasing');
-        else expect(chosen).toContain('constant');
-      }
     }
   });
 });

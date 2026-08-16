@@ -37,7 +37,7 @@ export const CHART_WIDTH = {
   normalCurve: 380,
   standardization: 560,
   binomialNormalOverlay: 560,
-  gammaFamily: 380,
+  memoryless: 560,
 } as const;
 
 /**
