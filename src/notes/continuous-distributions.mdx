@@ -472,3 +472,121 @@ Mistakes this chapter actually punishes, gathered in one place:
   estimation directly; this chapter's exact answers all rest on the parameters being exactly
   what the problem states them to be.
 
+## 6.8 Calculator shortcuts on the fx-991CW
+
+Every normal-distribution question in this chapter ends at the same wall: you need an area
+under a curve that has no closed-form antiderivative. Table A.3 is one way through it. The
+calculator's Distribution app is the other, and it is faster, needs no interpolation between
+rows, and cannot be misread off the line above the one you wanted. Learn the handful of
+question shapes below and the table becomes a way to check your answer rather than the way
+to get it.
+
+Press `HOME`, select the **Distribution** icon, press `OK`. Four of the seven calculation
+types on that menu carry this whole chapter: `Normal CD` for an area, `Inverse Normal` for a
+cut-off, `Binomial CD` for the exact answer §6.5 is approximating, and `Poisson PD` for a
+cross-check on §6.6.
+
+<Notation title="The calculator calls this" rows={[
+  { name: 'the left edge of the region you want', symbol: '\\texttt{Lower}' },
+  { name: 'the right edge of the region you want', symbol: '\\texttt{Upper}' },
+  { name: 'the area to the left of an unknown cut-off', symbol: '\\texttt{Area}', note: 'Inverse Normal takes this and hands back the cut-off itself.' },
+  { name: 'the cut-off it hands back', symbol: 'x\\text{Inv}' },
+]} />
+
+You type the real `μ` and `σ` from the problem, not $0$ and $1$. The app standardizes
+internally, so §6.3's change of variable becomes a step you no longer perform by hand — which
+is exactly why you must still understand it, since the exam can ask for the `z` value on its
+own.
+
+Two behaviours surprise people mid-question, and both are worth knowing before the clock
+starts:
+
+- **Normal PD, Normal CD and Inverse Normal never show the List/Variable menu.** They take a
+  single value at a time, and the result is stored in `Ans` so you can chain from it.
+- **Inverse Normal's tail is always the left tail.** There is no setting to flip it. An
+  upper-tail percentage must be converted to `1 - Area` before you type anything.
+
+### The normal question shapes
+
+This is the part to memorize. The left column is how the question is phrased; the right column
+is what you enter. Nothing else varies.
+
+| What the question asks | App | What to enter |
+| --- | --- | --- |
+| $P(a < X < b)$ — "between $a$ and $b$" | Normal CD | `Lower` $= a$, `Upper` $= b$ |
+| $P(X > a)$ — "at least", "exceeds", "more than" | Normal CD | `Lower` $= a$, `Upper` $= 1 \times 10^{99}$ |
+| $P(X < b)$ — "at most", "under", "less than" | Normal CD | `Lower` $= -1 \times 10^{99}$, `Upper` $= b$ |
+| "Find the value below which 15% fall" | Inverse Normal | `Area` $= 0.15$ |
+| "Find the value above which 15% fall" | Inverse Normal | `Area` $= 0.85$ |
+| "Find the $z$ value for a 5% tail" | Inverse Normal | `Area` $= 0.05$, with $\mu = 0$ and $\sigma = 1$ |
+
+The $10^{99}$ in rows two and three is the calculator's stand-in for infinity, typed with the
+`×10ˣ` key. Any value ten or more standard deviations past the mean gives the same answer to
+displayed precision, so the exact magnitude does not matter.
+
+The two reverse problems — a stated tail percentage that fixes an unknown `μ` or an unknown
+`σ` — are the same Inverse Normal call followed by one line of algebra. Read `z` off the
+standard curve, then rearrange $z = (x - \mu)/\sigma$:
+
+$$
+\mu = x - z\sigma \qquad\qquad \sigma = \frac{x - \mu}{z}
+$$
+
+A lower-tail percentage under $50\%$ gives a negative `z`, which is what pushes the mean
+*above* the limit. Losing that sign is the standard wrong answer here, and the calculator will
+not catch it for you.
+
+### The normal approximation, and its own answer key
+
+Section 6.5 approximates a binomial count with a normal curve. The calculator will compute
+both sides of that approximation, which turns the exercise into a self-checking one:
+
+1. Compute the approximation the way the chapter asks. Set $\mu = np$ and
+   $\sigma = \sqrt{np(1-p)}$, then use Normal CD with the continuity correction —
+   `Lower` $= x_1 - 0.5$ and `Upper` $= x_2 + 0.5$.
+2. Then run `Binomial CD` with the original `N` and `p`. That is the exact probability, with
+   no approximation anywhere in it.
+
+The two should agree to roughly three decimals whenever $np > 5$ and $n(1-p) > 5$. A gap much
+wider than that almost always means the $\pm 0.5$ was dropped. Write down the normal
+approximation as your answer, since that is what the question asked for, but use the exact
+value to catch yourself.
+
+### The exponential has no app
+
+There is no exponential distribution in the Distribution menu. This chapter's most heavily
+examined section is the one the calculator helps with least, so the formulas have to be in
+your head and typed with the `e^` key:
+
+| What the question asks | What to compute |
+| --- | --- |
+| "survives past $x$", "lasts longer than $x$" | $e^{-\lambda x}$ |
+| "fails before $x$" | $1 - e^{-\lambda x}$ |
+| "given it has already lasted $t_1$, survives another $t_2$" | $e^{-\lambda t_2}$ — discard $t_1$ |
+| mean time, variance | $1/\lambda$ and $1/\lambda^2$ |
+| median time | $\ln(2)/\lambda$, not $1/\lambda$ |
+| a series system of components | add the rates, then use $\lambda_{\text{total}}$ |
+
+There is one genuine cross-check available. Waiting past time $x$ means the Poisson count over
+that stretch is zero, so `Poisson PD` with $x = 0$ and $\lambda = \lambda x$ returns exactly
+$e^{-\lambda x}$. If you are ever unsure whether you have inverted the rate, run it both ways
+and keep the one that matches — this is the fastest way to catch the `β`-for-`λ` error
+described in §6.7.
+
+The continuous uniform of §6.1 needs no shortcut at all. Its probabilities, mean and variance
+are arithmetic you can do faster than you can open a menu.
+
+### Habits worth drilling
+
+- **Store `μ` and `σ` into variables `A` and `B`** with the `STO` key before a multi-part
+  question. Every later part then reuses them instead of re-typing them.
+- **Do not leave the app between parts.** The parameter screen keeps its last values, so a
+  four-part question about one normal curve means editing `Lower` and `Upper` and pressing
+  `EXE` again.
+- **Show the `z` anyway.** A rubric that asks for the standardized value wants to see it,
+  even when the app never made you compute it. Getting it from Inverse Normal with $\mu = 0$
+  and $\sigma = 1$ costs a few seconds.
+- **The app cannot tell you which distribution to use.** Deciding between a normal, a
+  binomial, and an exponential from the wording of a problem is the part of the exam that no
+  shortcut touches — and it is where the marks actually are.
+
