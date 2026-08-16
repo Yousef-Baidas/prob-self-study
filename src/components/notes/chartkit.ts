@@ -34,6 +34,10 @@ export const CHART_WIDTH = {
   samplingContrast: 560,
   waitingTime: 380,
   poissonShape: 560,
+  normalCurve: 380,
+  standardization: 560,
+  binomialNormalOverlay: 560,
+  gammaFamily: 380,
 } as const;
 
 /**

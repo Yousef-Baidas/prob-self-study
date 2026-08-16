@@ -4,7 +4,7 @@ import {
   factorial, nPr, nCr, mean, median,
   sampleVariance, populationVariance, sampleStdDev,
   quartile, iqr,
-  round, normalCdf, erf,
+  round, normalCdf, erf, invNormalCdf,
 } from '../../src/engine/mathx';
 
 describe('combinatorics', () => {
@@ -136,5 +136,35 @@ describe('normalCdf', () => {
     for (const z of [0.3, 1.0, 2.2]) {
       expect(normalCdf(z) + normalCdf(-z)).toBeCloseTo(1, 6);
     }
+  });
+});
+
+describe('invNormalCdf', () => {
+  it('matches Table A.3 landmark values', () => {
+    expect(invNormalCdf(0.5)).toBeCloseTo(0, 6);
+
+    expect(invNormalCdf(0.975)).toBeCloseTo(1.96, 3);
+
+    expect(invNormalCdf(0.025)).toBeCloseTo(-1.96, 3);
+
+    expect(invNormalCdf(0.95)).toBeCloseTo(1.645, 2);
+
+    expect(invNormalCdf(0.99)).toBeCloseTo(2.326, 2);
+
+    expect(invNormalCdf(0.1587)).toBeCloseTo(-1, 3);
+  });
+
+  it('is the exact inverse of normalCdf across the tails and the centre', () => {
+    for (const z of [-3, -2.5, -1.96, -1, -0.13, 0, 0.13, 1, 1.96, 2.5, 3]) {
+      expect(invNormalCdf(normalCdf(z))).toBeCloseTo(z, 6);
+    }
+  });
+
+  it('throws outside (0, 1)', () => {
+    expect(() => invNormalCdf(0)).toThrow();
+
+    expect(() => invNormalCdf(1)).toThrow();
+
+    expect(() => invNormalCdf(-0.1)).toThrow();
   });
 });

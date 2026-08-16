@@ -1,0 +1,142 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { AXIS_PADDING, CHART_WIDTH, plot, samplePoints, scale, uid } from '../chartkit';
+
+// A binomial mass function drawn as bars (ink, dashed) with the matching
+// normal density overlaid as a smooth curve (accent), plus one bar's
+// continuity-corrected span [x - 0.5, x + 0.5] hatched underneath the curve.
+// The bars and the curve are deliberately different marks for a reason: a
+// bar is an exact probability, the area under the curve across its width is
+// only an approximation to it, and the figure's whole point is that the two
+// are close without being the same kind of object.
+interface Bar {
+  x: number;
+
+  p: number;
+}
+
+interface Props {
+  bars: Bar[];
+
+  mean: number;
+
+  sigma: number;
+
+  shadeFrom: number;
+
+  shadeTo: number;
+
+  title: string;
+
+  axisLabel?: string;
+
+  width?: number;
+
+  samples?: number;
+}
+
+const {
+  bars,
+  mean,
+  sigma,
+  shadeFrom,
+  shadeTo,
+  title,
+  axisLabel,
+  width = CHART_WIDTH.binomialNormalOverlay,
+  samples = 160,
+} = Astro.props;
+
+const height = 258;
+
+const p = plot(width, height, { ...AXIS_PADDING, top: 40, bottom: axisLabel ? 48 : 34 });
+
+const domain: [number, number] = [bars[0].x - 1, bars[bars.length - 1].x + 1];
+
+const normalFn = (x: number) => Math.exp(-((x - mean) ** 2) / (2 * sigma * sigma)) / (sigma * Math.sqrt(2 * Math.PI));
+
+const maxBar = Math.max(...bars.map((b) => b.p), 0) || 1;
+
+const domainMax = maxBar * 1.25;
+
+const x = scale(domain, [p.left, p.right]);
+
+const y = scale([0, domainMax], [p.baseline, p.top]);
+
+const barWidth = (p.innerWidth / (domain[1] - domain[0])) * 0.62;
+
+const curvePoints = samplePoints(normalFn, domain, samples).map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
+
+const shadeXs = samplePoints(normalFn, [shadeFrom, shadeTo], 48);
+
+const shadePath =
+  `M ${x(shadeFrom)},${p.baseline} ` +
+  shadeXs.map((point) => `L ${x(point.x)},${y(point.y)}`).join(' ') +
+  ` L ${x(shadeTo)},${p.baseline} Z`;
+
+const hatchId = uid('overlay-hatch');
+
+const gridLines = [0.25, 0.5, 0.75, 1].map((f) => ({
+  value: f,
+  y: p.baseline - (f * maxBar * p.innerHeight) / domainMax,
+}));
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={6} />
+
+  {gridLines.map((line) => <line x1={p.left} y1={line.y} x2={p.right} y2={line.y} class="c-grid" aria-hidden="true" />)}
+
+  <line x1={p.left} y1={p.top} x2={p.left} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">chance</text>
+
+  <path d={shadePath} fill={`url(#${hatchId})`} aria-hidden="true" />
+
+  {
+    bars.map((bar) => (
+      <rect
+        x={x(bar.x) - barWidth / 2}
+        y={y(bar.p)}
+        width={barWidth}
+        height={p.baseline - y(bar.p)}
+        fill="none"
+        stroke="var(--color-chart-ink)"
+        stroke-width="1.75"
+        stroke-dasharray="4 3"
+        aria-hidden="true"
+      />
+    ))
+  }
+
+  <polyline points={curvePoints} class="c-data" aria-hidden="true" />
+
+  {
+    bars.map((bar) => (
+      <text x={x(bar.x)} y={p.baseline + 20} class="c-tick c-mid" aria-hidden="true">
+        {bar.x}
+      </text>
+    ))
+  }
+
+  <g aria-hidden="true">
+    <rect x={p.right - 150} y={16} width="12" height="12" fill="none" stroke="var(--color-chart-ink)" stroke-width="1.75" stroke-dasharray="4 3" />
+    <text x={p.right - 132} y={26} class="c-value c-value-ink">binomial bar</text>
+
+    <line x1={p.right - 150} y1={38} x2={p.right - 138} y2={38} class="c-data" />
+    <text x={p.right - 132} y={42} class="c-value">normal curve</text>
+  </g>
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

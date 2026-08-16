@@ -1,8 +1,8 @@
 // Single source for navigation + the chapter list. Header, footer, the chapters
 // index and the [slug] page all build from this. Chapter slugs MUST match the
 // engine's chapter tags ('intro', 'probability', 'random-variables',
-// 'expectation', 'discrete-distributions') — a mismatch fails the cross-check
-// test and would 404 practice links.
+// 'expectation', 'discrete-distributions', 'continuous-distributions') — a
+// mismatch fails the cross-check test and would 404 practice links.
 //
 // A chapter declares only what nothing else can know: its number, title and
 // slug. Its topics come from the templates that exist for it, so the list can
@@ -80,6 +80,14 @@ const identities: ChapterIdentity[] = [
     title: 'Some Discrete Probability Distributions',
 
     slug: 'discrete-distributions',
+  },
+
+  {
+    number: 6,
+
+    title: 'Some Continuous Probability Distributions',
+
+    slug: 'continuous-distributions',
   },
 ];
 

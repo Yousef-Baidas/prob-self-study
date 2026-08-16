@@ -10,6 +10,8 @@ import { ch04Generators } from './generators/ch04';
 
 import { ch05Generators } from './generators/ch05';
 
+import { ch06Generators } from './generators/ch06';
+
 import { ch01Book } from './questions/ch01.book';
 
 import { ch02Book } from './questions/ch02.book';
@@ -19,6 +21,8 @@ import { ch03Book } from './questions/ch03.book';
 import { ch04Book } from './questions/ch04.book';
 
 import { ch05Book } from './questions/ch05.book';
+
+import { ch06Book } from './questions/ch06.book';
 
 /** Every question template — book and generated, every chapter — in one array. */
 export const allTemplates: QuestionTemplate[] = [
@@ -32,6 +36,8 @@ export const allTemplates: QuestionTemplate[] = [
 
   ...ch05Generators,
 
+  ...ch06Generators,
+
   ...ch01Book,
 
   ...ch02Book,
@@ -41,6 +47,8 @@ export const allTemplates: QuestionTemplate[] = [
   ...ch04Book,
 
   ...ch05Book,
+
+  ...ch06Book,
 ];
 
 export type SelectOptions = {

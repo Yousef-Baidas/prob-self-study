@@ -1,0 +1,172 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { CHART_WIDTH, samplePoints, scale, uid } from '../chartkit';
+
+// Two curves, side by side: the original X-curve with its shaded region on
+// the left, the standard normal Z-curve with the *same* area on the right.
+// The point of this figure is that the two hatched regions are the same
+// size — standardizing moves the boundary, not the probability — so both
+// panels share one y scale (as a fraction of each curve's own peak) and the
+// area labels are deliberately identical.
+interface Props {
+  title: string;
+
+  mean: number;
+
+  sigma: number;
+
+  x1: number;
+
+  x2: number;
+
+  areaLabel: string;
+
+  axisLabelX?: string;
+
+  width?: number;
+
+  samples?: number;
+}
+
+const {
+  title,
+  mean,
+  sigma,
+  x1,
+  x2,
+  areaLabel,
+  axisLabelX = 'x',
+  width = CHART_WIDTH.standardization,
+  samples = 96,
+} = Astro.props;
+
+const height = 220;
+
+const gap = 56;
+
+const panelWidth = (width - gap) / 2;
+
+const padding = { top: 40, right: 16, bottom: 40, left: 16 };
+
+const normalFn = (z: number) => Math.exp(-(z * z) / 2) / Math.sqrt(2 * Math.PI);
+
+const xFn = (x: number) => normalFn((x - mean) / sigma) / sigma;
+
+const z1 = (x1 - mean) / sigma;
+
+const z2 = (x2 - mean) / sigma;
+
+const xDomain: [number, number] = [mean - 3.5 * sigma, mean + 3.5 * sigma];
+
+const zDomain: [number, number] = [-3.5, 3.5];
+
+function panel(fn: (v: number) => number, domain: [number, number], from: number, to: number, originX: number) {
+  const points = samplePoints(fn, domain, samples);
+
+  const yMax = Math.max(...points.map((point) => point.y)) * 1.2;
+
+  const px = scale(domain, [originX + padding.left, originX + panelWidth - padding.right]);
+
+  const py = scale([0, yMax], [height - padding.bottom, padding.top]);
+
+  const curvePoints = points.map((point) => `${px(point.x)},${py(point.y)}`).join(' ');
+
+  const shadeXs = points.filter((point) => point.x >= from && point.x <= to);
+
+  const shadePath =
+    `M ${px(from)},${height - padding.bottom} ` +
+    `L ${px(from)},${py(fn(from))} ` +
+    shadeXs.map((point) => `L ${px(point.x)},${py(point.y)}`).join(' ') +
+    ` L ${px(to)},${py(fn(to))} L ${px(to)},${height - padding.bottom} Z`;
+
+  return { px, py, curvePoints, shadePath, baseline: height - padding.bottom };
+}
+
+const left = panel(xFn, xDomain, x1, x2, 0);
+
+const right = panel(normalFn, zDomain, z1, z2, panelWidth + gap);
+
+const hatchIdX = uid('std-hatch-x');
+
+const hatchIdZ = uid('std-hatch-z');
+
+const arrowY = height / 2;
+
+const arrowX1 = panelWidth + 10;
+
+const arrowX2 = panelWidth + gap - 10;
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchIdX} spacing={7} />
+
+  <Hatch id={hatchIdZ} spacing={7} />
+
+  <line x1={0} y1={left.baseline} x2={panelWidth} y2={left.baseline} class="c-axis" aria-hidden="true" />
+
+  <line
+    x1={panelWidth + gap}
+    y1={right.baseline}
+    x2={width}
+    y2={right.baseline}
+    class="c-axis"
+    aria-hidden="true"
+  />
+
+  <text x={panelWidth / 2} y={14} class="c-caps c-mid" aria-hidden="true">original curve</text>
+
+  <text x={panelWidth + gap + panelWidth / 2} y={14} class="c-caps c-mid" aria-hidden="true">standard curve</text>
+
+  <path d={left.shadePath} fill={`url(#${hatchIdX})`} aria-hidden="true" />
+
+  <path d={right.shadePath} fill={`url(#${hatchIdZ})`} aria-hidden="true" />
+
+  <polyline points={left.curvePoints} class="c-data" aria-hidden="true" />
+
+  <polyline points={right.curvePoints} class="c-data" aria-hidden="true" />
+
+  {
+    [x1, x2].map((bound) => (
+      <text x={left.px(bound)} y={left.baseline + 18} class="c-tick c-mid" aria-hidden="true">
+        {bound}
+      </text>
+    ))
+  }
+
+  {
+    [z1, z2].map((bound) => (
+      <text x={right.px(bound)} y={right.baseline + 18} class="c-tick c-mid" aria-hidden="true">
+        {Math.round(bound * 100) / 100}
+      </text>
+    ))
+  }
+
+  <text x={panelWidth / 2} y={left.baseline + 34} class="c-axis-name c-mid" aria-hidden="true">
+    {axisLabelX}
+  </text>
+
+  <text x={panelWidth + gap + panelWidth / 2} y={right.baseline + 34} class="c-axis-name c-mid" aria-hidden="true">
+    z
+  </text>
+
+  <line x1={arrowX1} y1={arrowY} x2={arrowX2} y2={arrowY} class="c-connector" aria-hidden="true" />
+
+  <path
+    d={`M ${arrowX2 - 6},${arrowY - 4} L ${arrowX2},${arrowY} L ${arrowX2 - 6},${arrowY + 4}`}
+    fill="none"
+    stroke="var(--color-text-muted)"
+    stroke-width="1.5"
+    aria-hidden="true"
+  />
+
+  <text x={(arrowX1 + arrowX2) / 2} y={arrowY - 10} class="c-tick c-mid c-halo" aria-hidden="true">
+    z = (x−μ)/σ
+  </text>
+
+  <text x={panelWidth / 2} y={34} class="c-value c-mid c-halo" aria-hidden="true">{areaLabel}</text>
+
+  <text x={panelWidth + gap + panelWidth / 2} y={34} class="c-value c-mid c-halo" aria-hidden="true">{areaLabel}</text>
+</svg>

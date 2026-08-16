@@ -7,6 +7,7 @@ import { chapters } from '../../src/lib/site';
 describe('chapterNotes', () => {
   it('reads the notes that exist rather than a hand-kept list', () => {
     expect([...notedSlugs].sort()).toEqual([
+      'continuous-distributions',
       'discrete-distributions',
       'expectation',
       'intro',

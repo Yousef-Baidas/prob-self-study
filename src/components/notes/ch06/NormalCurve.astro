@@ -1,0 +1,139 @@
+---
+import Hatch from '../Hatch.astro';
+
+import { CHART_WIDTH, PLOT_PADDING, plot, samplePoints, scale, uid } from '../chartkit';
+
+// A normal density curve with a hatched probability region and the mean
+// marked as a dashed guide. This is DensityArea's chapter-3 idea specialised
+// to the one curve this chapter returns to over and over: the caller always
+// passes a normal density, and the mean line is what makes "the curve is
+// symmetric about mu" a picture rather than an assertion.
+interface Props {
+  fn: (x: number) => number;
+
+  domain: [number, number];
+
+  mean: number;
+
+  shadeFrom: number;
+
+  shadeTo: number;
+
+  title: string;
+
+  /** The area's value, written into the region itself, e.g. 'area = 0.5764'. */
+  areaLabel?: string;
+
+  /** Name of the quantity along the bottom, e.g. `batteryLife`. */
+  axisLabel?: string;
+
+  width?: number;
+
+  samples?: number;
+}
+
+const {
+  fn,
+  domain,
+  mean,
+  shadeFrom,
+  shadeTo,
+  title,
+  areaLabel,
+  axisLabel,
+  width = CHART_WIDTH.normalCurve,
+  samples = 120,
+} = Astro.props;
+
+const height = 224;
+
+const p = plot(width, height, { ...PLOT_PADDING, left: 22, bottom: axisLabel ? 48 : 34 });
+
+const points = samplePoints(fn, domain, samples);
+
+const yMax = Math.max(...points.map((point) => point.y)) * 1.2;
+
+const x = scale(domain, [p.left, p.right]);
+
+const y = scale([0, yMax], [p.baseline, p.top]);
+
+const curvePoints = points.map((point) => `${x(point.x)},${y(point.y)}`).join(' ');
+
+const shadeXs = points.filter((point) => point.x >= shadeFrom && point.x <= shadeTo);
+
+const shadePath =
+  `M ${x(shadeFrom)},${p.baseline} ` +
+  `L ${x(shadeFrom)},${y(fn(shadeFrom))} ` +
+  shadeXs.map((point) => `L ${x(point.x)},${y(point.y)}`).join(' ') +
+  ` L ${x(shadeTo)},${y(fn(shadeTo))} L ${x(shadeTo)},${p.baseline} Z`;
+
+const hatchId = uid('normal-hatch');
+
+const labelX = (x(shadeFrom) + x(shadeTo)) / 2;
+
+const labelY = p.top + 32;
+
+const leaderTo = y(fn((shadeFrom + shadeTo) / 2));
+---
+
+<svg viewBox={`0 0 ${width} ${height}`} class="c-svg" role="img" aria-label={title}>
+  <title>{title}</title>
+
+  <Hatch id={hatchId} spacing={7} />
+
+  <line x1={p.left} y1={p.baseline} x2={p.right} y2={p.baseline} class="c-axis" aria-hidden="true" />
+
+  <text x={p.left} y={p.top - 12} class="c-caps" aria-hidden="true">curve height</text>
+
+  <path d={shadePath} fill={`url(#${hatchId})`} aria-hidden="true" />
+
+  <line x1={x(mean)} y1={p.baseline} x2={x(mean)} y2={y(fn(mean))} class="c-guide-ink" aria-hidden="true" />
+
+  <text x={x(mean)} y={p.top - 12} class="c-value c-value-ink c-mid c-halo" aria-hidden="true">
+    μ
+  </text>
+
+  {
+    [shadeFrom, shadeTo].map((bound) => (
+      <line
+        x1={x(bound)}
+        y1={p.baseline}
+        x2={x(bound)}
+        y2={y(fn(bound))}
+        stroke="var(--color-accent)"
+        stroke-width="1.5"
+        aria-hidden="true"
+      />
+    ))
+  }
+
+  <polyline points={curvePoints} class="c-data" aria-hidden="true" />
+
+  {
+    areaLabel && (
+      <g aria-hidden="true">
+        <line x1={labelX} y1={labelY + 6} x2={labelX} y2={leaderTo - 4} class="c-leader" />
+
+        <text x={labelX} y={labelY} class="c-value c-mid c-halo">
+          {areaLabel}
+        </text>
+      </g>
+    )
+  }
+
+  {
+    [shadeFrom, shadeTo].map((bound) => (
+      <text x={x(bound)} y={p.baseline + 20} class="c-tick c-mid" aria-hidden="true">
+        {bound}
+      </text>
+    ))
+  }
+
+  {
+    axisLabel && (
+      <text x={(p.left + p.right) / 2} y={height - 8} class="c-axis-name c-mid" aria-hidden="true">
+        {axisLabel}
+      </text>
+    )
+  }
+</svg>

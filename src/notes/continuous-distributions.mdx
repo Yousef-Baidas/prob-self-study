@@ -1,0 +1,509 @@
+import Notation from '../components/notes/Notation.astro';
+import Figure from '../components/notes/Figure.astro';
+import NormalCurve from '../components/notes/ch06/NormalCurve.astro';
+import Standardization from '../components/notes/ch06/Standardization.astro';
+import BinomialNormalOverlay from '../components/notes/ch06/BinomialNormalOverlay.astro';
+import GammaFamily from '../components/notes/ch06/GammaFamily.astro';
+
+import { CHART_WIDTH } from '../components/notes/chartkit';
+
+## 6.1 Continuous uniform distribution
+
+A conference room can be booked for no more than 4 hours, and both short and long
+meetings happen often enough that no length is more likely than any other. Call the length
+of a booked meeting `meetingLength`. Chapter 3 introduced the density function as the curve
+whose *area* gives a probability; this chapter's job is to name the handful of curve shapes
+that show up over and over. The flattest possible shape — every length in the interval
+equally likely — is the first one.
+
+<Notation
+  rows={[
+    { name: 'the interval endpoints', symbol: 'A,\\ B' },
+    { name: 'meetingLength', symbol: 'X' },
+    { name: 'the flat density on [A, B]', symbol: 'f(x; A, B)' },
+  ]}
+/>
+
+**Continuous uniform distribution.** On the interval `[A, B]`,
+
+$$
+f(x; A, B) = \begin{cases} \dfrac{1}{B-A}, & A \le x \le B, \\ 0, & \text{elsewhere.} \end{cases}
+$$
+
+The curve is a rectangle of base $B-A$ and constant height $1/(B-A)$ — which is exactly what
+makes the area under it equal to $1$, and why this distribution is also called the
+**rectangular distribution**. The interval need not be closed; $(A, B)$ works just as well,
+since a single point contributes no area.
+
+> **Worked example** (Walpole Example 6.1). A conference lasts a `meetingLength` uniform on
+> $[0, 4]$ hours. (a) The density is $f(x) = 1/4$ for $0 \le x \le 4$. (b) The chance a
+> conference lasts at least 3 hours is $P(X \ge 3) = \int_3^4 \tfrac14\,dx = \tfrac14$.
+
+**Mean and variance.**
+
+$$
+\mu = \frac{A+B}{2}, \qquad \sigma^2 = \frac{(B-A)^2}{12}.
+$$
+
+Both are exactly what you would guess without any calculus: the mean sits at the interval's
+midpoint by symmetry, and the variance grows with the square of the interval's width, the
+same way it did for every distribution in Chapter 4.
+
+## 6.2 Normal distribution
+
+Heights, measurement errors, manufactured part dimensions — an enormous range of physical
+measurements cluster symmetrically around a typical value, tapering off the same way on
+either side. Call such a measurement `physicalMeasurement`. The bell-shaped curve that
+describes it is the single most important continuous shape in statistics: the **normal
+distribution**, sometimes called the **Gaussian distribution** after Karl Friedrich Gauss,
+who derived its equation studying measurement errors (Abraham DeMoivre found the equation
+first, in 1733).
+
+<Notation
+  rows={[
+    { name: 'physicalMeasurement', symbol: 'X' },
+    { name: 'the mean — where the curve is centered', symbol: '\\mu' },
+    { name: 'the standard deviation — how spread out the curve is', symbol: '\\sigma' },
+    { name: 'the normal density at x', symbol: 'n(x; \\mu, \\sigma)' },
+  ]}
+/>
+
+**Normal distribution.**
+
+$$
+n(x; \mu, \sigma) = \frac{1}{\sqrt{2\pi}\,\sigma}\, e^{-\frac{1}{2\sigma^2}(x-\mu)^2}, \qquad -\infty < x < \infty.
+$$
+
+Once `mean` and `standard deviation` are fixed, the whole curve is fixed. Sliding `mean`
+left or right moves the curve without changing its shape; growing `standard deviation`
+flattens and widens the curve, since the total area beneath it always has to stay $1$.
+Five properties fall out of inspecting the curve and its derivatives:
+
+1. The peak sits exactly at $x = \mu$.
+2. The curve is symmetric about the vertical line through $\mu$.
+3. It bends from concave-down to concave-up at $x = \mu \pm \sigma$ — the inflection points.
+4. The curve approaches, but never touches, the horizontal axis in either direction.
+5. The total area under the curve is $1$.
+
+**Theorem 6.2.** The mean and variance of `physicalMeasurement`, when it follows
+$n(x;\mu,\sigma)$, are exactly the parameters that name the curve: mean $\mu$ and variance
+$\sigma^2$. The substitution $z = (x-\mu)/\sigma$ inside $E(X-\mu)$ and $E[(X-\mu)^2]$ is
+what makes both integrals collapse to $0$ and $\sigma^2$ respectively — the same
+change of variable this chapter leans on again in §6.3.
+
+The normal distribution's importance goes well past describing measurements directly: it
+also shows up as a *limit*. Under the right conditions it approximates the binomial and
+hypergeometric distributions (§6.5 covers the binomial case), and later chapters show that
+averages of samples tend toward a normal shape almost regardless of what the underlying
+measurement looks like — the foundation for most of the estimation and testing that follows
+in this book.
+
+## 6.3 Areas under the normal curve
+
+A density curve is only useful once its area answers a question. For `physicalMeasurement`
+between two values `lowerBound` and `upperBound`, the chance of landing in that range is the
+shaded area of the curve between them:
+
+$$
+P(x_1 < X < x_2) = \int_{x_1}^{x_2} n(x; \mu, \sigma)\,dx.
+$$
+
+<Figure width={CHART_WIDTH.normalCurve} caption="The chance X lands between 45 and 62 is the hatched area — not the two boundary lines, and not the curve's height at any single point.">
+  <NormalCurve
+    title="Normal curve with μ = 50, σ = 10, area between 45 and 62 shaded"
+    axisLabel="physicalMeasurement"
+    fn={(x) => Math.exp(-((x - 50) ** 2) / 200) / (10 * Math.sqrt(2 * Math.PI))}
+    domain={[15, 85]}
+    mean={50}
+    shadeFrom={45}
+    shadeTo={62}
+    areaLabel="area ≈ 0.5764"
+  />
+</Figure>
+
+Nobody wants to integrate this by hand for every pair of $\mu$, $\sigma$, so instead every
+normal curve is converted into *one* reference curve first. Rescale `physicalMeasurement` by
+how many standard deviations it sits from its own mean, and call that rescaled quantity the
+**standard normal variable**, written $Z$:
+
+<Notation
+  rows={[
+    { name: 'the standard normal variable', symbol: 'Z = \\dfrac{X-\\mu}{\\sigma}' },
+    { name: 'the standard normal density (mean 0, variance 1)', symbol: 'n(z; 0, 1)' },
+  ]}
+/>
+
+**Definition 6.1.** The distribution of a normal random variable with mean $0$ and variance
+$1$ is the **standard normal distribution**.
+
+Because $Z$ is a linear rescaling of `physicalMeasurement`, an interval $[x_1, x_2]$ maps to
+the interval $[z_1, z_2]$ with $z_i = (x_i - \mu)/\sigma$, and the two areas are identical:
+
+$$
+P(x_1 < X < x_2) = P(z_1 < Z < z_2).
+$$
+
+<Figure width={CHART_WIDTH.standardization} caption="Standardizing slides and rescales the horizontal axis — the region's boundaries move, but its area does not. Both panels show exactly the same probability.">
+  <Standardization
+    title="The original curve (μ = 50, σ = 10) standardized to Z"
+    mean={50}
+    sigma={10}
+    x1={45}
+    x2={62}
+    areaLabel="0.5764"
+    axisLabelX="physicalMeasurement"
+  />
+</Figure>
+
+This is what makes a single table — the standard normal table, tabulating
+$P(Z < z)$ — enough for every normal distribution that ever comes up, instead of needing a
+separate table for every possible $(\mu,\sigma)$ pair.
+
+> **Worked example** (Walpole Example 6.2). For the standard normal distribution:
+> (a) the area to the right of $z=1.84$ is $1 - 0.9671 = 0.0329$;
+> (b) the area between $z=-1.97$ and $z=0.86$ is $0.8051 - 0.0244 = 0.7807$.
+
+> **Worked example** (Walpole Example 6.3). Reading the table in reverse — from a known area
+> to a $z$ value: (a) $P(Z > k) = 0.3015$ gives $k = 0.52$; (b) $P(k < Z < -0.18) = 0.4197$
+> gives $k = -2.37$.
+
+> **Worked example** (Walpole Example 6.4). `physicalMeasurement` is normal with $\mu = 50$,
+> $\sigma = 10$. The chance it lands between $45$ and $62$: standardize to
+> $z_1 = -0.5$, $z_2 = 1.2$, then
+>
+> $$
+> P(45 < X < 62) = P(-0.5 < Z < 1.2) = 0.8849 - 0.3085 = 0.5764.
+> $$
+
+Standardization also runs in reverse: given a target area, look up the $z$ that leaves it,
+then solve $x = \sigma z + \mu$ for the boundary itself.
+
+> **Worked example** (Walpole Example 6.6). For $\mu=40$, $\sigma=6$: the value with $45\%$ of
+> the area to its left is $x = (6)(-0.13)+40 = 39.22$; the value with $14\%$ of the area to
+> its right is $x = (6)(1.08)+40 = 46.48$.
+
+## 6.4 Applications of the normal distribution
+
+The same three steps — standardize, look up the table, translate back if needed — answer
+almost every question in this section.
+
+> **Worked example** (Walpole Example 6.7). Battery life is normal, mean $3.0$ years,
+> $\sigma = 0.5$ year. The chance a battery lasts less than $2.3$ years: $z = -1.4$, so
+> $P(X < 2.3) = P(Z < -1.4) = 0.0808$.
+
+> **Worked example** (Walpole Example 6.9). A ball bearing's diameter is normal with
+> $\mu = 3.0$ cm, $\sigma = 0.005$ cm; the specification is $3.0 \pm 0.01$ cm. Standardizing
+> both limits gives $z = \pm 2.0$, so $P(2.99 < X < 3.01) = 0.9772 - 0.0228 = 0.9544$, and the
+> expected scrap rate is $1 - 0.9544 = 0.0456$, or $4.56\%$.
+
+> **Worked example** (Walpole Example 6.13). Exam scores are normal, mean $74$, $\sigma = 7$.
+> To find the lowest A, given the top $12\%$ get one: a $z$ leaving $12\%$ to the right leaves
+> $88\%$ to the left, which the table gives as $z = 1.18$, so
+> $x = (7)(1.18) + 74 = 82.26$ — the lowest A is $83$, the highest B is $82$.
+
+A discrete count measured to the nearest whole unit and then modelled with a normal curve
+(Walpole Examples 6.11–6.12, comparing a resistor's resistance measured exactly versus
+rounded to the nearest ohm) needs the same half-unit correction this chapter formalises next,
+in §6.5 — rounding shifts *which* boundary the area is measured to.
+
+## 6.5 Normal approximation to the binomial
+
+Table lookups for `b(x; n, p)` get unwieldy once `n` is large, and computing a *sum* of many
+binomial terms by hand is worse still. Since a binomial histogram with a large `n` and a `p`
+not too close to $0$ or $1$ already looks bell-shaped, it is natural to ask whether the
+normal curve with the same mean and variance can stand in for it.
+
+**Theorem 6.3.** If `defectiveCount` is binomial with mean $\mu = np$ and variance
+$\sigma^2 = npq$, then as $n \to \infty$,
+
+$$
+Z = \frac{X - np}{\sqrt{npq}}
+$$
+
+converges to the standard normal distribution.
+
+A binomial bar at `x` is an *exact* probability, $b(x;n,p)$; the matching slice of normal
+curve area is only ever an approximation to it, and the two are compared by centering the
+slice on the bar rather than on a single point. Read a bar at `x` as covering the interval
+`[x - 0.5, x + 0.5]` — the **continuity correction** — since a discrete count is being stood
+in for by a continuous curve.
+
+<Notation
+  rows={[
+    { name: 'the continuity-corrected boundary', symbol: 'x \\pm 0.5' },
+    { name: 'the approximating normal parameters', symbol: '\\mu = np,\\quad \\sigma = \\sqrt{npq}' },
+  ]}
+/>
+
+**Normal approximation to the binomial.** For large `n`,
+
+$$
+P(X \le x) \approx P\!\left(Z \le \frac{x + 0.5 - np}{\sqrt{npq}}\right),
+$$
+
+and the approximation is good once both `np` and `n(1-p)` are at least `5`.
+
+<Figure width={CHART_WIDTH.binomialNormalOverlay} caption="The dashed bars are the exact binomial masses b(x; 15, 0.4); the solid curve is the normal density with the same mean and variance. The hatched slice from 3.5 to 4.5 is the curve's stand-in for the single bar at x = 4 — close to it, but not equal to it.">
+  <BinomialNormalOverlay
+    title="Normal approximation to b(x; 15, 0.4), continuity-corrected slice at x = 4"
+    axisLabel="defectiveCount"
+    mean={6}
+    sigma={1.897}
+    shadeFrom={3.5}
+    shadeTo={4.5}
+    bars={[
+      { x: 0, p: 0.0005 }, { x: 1, p: 0.0047 }, { x: 2, p: 0.0219 }, { x: 3, p: 0.0634 },
+      { x: 4, p: 0.1268 }, { x: 5, p: 0.1859 }, { x: 6, p: 0.2066 }, { x: 7, p: 0.1771 },
+      { x: 8, p: 0.1181 }, { x: 9, p: 0.0612 }, { x: 10, p: 0.0245 }, { x: 11, p: 0.0074 },
+      { x: 12, p: 0.0016 }, { x: 13, p: 0.0003 },
+    ]}
+  />
+</Figure>
+
+Standardizing $x_1 = 3.5$ and $x_2 = 4.5$ against $\mu = 6$, $\sigma = 1.897$ gives
+$z_1 = -1.32$ and $z_2 = -0.79$, so $b(4;15,0.4) \approx P(-1.32 < Z < -0.79) = 0.2148 -
+0.0934 = 0.1214$ — close to the exact $0.1268$ from the table, and the approximation only
+improves for sums of several bars at once.
+
+> **Worked example** (Walpole Example 6.15). $100$ patients, each recovering with chance
+> $0.4$. With $\mu = 40$, $\sigma = 4.899$, the chance fewer than $30$ survive is
+> $P(X < 30) \approx P(Z < -2.14) = 0.0162$, using the continuity-corrected boundary $29.5$.
+
+> **Worked example** (Walpole Example 6.16). Guessing on $80$ four-choice questions, $p =
+> 1/4$: $\mu = 20$, $\sigma = 3.873$. The chance of $25$ to $30$ correct guesses uses the
+> corrected boundaries $24.5$ and $30.5$, giving $z_1 = 1.16$, $z_2 = 2.71$, so
+> $P(25 \le X \le 30) \approx P(1.16 < Z < 2.71) = 0.9966 - 0.8770 = 0.1196$.
+
+## 6.6 Gamma and exponential distributions
+
+Waiting times — how long until the next customer arrives, how long a component runs before
+it fails — are never negative and tend to pile up near zero with a long right tail, which is
+a shape the symmetric normal curve cannot make. Call such a wait `waitTime`. The **gamma
+distribution** is the family built for exactly this shape, and it is named after the
+**gamma function**,
+
+$$
+\Gamma(\alpha) = \int_0^\infty x^{\alpha - 1} e^{-x}\,dx, \qquad \alpha > 0,
+$$
+
+which satisfies $\Gamma(\alpha) = (\alpha-1)\Gamma(\alpha-1)$, so that $\Gamma(n) = (n-1)!$
+for a positive integer `n`, and $\Gamma(1) = 1$.
+
+<Notation
+  rows={[
+    { name: 'waitTime', symbol: 'X' },
+    { name: 'shape parameter — number of events being waited for', symbol: '\\alpha' },
+    { name: 'scale parameter — mean wait per event', symbol: '\\beta' },
+  ]}
+/>
+
+**Gamma distribution.**
+
+$$
+f(x; \alpha, \beta) = \frac{1}{\beta^\alpha \Gamma(\alpha)}\, x^{\alpha-1} e^{-x/\beta}, \qquad x > 0.
+$$
+
+Setting $\alpha = 1$ collapses this to the **exponential distribution**,
+
+$$
+f(x; \beta) = \frac{1}{\beta}\,e^{-x/\beta}, \qquad x > 0,
+$$
+
+the special case that is by far the most common member of the family in practice.
+
+<Figure width={CHART_WIDTH.gammaFamily} caption="Same β = 1 in both curves. The exponential (α = 1) peaks at x = 0 and falls away immediately; the α = 4 gamma rises from 0, peaks away from the origin, and only then starts to look bell-shaped.">
+  <GammaFamily
+    title="Gamma density at β = 1, for α = 1 (exponential) and α = 4"
+    axisLabel="waitTime"
+    domain={[0, 12]}
+    curves={[
+      { label: 'α = 4, β = 1', tone: 'accent', fn: (x) => (x <= 0 ? 0 : (1 / 6) * Math.pow(x, 3) * Math.exp(-x)) },
+      { label: 'α = 1, β = 1 (exponential)', tone: 'ink', fn: (x) => (x < 0 ? 0 : Math.exp(-x)) },
+    ]}
+  />
+</Figure>
+
+**Theorem 6.4 and Corollary 6.1.**
+
+$$
+\mu = \alpha\beta, \quad \sigma^2 = \alpha\beta^2 \qquad \text{(gamma)}; \qquad
+\mu = \beta, \quad \sigma^2 = \beta^2 \qquad \text{(exponential)}.
+$$
+
+**Where the exponential comes from.** Recall the Poisson process from §5.5: events arrive at
+rate `λ` per unit time. The chance zero events land in a span of length `t` is
+$p(0;\lambda t) = e^{-\lambda t}$. Let `waitTime` be the time to the *first* event; then
+`waitTime` exceeds `x` exactly when nothing has arrived by `x`, so
+$P(X > x) = e^{-\lambda x}$, giving cdf $1 - e^{-\lambda x}$ and density $f(x) = \lambda
+e^{-\lambda x}$ — the exponential distribution with $\beta = 1/\lambda$. So whenever a
+Poisson process describes the *count* of arrivals, the exponential describes the *time*
+between them, and $\beta$ is the mean time between events — in reliability work, the **mean
+time between failures**.
+
+> **Worked example** (Walpole Example 6.17). A component's lifetime is exponential with
+> $\beta = 5$ years. The chance one survives past $8$ years is $P(T > 8) = e^{-8/5} \approx
+> 0.2$. With $5$ components installed independently, the chance at least $2$ are still
+> running at year $8$ uses the *binomial* on top of that: $P(X \ge 2) = 1 - \sum_{x=0}^1
+> b(x; 5, 0.2) = 1 - 0.7373 = 0.2627$.
+
+The gamma distribution extends the same idea to waiting for the `α`th event rather than the
+first: time (or space) until `α` Poisson events have occurred follows a gamma distribution
+with the process's own `β = 1/λ`.
+
+> **Worked example** (Walpole Example 6.18). Calls arrive at $5$ per minute. The chance the
+> 2nd call arrives within $1$ minute uses $\alpha=2$, $\beta=1/5$:
+>
+> $$
+> P(X \le 1) = 25\int_0^1 x e^{-5x}\,dx = 1 - e^{-5}(1+5) = 0.96.
+> $$
+
+**The memoryless property.** For an exponential `waitTime`, the chance of lasting `t` more
+hours given it has already lasted `t₀` hours equals the chance of lasting `t` hours from
+scratch: $P(X \ge t_0 + t \mid X \ge t_0) = P(X \ge t)$. A component with this property
+carries no memory of wear — it neither strengthens nor weakens with age. That makes the
+exponential the right model exactly when age genuinely does not matter, and the wrong one
+whenever gradual wear does; the gamma distribution (or the Weibull, §6.10) is what to reach
+for instead once wear is part of the story.
+
+## 6.7 Chi-squared distribution
+
+Setting the gamma distribution's shape parameter to $\alpha = v/2$ and its scale to
+$\beta = 2$, for a positive integer `v`, produces the **chi-squared distribution**:
+
+$$
+f(x; v) = \frac{1}{2^{v/2}\Gamma(v/2)}\, x^{v/2 - 1} e^{-x/2}, \qquad x > 0.
+$$
+
+<Notation
+  rows={[
+    { name: 'degrees of freedom', symbol: 'v' },
+    { name: 'the chi-squared density', symbol: 'f(x; v)' },
+  ]}
+/>
+
+**Theorem 6.5.** $\mu = v$, $\sigma^2 = 2v$ — both fall straight out of the gamma
+distribution's own mean and variance formulas at $\alpha = v/2$, $\beta = 2$.
+
+The chi-squared distribution earns its own section here even though it is only a special
+case of the gamma, because it becomes the backbone of statistical inference later in the
+book: sampling distributions, analysis of variance, and nonparametric methods (Chapters 8,
+9, and 16) all lean on it directly, even though no application is developed yet in this
+chapter.
+
+## 6.8 Beta distribution
+
+The uniform distribution assumed every value on `[A, B]` was equally likely; the **beta
+distribution** relaxes that to allow a continuous random variable confined to `(0, 1)` — a
+proportion, a fraction defective, a probability itself — to be *more* likely near one end
+than the other.
+
+$$
+f(x) = \frac{1}{B(\alpha,\beta)}\, x^{\alpha - 1}(1-x)^{\beta - 1}, \qquad 0 < x < 1,
+$$
+
+where the **beta function** $B(\alpha,\beta) = \int_0^1 x^{\alpha-1}(1-x)^{\beta-1}dx =
+\Gamma(\alpha)\Gamma(\beta)/\Gamma(\alpha+\beta)$ is what keeps the density's total area at
+$1$. Setting $\alpha = \beta = 1$ recovers the uniform distribution on $(0,1)$ exactly.
+
+**Theorem 6.6.**
+
+$$
+\mu = \frac{\alpha}{\alpha+\beta}, \qquad \sigma^2 = \frac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)}.
+$$
+
+At $\alpha=\beta=1$ these give $\mu = 1/2$ and $\sigma^2 = 1/12$ — matching §6.1's uniform
+formulas exactly, as they must.
+
+## 6.9 Lognormal distribution
+
+Some measurements are not themselves bell-shaped, but their *logarithm* is. A `pollutantLevel`
+that can only take positive values and tends to have a long right tail is a typical case.
+
+**Lognormal distribution.** `pollutantLevel`, written $X$, has a lognormal distribution when
+$\ln(X)$ is normal with some mean `logMean` and standard deviation `logSigma`:
+
+$$
+f(x; \mu, \sigma) = \frac{1}{\sqrt{2\pi}\,\sigma x}\, e^{-\frac{1}{2\sigma^2}[\ln(x)-\mu]^2}, \qquad x \ge 0,
+$$
+
+where $\mu$ and $\sigma$ here name `logMean` and `logSigma` — the mean and standard
+deviation of $\ln(X)$, not of $X$ itself.
+
+**Theorem 6.7.** The mean and variance of `pollutantLevel` itself are
+
+$$
+\mu_X = e^{\mu + \sigma^2/2}, \qquad \sigma_X^2 = e^{2\mu+\sigma^2}\left(e^{\sigma^2}-1\right).
+$$
+
+> **Worked example** (Walpole Example 6.22). `pollutantLevel` is lognormal with `logMean`
+> $= 3.2$, `logSigma` $= 1$. Since $\ln(X)$ is normal, $P(X \le 8) = \Phi\!\left(\frac{\ln(8) -
+> 3.2}{1}\right) = \Phi(-1.12) = 0.1314$. **Flagging a book inconsistency, per this site's
+> policy of not silently fixing textbook numbers:** the source text's own final sentence
+> reports this $0.1314$ as the chance the concentration *exceeds* $8$ ppm, but the quantity
+> it just computed is $P(X \le 8)$, and $P(X > 8) = 1 - P(X \le 8)$ was the stated goal at
+> the top of the example — so $P(X > 8) = 1 - 0.1314 = 0.8686$ is the number that actually
+> answers the question asked. The $0.1314$ figure itself is correct as $P(X \le 8)$.
+
+## 6.10 Weibull distribution
+
+Failures caused by gradual wear — a fuse burning out, a steel column buckling — do not
+respect the exponential's memoryless assumption. The **Weibull distribution**, introduced by
+Waloddi Weibull in 1939, adds a second parameter that lets the failure rate itself change
+over time.
+
+$$
+f(x; \alpha, \beta) = \alpha\beta x^{\beta - 1} e^{-\alpha x^\beta}, \qquad x > 0.
+$$
+
+Setting $\beta = 1$ collapses the Weibull back to the exponential, matching §6.6's family
+exactly. Its cumulative distribution function has a closed form,
+$F(x) = 1 - e^{-\alpha x^\beta}$, which makes probabilities easy to compute directly.
+
+**Theorem 6.8.**
+
+$$
+\mu = \alpha^{-1/\beta}\Gamma\!\left(1 + \frac{1}{\beta}\right), \qquad
+\sigma^2 = \alpha^{-2/\beta}\left[\Gamma\!\left(1 + \frac{2}{\beta}\right) - \Gamma\!\left(1 + \frac{1}{\beta}\right)^2\right].
+$$
+
+**The failure rate.** Writing $R(t) = 1 - F(t)$ for the chance a component survives past
+time `t`, the instantaneous failure rate is $Z(t) = f(t)/R(t) = \alpha\beta t^{\beta-1}$. Its
+shape tells a direct story: at $\beta = 1$ the rate is the constant $\alpha$ (the memoryless
+exponential case); for $\beta > 1$ the rate climbs with age, so the component wears; for
+$\beta < 1$ the rate falls with age, so the component effectively hardens over time.
+
+> **Worked example** (Walpole Example 6.24). An item's life, in hours, is Weibull with
+> $\alpha = 0.01$, $\beta = 2$. The chance it fails before $8$ hours is
+> $P(X < 8) = F(8) = 1 - e^{-(0.01)(64)} = 1 - 0.527 = 0.473$. Since $\beta = 2 > 1$, this
+> item wears with age rather than failing at a constant rate.
+
+## 6.11 Potential misconceptions and hazards
+
+Mistakes this chapter actually punishes, gathered in one place:
+
+- **Assuming normality without checking it.** The single biggest misuse of this chapter's
+  material is treating a measurement as normal purely because normal curves are convenient
+  to work with. Later chapters supply goodness-of-fit tests and graphical checks
+  specifically because this assumption is made constantly and is not automatically true.
+- **Skipping the continuity correction.** Approximating a discrete count with a continuous
+  curve without shifting the boundary by $\pm 0.5$ systematically mismatches the bar being
+  approximated with the wrong slice of curve — the error is small for a single bar but
+  compounds across a sum of many.
+- **Standardizing is a change of variable, not a new formula.** $Z = (X-\mu)/\sigma$ turns
+  *this* normal curve into *the* standard one so a single table suffices; skipping the
+  standardization step and reading $x$ off the standard-normal table directly reads the
+  wrong number entirely.
+- **Complementary probabilities need their complement actually taken.** §6.9's flagged
+  example is exactly this failure: computing $P(X \le 8)$ correctly and then reporting it as
+  $P(X > 8)$ without the final subtraction. Whatever quantity a problem asks for, checking
+  that the *last* line of arithmetic actually answers it — not an intermediate line — is
+  worth doing every time.
+- **The memoryless property is a property, not a default.** It holds for the exponential
+  distribution and nothing else in this chapter. Modelling a component that wears or hardens
+  with age using the exponential (rather than the gamma or the Weibull) quietly assumes away
+  the very wear the model is supposed to capture.
+- **Every parameter in this chapter's examples was treated as known.** In practice, `μ`,
+  `σ`, `α`, `β` all have to be estimated from data, and an estimate carries its own
+  uncertainty that a plugged-in "known" parameter does not. Chapters 9 onward take up
+  estimation directly; this chapter's exact answers all rest on the parameters being exactly
+  what the problem states them to be.
