@@ -1,25 +1,36 @@
 import { describe, it, expect } from 'vitest';
 import { drillTopics, drillPool, buildDrillQuestion } from '../../src/modes/drill';
+import { selectTemplates } from '../../src/engine/registry';
 
 describe('drillTopics', () => {
   it('returns exactly the generator-backed topics', () => {
     const keys = drillTopics().map((d) => `${d.chapter}/${d.topic}`).sort();
+    // Deliberately a literal list, not a derived one. Every other assertion here
+    // checks a property; this one is the canary that makes a change to the
+    // drillable surface visible in a diff — adding a topic, renaming one, or
+    // dropping the last generator behind one all land here first.
+    //
+    // Chebyshev's theorem is absent on purpose: the course deck teaches 4.1-4.3
+    // only, so it was cut from the chapter along with its generators.
     expect(keys).toEqual([
       'continuous-distributions/Applications of the normal distribution',
+      'continuous-distributions/Areas under the normal curve',
       'continuous-distributions/Continuous uniform',
       'continuous-distributions/Exponential distribution',
       'continuous-distributions/Normal approximation to the binomial',
       'continuous-distributions/Normal distribution',
       'discrete-distributions/Binomial and multinomial',
+      'discrete-distributions/Discrete uniform',
       'discrete-distributions/Geometric and negative binomial',
       'discrete-distributions/Hypergeometric',
       'discrete-distributions/Poisson',
-      "expectation/Chebyshev's theorem",
       'expectation/Expected value',
       'expectation/Linear combinations',
       'expectation/Variance and covariance',
       'intro/Descriptive statistics',
+      'intro/Populations and samples',
       'intro/Study design',
+      'intro/Types of data',
       'probability/Additive rules',
       'probability/Bayes theorem',
       'probability/Conditional probability',
@@ -33,9 +44,32 @@ describe('drillTopics', () => {
   });
 
   it('excludes book-only topics', () => {
-    const topics = drillTopics().map((d) => d.topic);
-    expect(topics).not.toContain('Types of data');
-    expect(topics).not.toContain('Populations and samples');
+    // This used to name 'Types of data' and 'Populations and samples' as the
+    // two book-only topics. Both since gained generators — closing exactly the
+    // gap that made them examples — which turned a property test into a list
+    // that had to be maintained by hand. So ask the registry which topics are
+    // book-only right now, and assert the property about those.
+    //
+    // If every topic has generator coverage the loop is empty and the test is
+    // vacuous. That is the intended end state, not a failure, so the invariant
+    // is stated from the other side too, below.
+    const drillable = new Set(drillTopics().map((d) => `${d.chapter}/${d.topic}`));
+
+    const generatorBacked = new Set(
+      selectTemplates({ source: 'generated' }).map((t) => `${t.chapter}/${t.topic}`),
+    );
+
+    for (const t of selectTemplates({ source: 'book' })) {
+      const key = `${t.chapter}/${t.topic}`;
+
+      if (generatorBacked.has(key)) continue; // not book-only
+
+      expect(drillable.has(key)).toBe(false);
+    }
+
+    // The other direction: nothing is offered for drilling that has no
+    // generator behind it, so picking any listed topic can never dead-end.
+    for (const key of drillable) expect(generatorBacked.has(key)).toBe(true);
   });
 });
 
