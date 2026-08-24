@@ -28,7 +28,6 @@ export const CHART_WIDTH = {
   continuousCdf: 380,
   balancePoint: 380,
   spreadPair: 560,
-  chebyshevFence: 380,
   covarianceScatter: 380,
   binomialShape: 560,
   samplingContrast: 560,

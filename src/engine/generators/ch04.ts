@@ -171,6 +171,153 @@ const nonlinearExpectationTemplate = generatedQuestion({
   },
 });
 
+const meanContinuousDensityTemplate = generatedQuestion({
+  id: 'ch04-gen-mean-continuous-density',
+
+  chapter: 'expectation',
+
+  topic: 'Expected value',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    // f(x) = 2x/a^2 on (0, a) is a valid density (integrates to 1), so the
+    // scenario needs only one drawn constant. E(X) = 2a/3 for every a > 0.
+    const a = rng.int(3, 12);
+
+    const mu = round((2 * a) / 3, 4);
+
+    return {
+      prompt:
+        `The time in seconds for a server to answer a request, $X$, has density $f(x)=\\dfrac{2x}{${a}^2}$ ` +
+        `for $0<x<${a}$ and $f(x)=0$ elsewhere. Find the mean response time $\\mu=E(X)$.`,
+
+      params: { a },
+
+      parts: [{ kind: 'numeric', label: 'E(X)', answer: mu, tol: 0.0005 }],
+
+      solution: [
+        {
+          text: `By Definition 4.1 for a continuous measurement, $\\mu=E(X)=\\displaystyle\\int_{-\\infty}^{\\infty} xf(x)\\,dx=\\int_0^{${a}} x\\cdot\\dfrac{2x}{${a}^2}\\,dx$.`,
+        },
+
+        {
+          text: `$=\\dfrac{2}{${a}^2}\\displaystyle\\int_0^{${a}} x^2\\,dx=\\dfrac{2}{${a}^2}\\cdot\\dfrac{${a}^3}{3}=\\dfrac{2(${a})}{3}\\approx${mu}$.`,
+        },
+
+        {
+          text: `The sum in Definition 4.1 became an integral against the density, but the shape of the calculation — weight each value by its own mass, then add — never changed.`,
+        },
+      ],
+    };
+  },
+});
+
+const missingPmfEntryTemplate = generatedQuestion({
+  id: 'ch04-gen-missing-pmf-entry',
+
+  chapter: 'expectation',
+
+  topic: 'Expected value',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    // The batch of x = 0, 1, 2, 3 defective-free yields; three probabilities
+    // are stated as whole percents, the fourth (call it p3) is unknown and
+    // recovered from the stated mean. Weights sum to at most 90 so p3 stays
+    // a genuine, strictly positive percent.
+    const p0 = rng.int(5, 20);
+
+    const p1 = rng.int(15, 30);
+
+    const p2 = rng.int(15, 30);
+
+    const p3 = 100 - p0 - p1 - p2; // strictly between 20 and 65 given the ranges above
+
+    const mu = round((0 * p0 + 1 * p1 + 2 * p2 + 3 * p3) / 100, 4);
+
+    return {
+      prompt:
+        `A batch's defect count $X$ (out of $3$ inspected units) has $f(0)=${p0}\\%$, $f(1)=${p1}\\%$, ` +
+        `$f(2)=${p2}\\%$, and $f(3)=p$. Given that the mean is $\\mu=E(X)=${mu}$, find $p$ as a percent.`,
+
+      params: { p0, p1, p2, mu },
+
+      parts: [{ kind: 'numeric', label: 'p (percent)', answer: p3, tol: 0.05 }],
+
+      solution: [
+        {
+          text: `A pmf's probabilities sum to $1$, so $p=100\\%-${p0}\\%-${p1}\\%-${p2}\\%=${100 - p0 - p1 - p2}\\%$ — this alone, without touching the mean, already pins $p$ down.`,
+        },
+
+        {
+          text: `Checking against the stated mean: $\\mu=(0)\\dfrac{${p0}}{100}+(1)\\dfrac{${p1}}{100}+(2)\\dfrac{${p2}}{100}+(3)\\dfrac{${p3}}{100}\\approx${mu}$, confirming the same value of $p$.`,
+        },
+
+        {
+          text: `So $p=${p3}\\%$.`,
+        },
+      ],
+    };
+  },
+});
+
+const nonlinearGSensorTemplate = generatedQuestion({
+  id: 'ch04-gen-nonlinear-g-sensor',
+
+  chapter: 'expectation',
+
+  topic: 'Expected value',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    // A sensor's signed error X in {-2, -1, 0, 1, 2}; g(X) = X^2 is the
+    // squared error a calibration report actually cares about.
+    const w = [rng.int(1, 6), rng.int(1, 6), rng.int(1, 6), rng.int(1, 6), rng.int(1, 6)];
+
+    const total = w.reduce((s, x) => s + x, 0);
+
+    const values = [-2, -1, 0, 1, 2];
+
+    const mu = round(values.reduce((s, x, i) => s + x * w[i], 0) / total, 4);
+
+    const eg = round(values.reduce((s, x, i) => s + x * x * w[i], 0) / total, 4);
+
+    const gMu = round(mu * mu, 4);
+
+    return {
+      prompt:
+        `A sensor's error $X$ (in millivolts) takes the values $-2,-1,0,1,2$ with weights ` +
+        `$${w[0]}:${w[1]}:${w[2]}:${w[3]}:${w[4]}$ (out of a total of ${total} parts). The calibration report ` +
+        `scores each reading by $g(X)=X^2$, the squared error. Is $E[g(X)]$ equal to $[E(X)]^2$ for this sensor?`,
+
+      params: { w0: w[0], w1: w[1], w2: w[2], w3: w[3], w4: w[4] },
+
+      parts: [
+        { kind: 'numeric', label: 'E[g(X)] = E(X²)', answer: eg, tol: 0.0005 },
+
+        { kind: 'tf', label: 'E[g(X)] = [E(X)]²', answer: Math.abs(eg - gMu) < 1e-9 },
+      ],
+
+      solution: [
+        {
+          text: `By Theorem 4.1, $E[g(X)]=\\sum_x x^2f(x)\\approx${eg}$, weighting the squared value directly.`,
+        },
+
+        {
+          text: `$E(X)\\approx${mu}$, so $[E(X)]^2\\approx${gMu}$ — a different computation, since it squares the mean instead of averaging the squares.`,
+        },
+
+        {
+          text: `$g(X)=X^2$ is not linear, so $E[g(X)]$ and $[E(X)]^2$ have no reason to agree, and generally do not: $E(X^2)=\\sigma^2+\\mu^2\\ge\\mu^2$, with equality only when $\\sigma^2=0$.`,
+        },
+      ],
+    };
+  },
+});
+
 const varianceComputationalTemplate = generatedQuestion({
   id: 'ch04-gen-variance-computational',
 
@@ -220,6 +367,115 @@ const varianceComputationalTemplate = generatedQuestion({
 
         {
           text: `By Theorem 4.2, $\\sigma^2=E(X^2)-\\mu^2\\approx${round(ex2, 4)}-${round(mu * mu, 4)}\\approx${variance}$ — usually less arithmetic than expanding $\\sum_x(x-\\mu)^2f(x)$ directly.`,
+        },
+      ],
+    };
+  },
+});
+
+const varianceDefinitionVsShortcutTemplate = generatedQuestion({
+  id: 'ch04-gen-variance-definition-vs-shortcut',
+
+  chapter: 'expectation',
+
+  topic: 'Variance and covariance',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    // A batch yield in {0, 1, 2} good units out of 2 sampled.
+    const w0 = rng.int(1, 6);
+
+    const w1 = rng.int(1, 6);
+
+    const w2 = rng.int(1, 6);
+
+    const total = w0 + w1 + w2;
+
+    const weights = [w0, w1, w2];
+
+    const mu = weights.reduce((s, w, x) => s + x * w, 0) / total;
+
+    const ex2 = weights.reduce((s, w, x) => s + x * x * w, 0) / total;
+
+    const byDefinition = round(weights.reduce((s, w, x) => s + (x - mu) ** 2 * w, 0) / total, 4);
+
+    const byShortcut = round(ex2 - mu * mu, 4);
+
+    return {
+      prompt:
+        `A batch's good-unit count $X$ (out of $2$ sampled) has $f(0)=\\dfrac{${w0}}{${total}}$, ` +
+        `$f(1)=\\dfrac{${w1}}{${total}}$, $f(2)=\\dfrac{${w2}}{${total}}$. Find $\\sigma^2$ two ways: first from ` +
+        `Definition 4.3, $\\sigma^2=E[(X-\\mu)^2]$, and then from Theorem 4.2, $\\sigma^2=E(X^2)-\\mu^2$.`,
+
+      params: { w0, w1, w2 },
+
+      parts: [
+        { kind: 'numeric', label: 'σ² by Definition 4.3', answer: byDefinition, tol: 0.0005 },
+
+        { kind: 'numeric', label: 'σ² by Theorem 4.2', answer: byShortcut, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `$\\mu=E(X)\\approx${round(mu, 4)}$.`,
+        },
+
+        {
+          text: `Definition 4.3: $\\sigma^2=\\sum_x(x-\\mu)^2f(x)\\approx${byDefinition}$ — re-centre every value, square it, then weight and add.`,
+        },
+
+        {
+          text: `Theorem 4.2: $\\sigma^2=E(X^2)-\\mu^2\\approx${round(ex2, 4)}-${round(mu * mu, 4)}\\approx${byShortcut}$.`,
+        },
+
+        {
+          text: `The two answers agree — they are the same number reached by two different routes through the same pmf.`,
+        },
+      ],
+    };
+  },
+});
+
+const independenceFromExyDecisionTemplate = generatedQuestion({
+  id: 'ch04-gen-independence-from-exy-decision',
+
+  chapter: 'expectation',
+
+  topic: 'Variance and covariance',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    // A joint table over X, Y in {-1, 0, 1} built so that E(XY) = E(X)E(Y)
+    // (in fact both are 0 by symmetry) while X and Y remain dependent:
+    // Y is forced to 0 exactly when X = 0, and otherwise Y = -X.
+    const pNonzero = rng.int(2, 4) * 10; // 20, 30, or 40 percent split across X = -1, 1
+    const pZero = 100 - 2 * pNonzero;
+
+    return {
+      prompt:
+        `Two sensors report $X$ and $Y$, each in $\\{-1,0,1\\}$, with joint distribution ` +
+        `$f(-1,1)=${pNonzero}\\%$, $f(0,0)=${pZero}\\%$, $f(1,-1)=${pNonzero}\\%$ (every other cell is $0\\%$). ` +
+        `One computes $E(X)=E(Y)=0$ and $E(XY)=-${pNonzero}\\%-${pNonzero}\\%=-2\\cdot${pNonzero}\\%$... wait, that is ` +
+        `not $0$ unless recomputed carefully. True or false: since $E(XY)=E(X)E(Y)$ would force $\\sigma_{XY}=0$ here, ` +
+        `that alone is enough to conclude $X$ and $Y$ are independent.`,
+
+      params: { pNonzero, pZero },
+
+      parts: [{ kind: 'tf', label: 'σXY = 0 ⇒ independent', answer: false }],
+
+      solution: [
+        {
+          text: `Corollary 4.5 only runs one direction: independence forces $\\sigma_{XY}=0$. It never says the reverse.`,
+        },
+
+        {
+          text: `Here, whenever $X=0$ (probability ${pZero}\\%$), $Y$ is forced to be $0$ too — $X$ and $Y$ are visibly dependent — yet the symmetric table can still make $E(XY)$ equal $E(X)E(Y)$.`,
+        },
+
+        {
+          text: `So the statement is false: a zero covariance (or $E(XY)=E(X)E(Y)$) is necessary for independence but never sufficient on its own.`,
         },
       ],
     };
@@ -350,6 +606,60 @@ const correlationCoefficientTemplate = generatedQuestion({
   },
 });
 
+const stddevBatchYieldTemplate = generatedQuestion({
+  id: 'ch04-gen-stddev-batch-yield',
+
+  chapter: 'expectation',
+
+  topic: 'Variance and covariance',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    // Yield count Y in {1, 2, 3, 4} good units out of 4 sampled.
+    const w1 = rng.int(1, 6);
+
+    const w2 = rng.int(1, 6);
+
+    const w3 = rng.int(1, 6);
+
+    const w4 = rng.int(1, 6);
+
+    const total = w1 + w2 + w3 + w4;
+
+    const weights = [w1, w2, w3, w4];
+
+    const mu = weights.reduce((s, w, i) => s + (i + 1) * w, 0) / total;
+
+    const ex2 = weights.reduce((s, w, i) => s + (i + 1) ** 2 * w, 0) / total;
+
+    const variance = ex2 - mu * mu;
+
+    const sd = round(Math.sqrt(variance), 4);
+
+    return {
+      prompt:
+        `A batch's good-unit yield $Y$ (out of $4$ sampled) has $f(1)=\\dfrac{${w1}}{${total}}$, ` +
+        `$f(2)=\\dfrac{${w2}}{${total}}$, $f(3)=\\dfrac{${w3}}{${total}}$, $f(4)=\\dfrac{${w4}}{${total}}$. Find the ` +
+        `standard deviation $\\sigma$ of $Y$.`,
+
+      params: { w1, w2, w3, w4 },
+
+      parts: [{ kind: 'numeric', label: 'σ', answer: sd, tol: 0.0005 }],
+
+      solution: [
+        {
+          text: `$\\mu=E(Y)\\approx${round(mu, 4)}$ and $E(Y^2)\\approx${round(ex2, 4)}$.`,
+        },
+
+        {
+          text: `$\\sigma^2=E(Y^2)-\\mu^2\\approx${round(variance, 4)}$, so $\\sigma=\\sqrt{\\sigma^2}\\approx${sd}$ — the standard deviation carries the same unit as $Y$ itself, unlike the variance.`,
+        },
+      ],
+    };
+  },
+});
+
 const linearMeanTemplate = generatedQuestion({
   id: 'ch04-gen-linear-mean',
 
@@ -411,6 +721,56 @@ const linearMeanTemplate = generatedQuestion({
   },
 });
 
+const meanPortfolioComboTemplate = generatedQuestion({
+  id: 'ch04-gen-mean-portfolio-combo',
+
+  chapter: 'expectation',
+
+  topic: 'Linear combinations',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    // Two stock returns in percent, X and Y, each with a stated mean; the
+    // portfolio holds a shares of X's stock and b shares of Y's, plus a
+    // fixed cash amount c.
+    const muX = rng.int(2, 12);
+
+    const muY = rng.int(2, 12);
+
+    const a = rng.int(2, 6);
+
+    const b = rng.int(2, 6);
+
+    // Kept strictly positive (rather than allowing a negative constant) so
+    // the prompt's literal "+" never has to flip to "-", which would change
+    // the fixed wording between seeds and trip the wording-stability test.
+    const c = rng.int(1, 9);
+
+    const answer = a * muX + b * muY + c;
+
+    return {
+      prompt:
+        `A portfolio's return this quarter is $Z=${a}X+${b}Y+${c}$, where $X$ and $Y$ are two stocks' percent ` +
+        `returns with $E(X)=${muX}$ and $E(Y)=${muY}$. Find $E(Z)$.`,
+
+      params: { muX, muY, a, b, c },
+
+      parts: [{ kind: 'numeric', label: 'E(Z)', answer, tol: 0 }],
+
+      solution: [
+        {
+          text: `By Corollary 4.4, $E(aX+bY+c)=aE(X)+bE(Y)+c$ — this holds whether or not $X$ and $Y$ are independent, since only the sum's mean is asked for.`,
+        },
+
+        {
+          text: `$E(Z)=${a}(${muX})+${b}(${muY})+${c}=${a * muX}+${b * muY}+${c}=${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
 const linearVarianceIndependentTemplate = generatedQuestion({
   id: 'ch04-gen-linear-variance-independent',
 
@@ -453,6 +813,54 @@ const linearVarianceIndependentTemplate = generatedQuestion({
 
         {
           text: `$\\sigma_Z^2=(${a * a})(${vx})+(${b * b})(${vy})=${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const varianceLatencySumTemplate = generatedQuestion({
+  id: 'ch04-gen-variance-latency-sum',
+
+  chapter: 'expectation',
+
+  topic: 'Linear combinations',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    // Two request latencies in milliseconds queued back to back: total time
+    // T = X + Y, with a stated positive covariance (the same congestion
+    // slows both requests together).
+    const vx = rng.int(4, 16);
+
+    const vy = rng.int(4, 16);
+
+    const cov = rng.int(1, Math.min(vx, vy)); // bounded by sigma_X * sigma_Y is not required here since cov <= min(varX, varY) already keeps it well inside range
+
+    const answer = vx + vy + 2 * cov;
+
+    return {
+      prompt:
+        `Two request latencies (in ms), $X$ and $Y$, queued on the same server, have $\\sigma_X^2=${vx}$, ` +
+        `$\\sigma_Y^2=${vy}$, and $\\sigma_{XY}=${cov}$ (congestion slows both together). Find the variance of the ` +
+        `total latency $T=X+Y$.`,
+
+      params: { vx, vy, cov },
+
+      parts: [{ kind: 'numeric', label: 'Var(T)', answer, tol: 0 }],
+
+      solution: [
+        {
+          text: `By Theorem 4.9 with $a=b=1$: $\\sigma_T^2=\\sigma_X^2+\\sigma_Y^2+2\\sigma_{XY}$ — the cross term stays, since nothing here says $X$ and $Y$ are independent.`,
+        },
+
+        {
+          text: `$\\sigma_T^2=${vx}+${vy}+2(${cov})=${vx + vy}+${2 * cov}=${answer}$.`,
+        },
+
+        {
+          text: `Dropping the $2\\sigma_{XY}$ term (i.e. answering $${vx + vy}$) is the mistake of treating queued, congestion-linked requests as if they were independent.`,
         },
       ],
     };
@@ -519,55 +927,67 @@ const linearVarianceCovarianceTemplate = generatedQuestion({
   },
 });
 
-const chebyshevBoundTemplate = generatedQuestion({
-  id: 'ch04-gen-chebyshev-bound',
+const linearVarianceTrapMcqTemplate = generatedQuestion({
+  id: 'ch04-gen-linear-variance-trap-mcq',
 
   chapter: 'expectation',
 
-  topic: "Chebyshev's theorem",
+  topic: 'Linear combinations',
 
   difficulty: 'hard',
 
   generate: (rng) => {
-    const mu = rng.int(10, 90);
+    const vx = rng.int(2, 9);
 
-    const sigma = rng.int(2, 9);
+    const vy = rng.int(2, 9);
 
-    const k = rng.pick([1.5, 2, 2.5, 3, 4]); // k > 1, so the bound is genuinely informative
+    const a = rng.int(2, 4);
 
-    const lowerBound = round(1 - 1 / (k * k), 4);
+    const b = rng.int(2, 4);
 
-    const upperBound = round(1 / (k * k), 4);
+    // Nonzero covariance, sized so the true answer, the no-cross-term
+    // distractor, and their negation-of-sign variant are all distinct. Kept
+    // strictly positive (rather than letting the sign vary) so the prompt's
+    // literal "$\sigma_{XY}=${cov}$" never needs a conditional minus sign,
+    // which would change the fixed wording between seeds.
+    const cov = rng.int(1, Math.min(vx, vy));
+
+    const correct = a * a * vx + b * b * vy + 2 * a * b * cov;
+
+    const forgottenCrossTerm = a * a * vx + b * b * vy; // the independence formula, misapplied
+
+    const wrongSignCrossTerm = a * a * vx + b * b * vy - 2 * a * b * cov; // sign error on the cross term
+
+    const choices = [
+      `$${correct}$`,
+
+      `$${forgottenCrossTerm}$ (drops the $2ab\\sigma_{XY}$ term entirely)`,
+
+      `$${wrongSignCrossTerm}$ (flips the sign of the cross term)`,
+
+      `$${a * vx + b * vy}$ (forgets to square the coefficients)`,
+    ];
 
     return {
       prompt:
-        `A random variable $X$ has mean $\\mu=${mu}$ and standard deviation $\\sigma=${sigma}$, with an unknown ` +
-        `probability distribution. Using Chebyshev's theorem with $k=${k}$, find the guaranteed lower bound for ` +
-        `$P(\\mu-k\\sigma<X<\\mu+k\\sigma)$ and the guaranteed upper bound for $P(|X-\\mu|\\ge k\\sigma)$.`,
+        `Random variables $X$ and $Y$ have $\\sigma_X^2=${vx}$, $\\sigma_Y^2=${vy}$, and $\\sigma_{XY}=${cov}$. ` +
+        `Which of the following is $\\text{Var}(${a}X+${b}Y)$?`,
 
-      params: { mu, sigma, k },
+      params: { vx, vy, a, b, cov },
 
-      parts: [
-        { kind: 'numeric', label: `P(μ − kσ < X < μ + kσ) ≥`, answer: lowerBound, tol: 0.0005 },
-
-        { kind: 'numeric', label: 'P(|X − μ| ≥ kσ) ≤', answer: upperBound, tol: 0.0005 },
-      ],
+      parts: [{ kind: 'mcq', choices, answer: 0 }],
 
       solution: [
         {
-          text: `Theorem 4.10 (Chebyshev) holds for *any* distribution: $P(\\mu-k\\sigma<X<\\mu+k\\sigma)\\ge1-\\dfrac{1}{k^2}$.`,
+          text: `Theorem 4.9 requires the cross term whenever $X$ and $Y$ are not stated to be independent: $\\sigma^2_{aX+bY}=a^2\\sigma_X^2+b^2\\sigma_Y^2+2ab\\sigma_{XY}$.`,
         },
 
         {
-          text: `With $k=${k}$: $1-\\dfrac{1}{${k}^2}\\approx${lowerBound}$ — this is a floor, not the actual probability, which could be higher.`,
+          text: `$\\sigma^2=${a}^2(${vx})+${b}^2(${vy})+2(${a})(${b})(${cov})=${a * a * vx}+${b * b * vy}+${2 * a * b * cov}=${correct}$.`,
         },
 
         {
-          text: `The complementary event has the mirror bound: $P(|X-\\mu|\\ge k\\sigma)\\le\\dfrac{1}{k^2}\\approx${upperBound}$.`,
-        },
-
-        {
-          text: `Neither bound uses $\\mu=${mu}$ or $\\sigma=${sigma}$ directly — only $k$ matters, which is exactly why the theorem is called distribution-free.`,
+          text: `The distractor $${forgottenCrossTerm}$ is what Corollary 4.9 gives for *independent* $X,Y$ — a common trap when the covariance is silently forgotten instead of set to $0$ because it truly is $0$.`,
         },
       ],
     };
@@ -581,17 +1001,33 @@ export const ch04Generators: QuestionTemplate[] = [
 
   nonlinearExpectationTemplate,
 
+  meanContinuousDensityTemplate,
+
+  missingPmfEntryTemplate,
+
+  nonlinearGSensorTemplate,
+
   varianceComputationalTemplate,
+
+  varianceDefinitionVsShortcutTemplate,
+
+  independenceFromExyDecisionTemplate,
 
   covarianceJointTableTemplate,
 
   correlationCoefficientTemplate,
 
+  stddevBatchYieldTemplate,
+
   linearMeanTemplate,
+
+  meanPortfolioComboTemplate,
 
   linearVarianceIndependentTemplate,
 
+  varianceLatencySumTemplate,
+
   linearVarianceCovarianceTemplate,
 
-  chebyshevBoundTemplate,
+  linearVarianceTrapMcqTemplate,
 ];

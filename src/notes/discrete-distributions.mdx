@@ -1,5 +1,6 @@
 import Notation from '../components/notes/Notation.astro';
 import Figure from '../components/notes/Figure.astro';
+import InCode from '../components/notes/InCode.astro';
 import BinomialShape from '../components/notes/ch05/BinomialShape.astro';
 import SamplingContrast from '../components/notes/ch05/SamplingContrast.astro';
 import WaitingTime from '../components/notes/ch05/WaitingTime.astro';
@@ -35,6 +36,96 @@ problem actually tests. Two mistakes to watch for from the start: replacing an i
 draw it (binomial) versus not replacing it (hypergeometric) changes the distribution, not just
 the numbers; and counting *trials until* something versus counting *successes among* a fixed
 number of trials are different questions with different supports.
+
+<InCode title="The distribution test above is a decision, not a lookup -- it runs as a function" note="Every branch here is one of the four bullets above, in the same order; nothing new is introduced.">
+```ts
+type DiscreteFamily = 'uniform' | 'binomial' | 'hypergeometric' | 'geometricFamily' | 'poisson';
+
+const pickDistribution = (setup: {
+  equallyLikelyValues: boolean;
+  trialsFixed: boolean;
+  withReplacement: boolean;
+  countsPerInterval: boolean;
+}): DiscreteFamily => {
+  if (setup.equallyLikelyValues) return 'uniform';
+  if (setup.countsPerInterval) return 'poisson';
+  if (!setup.trialsFixed) return 'geometricFamily'; // stopping at a success, not a fixed n
+  return setup.withReplacement ? 'binomial' : 'hypergeometric';
+};
+```
+</InCode>
+
+## Discrete uniform distribution
+
+This distribution has no number of its own in the syllabus list above — the deck teaches it
+anyway, right after that list, before turning to §5.2. It sits here for the same reason.
+
+A part rolling off an assembly line is stamped with a serial number, and its first digit is
+equally likely to be any of `0` through `9` — nothing about the manufacturing process favours
+one digit over another. Call the digit this particular part happens to get `firstDigit`. This
+is the simplest distribution in the chapter for exactly that reason: every value it can take is
+just as likely as every other one, so there is no shape to describe beyond how many values
+there are.
+
+<Notation
+  rows={[
+    { name: 'the number of equally likely values', symbol: 'k' },
+    { name: 'firstDigit — the value actually observed', symbol: 'X' },
+  ]}
+/>
+
+**Discrete uniform distribution.** When `firstDigit` (or any measurement built the same way) can
+take `k` equally likely values, the chance of landing on any one specific value is just one
+divided by how many values there are:
+
+$$
+f(x; k) = \frac{1}{k}.
+$$
+
+The mean is the plain average of the `k` values, and the variance is the average squared
+distance of those values from that mean — no different from how a mean and variance are
+computed for any finite list of numbers, because every value carries the same weight:
+
+$$
+\mu = \frac{1}{k}\sum_{i=1}^{k} x_i, \qquad \sigma^2 = \frac{1}{k}\sum_{i=1}^{k} (x_i - \mu)^2.
+$$
+
+> **Worked example** (Alshwawra deck, Example 1). The first digit of a part's serial number is
+> equally likely to be $0$ through $9$. With $k = 10$ equally likely values, $f(x) = 1/10$ for
+> $x = 0, 1, 2, \ldots, 9$ — a flat bar chart, one bar per digit, all the same height.
+
+<InCode title="The pmf, mean and variance are all just arithmetic over the value list">
+```ts
+const discreteUniformPmf = (values: number[]) => 1 / values.length;
+
+const mean = (values: number[]) =>
+  values.reduce((total, x) => total + x, 0) / values.length;
+
+const variance = (values: number[]) => {
+  const m = mean(values);
+  return values.reduce((total, x) => total + (x - m) ** 2, 0) / values.length;
+};
+```
+</InCode>
+
+**Special case: consecutive integers.** Often the `k` values are consecutive whole numbers —
+seat numbers, tool station indices, index positions on a robotic arm — running from `a` to `b`.
+Call this the consecutive-integer special case. Writing out the sum-of-squares algebra for this
+particular list of values collapses the general mean and variance formulas above into closed
+forms:
+
+$$
+f(x) = \frac{1}{b - a + 1}, \qquad \mu = \frac{a + b}{2}, \qquad \sigma^2 = \frac{(b - a + 1)^2 - 1}{12}.
+$$
+
+The mean is just the midpoint of `a` and `b` — no averaging arithmetic required once the range
+is known.
+
+> **Worked example** (Alshwawra deck, Example 4). A box holds a 40-watt, a 60-watt, a 75-watt
+> and a 100-watt bulb; one is drawn at random, so each of $S = \{40, 60, 75, 100\}$ occurs with
+> probability $1/4$. This set is *not* consecutive integers, so the special-case shortcut above
+> does not apply — the mean and variance fall out of the general formulas instead:
+> $\mu = (40+60+75+100)/4 = 68.75$ and $\sigma^2 = \sum(x - 68.75)^2 / 4 \approx 479.6875$.
 
 ## 5.2 Binomial and multinomial distributions
 
@@ -81,6 +172,16 @@ $$
 
 built earlier by multiplying out each of the eight ordered outcomes directly.
 
+<InCode title="binom(n, x) counts orders by cancelling, not by computing n! outright" note="factorial(n) / (factorial(x) * factorial(n - x)) overflows to Infinity well before n = 170, since factorial(n) alone does; multiplying only the x surviving terms never does.">
+```ts
+const binom = (n: number, x: number): number => {
+  let result = 1;
+  for (let i = 0; i < x; i++) result = (result * (n - i)) / (i + 1);
+  return result;
+};
+```
+</InCode>
+
 > **Worked example** (Walpole Example 5.1). The probability a certain component survives a
 > shock test is $3/4$. Find the probability that exactly 2 of the next 4 components tested
 > survive.
@@ -93,6 +194,16 @@ built earlier by multiplying out each of the eight ordered outcomes directly.
 > wells in a rural community; 10 wells are tested. (a) The probability exactly 3 are impure is
 > $b(3; 10, 0.3) = 0.2668$. (b) The probability more than 3 are impure is
 > $P(X > 3) = 1 - P(X \le 3) = 1 - 0.6496 = 0.3504$.
+
+`P(X \le 3)` above is a **cumulative probability** — a running total of point probabilities,
+not a single lookup — so it is naturally a `reduce` over the support rather than a closed form:
+
+<InCode title="A cumulative probability sums point probabilities up to and including x" note="This is P(X <= 3) from Example 5.4 above -- swap in any pmf and the reduce itself never changes.">
+```ts
+const cumulative = (pmf: (x: number) => number, x: number): number =>
+  Array.from({ length: x + 1 }, (_, i) => i).reduce((total, i) => total + pmf(i), 0);
+```
+</InCode>
 
 Because $(q+p)^n$ expands into exactly the terms $\binom{n}{x}p^x q^{n-x}$, the binomial
 distribution is named for the binomial expansion, and $\sum_{x=0}^n b(x; n, p) = 1$ falls out
@@ -417,6 +528,29 @@ approximates the binomial — no table of $\binom{n}{x}$ required.
 > 8000 is drawn. With $n=8000$ and $p=0.001$, $\mu = np = 8$. The chance fewer than 7 items
 > have bubbles is $P(X<7) = \sum_{x=0}^{6} b(x; 8000, 0.001) \approx p(x \le 6; 8) \approx
 > 0.3134$.
+
+Five distributions, five formulas — but every one of them is "how many ways, times how likely
+each way is", just counted differently depending on what the problem holds fixed. Writing all
+five as functions side by side makes that family resemblance visible in a way that reading them
+one section apart in prose does not:
+
+<InCode title="Every pmf in this chapter is a count of ways times a chance per way" note="uniform has no 'ways' term at all -- every value is already exactly one way, which is what makes it the simplest of the five.">
+```ts
+const uniform = (k: number) => 1 / k;
+
+const binomial = (n: number, p: number, x: number) => binom(n, x) * p ** x * (1 - p) ** (n - x);
+
+const hypergeometric = (N: number, n: number, k: number, x: number) =>
+  (binom(k, x) * binom(N - k, n - x)) / binom(N, n);
+
+const geometric = (p: number, x: number) => p * (1 - p) ** (x - 1);
+
+const negativeBinomial = (k: number, p: number, x: number) =>
+  binom(x - 1, k - 1) * p ** k * (1 - p) ** (x - k);
+
+const poisson = (mu: number, x: number) => (Math.exp(-mu) * mu ** x) / factorial(x);
+```
+</InCode>
 
 ## 5.6 Potential misconceptions and hazards
 

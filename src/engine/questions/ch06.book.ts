@@ -1974,4 +1974,378 @@ export const ch06Book: QuestionTemplate[] = [
       ],
     },
   }),
+
+  // -- Walpole 9e §6.2-6.5 exercises, closing the thin topics --
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-8-abc',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal distribution',
+
+    difficulty: 'easy',
+
+    citation: 'Walpole Exercise 6.8(a-c)',
+
+    instance: {
+      prompt:
+        'A random variable $X$ has a normal distribution with $\\mu=30$ and $\\sigma=6$. Find (a) the area to ' +
+        'the right of $x=17$, (b) the area to the left of $x=22$, and (c) the area between $x=32$ and $x=41$.',
+
+      parts: [
+        { kind: 'numeric', label: '(a) P(X > 17)', answer: 0.985, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(b) P(X < 22)', answer: 0.0918, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(c) P(32 < X < 41)', answer: 0.3371, tol: 0.0005 },
+      ],
+
+      solution: [
+        { text: '(a) $z=\\dfrac{17-30}{6}=-2.17$, so $P(X>17)=1-\\Phi(-2.17)=1-0.0150=0.9850$.' },
+
+        { text: '(b) $z=\\dfrac{22-30}{6}=-1.33$, so $P(X<22)=\\Phi(-1.33)=0.0918$.' },
+
+        {
+          text: '(c) $z_1=\\dfrac{32-30}{6}=0.33$ and $z_2=\\dfrac{41-30}{6}=1.83$, so $P=\\Phi(1.83)-\\Phi(0.33)=0.9664-0.6293=0.3371$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-8-de',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal distribution',
+
+    difficulty: 'medium',
+
+    citation: 'Walpole Exercise 6.8(d-e)',
+
+    instance: {
+      prompt:
+        'A random variable $X$ has a normal distribution with $\\mu=30$ and $\\sigma=6$. Find (d) the value ' +
+        'of $x$ that has $80\\%$ of the area to its left, and (e) the two values of $x$ that contain the ' +
+        'middle $75\\%$ of the area.',
+
+      parts: [
+        { kind: 'numeric', label: '(d) x', answer: 35.04, tol: 0.05 },
+
+        { kind: 'numeric', label: '(e) lower x', answer: 23.1, tol: 0.05 },
+
+        { kind: 'numeric', label: '(e) upper x', answer: 36.9, tol: 0.05 },
+      ],
+
+      solution: [
+        {
+          text: '(d) $P(Z<z)=0.80$ gives $z=0.84$, so $x=30+(0.84)(6)=35.04$.',
+        },
+
+        {
+          text: '(e) The middle $75\\%$ leaves $12.5\\%$ in each tail, so $z=\\pm1.15$: $x_1=30-(1.15)(6)=23.1$ and $x_2=30+(1.15)(6)=36.9$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-9-ad',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal distribution',
+
+    difficulty: 'easy',
+
+    citation: 'Walpole Exercise 6.9(a,d)',
+
+    instance: {
+      prompt:
+        'A random variable $X$ has a normal distribution with mean 18 and standard deviation 2.5. Find (a) ' +
+        '$P(X<15)$ and (d) $P(17<X<21)$.',
+
+      parts: [
+        { kind: 'numeric', label: '(a) P(X < 15)', answer: 0.1151, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(d) P(17 < X < 21)', answer: 0.5404, tol: 0.0005 },
+      ],
+
+      solution: [
+        { text: '(a) $z=\\dfrac{15-18}{2.5}=-1.20$, so $P(X<15)=\\Phi(-1.20)=0.1151$.' },
+
+        {
+          text: '(d) $z_1=\\dfrac{17-18}{2.5}=-0.40$ and $z_2=\\dfrac{21-18}{2.5}=1.20$, so $P=\\Phi(1.20)-\\Phi(-0.40)=0.8849-0.3446=0.5404$ (using the site\'s erf-based $\\Phi$; a hand-copied table value may differ by a unit or two in the fourth decimal).',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-9-bc',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal distribution',
+
+    difficulty: 'hard',
+
+    citation: 'Walpole Exercise 6.9(b,c)',
+
+    instance: {
+      prompt:
+        'A random variable $X$ has a normal distribution with mean 18 and standard deviation 2.5. Find (b) ' +
+        'the value of $k$ such that $P(X<k)=0.2236$, and (c) the value of $k$ such that $P(X>k)=0.1814$.',
+
+      parts: [
+        { kind: 'numeric', label: '(b) k', answer: 16.1, tol: 0.05 },
+
+        { kind: 'numeric', label: '(c) k', answer: 20.27, tol: 0.05 },
+      ],
+
+      solution: [
+        {
+          text: '(b) $P(Z<z)=0.2236$ gives $z=-0.76$, so $k=18+(-0.76)(2.5)=16.1$.',
+        },
+
+        {
+          text: '(c) $P(Z>z)=0.1814$ means $P(Z<z)=0.8186$, giving $z=0.91$, so $k=18+(0.91)(2.5)=20.27$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-5-abc',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Areas under the normal curve',
+
+    difficulty: 'easy',
+
+    citation: 'Walpole Exercise 6.5(a-c)',
+
+    instance: {
+      prompt:
+        'Given a standard normal distribution, find the area under the curve that lies (a) to the left of ' +
+        '$z=-1.39$, (b) to the right of $z=1.96$, and (c) between $z=-2.16$ and $z=-0.65$.',
+
+      parts: [
+        { kind: 'numeric', label: '(a)', answer: 0.0823, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(b)', answer: 0.025, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(c)', answer: 0.2425, tol: 0.0005 },
+      ],
+
+      solution: [
+        { text: '(a) $\\Phi(-1.39)=0.0823$, directly from the table.' },
+
+        { text: '(b) $P(Z>1.96)=1-\\Phi(1.96)=1-0.9750=0.0250$.' },
+
+        { text: '(c) $\\Phi(-0.65)-\\Phi(-2.16)=0.2578-0.0154=0.2425$ (approx).' },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-6-ab',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Areas under the normal curve',
+
+    difficulty: 'medium',
+
+    citation: 'Walpole Exercise 6.6(a,b)',
+
+    instance: {
+      prompt:
+        'Given a standard normal distribution, find the value of $z$ if (a) the area to the right of $z$ is ' +
+        '$0.3622$, and (b) the area to the left of $z$ is $0.1131$.',
+
+      parts: [
+        { kind: 'numeric', label: '(a) z', answer: 0.35, tol: 0.01 },
+
+        { kind: 'numeric', label: '(b) z', answer: -1.21, tol: 0.01 },
+      ],
+
+      solution: [
+        { text: '(a) Area to the right $0.3622$ means $P(Z<z)=1-0.3622=0.6378$, so $z\\approx0.35$.' },
+
+        { text: '(b) $P(Z<z)=0.1131$ directly gives $z\\approx-1.21$.' },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-7-c',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Areas under the normal curve',
+
+    difficulty: 'hard',
+
+    citation: 'Walpole Exercise 6.7(c)',
+
+    instance: {
+      prompt: 'Given a standard normal distribution, find the value of $k$ such that $P(-0.93<Z<k)=0.7235$.',
+
+      parts: [{ kind: 'numeric', answer: 1.28, tol: 0.01 }],
+
+      solution: [
+        {
+          text: '$P(Z<-0.93)=0.1762$, so $P(Z<k)=0.7235+0.1762=0.8997$, which gives $k\\approx1.28$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-22-a',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Areas under the normal curve',
+
+    difficulty: 'easy',
+
+    citation: 'Walpole Exercise 6.22(a)',
+
+    instance: {
+      prompt:
+        'If a set of observations is normally distributed, what percent of these differ from the mean by ' +
+        'more than $1.3\\sigma$?',
+
+      parts: [
+        { kind: 'numeric', answer: 0.1936, tol: 0.0005 },
+
+        { kind: 'tf', label: 'this percentage is the same for every normal distribution', answer: true },
+      ],
+
+      solution: [
+        {
+          text: 'Standardizing, "differs from the mean by more than $1.3\\sigma$" is $|Z|>1.3$, so $P=2(1-\\Phi(1.3))=2(1-0.9032)=0.1936$, or about $19.36\\%$.',
+        },
+
+        {
+          text: 'Because $1.3$ is already measured in units of $\\sigma$, this fraction holds for every normal distribution, not just one with particular $\\mu$, $\\sigma$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-27',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal approximation to the binomial',
+
+    difficulty: 'medium',
+
+    citation: 'Walpole Exercise 6.27',
+
+    instance: {
+      prompt:
+        'The probability that a patient recovers from a delicate heart operation is $0.9$. Of the next $100$ ' +
+        'patients having this operation, use the normal approximation with a continuity correction to find ' +
+        'the probability that (a) between 84 and 95 inclusive survive, and (b) fewer than 86 survive.',
+
+      parts: [
+        { kind: 'numeric', label: '(a) P(84 <= X <= 95)', answer: 0.9514, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(b) P(X < 86)', answer: 0.0668, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: '$\\mu=np=90$ and $\\sigma=\\sqrt{npq}=\\sqrt{100(0.9)(0.1)}=3.0$; both $np=90$ and $n(1-p)=10$ exceed 5.',
+        },
+
+        {
+          text: '(a) $z_1=\\dfrac{83.5-90}{3}=-2.17$, $z_2=\\dfrac{95.5-90}{3}=1.83$; $P=\\Phi(1.83)-\\Phi(-2.17)=0.9514$.',
+        },
+
+        {
+          text: '(b) $z=\\dfrac{85.5-90}{3}=-1.50$; $P(X<86)\\approx P(Z<-1.50)=0.0668$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-29',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal approximation to the binomial',
+
+    difficulty: 'medium',
+
+    citation: 'Walpole Exercise 6.29',
+
+    instance: {
+      prompt:
+        'If $20\\%$ of the residents in a U.S. city prefer a white telephone over any other color available, ' +
+        'use the normal approximation with a continuity correction to find the probability that among the ' +
+        'next $1000$ telephones installed in that city (a) between 170 and 185 inclusive will be white, and ' +
+        '(b) at least 210 but not more than 225 will be white.',
+
+      parts: [
+        { kind: 'numeric', label: '(a) P(170 <= X <= 185)', answer: 0.1171, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(b) P(210 <= X <= 225)', answer: 0.2049, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: '$\\mu=np=200$ and $\\sigma=\\sqrt{npq}=\\sqrt{1000(0.2)(0.8)}\\approx12.65$; both $np=200$ and $n(1-p)=800$ comfortably exceed 5.',
+        },
+
+        {
+          text: '(a) $z_1=\\dfrac{169.5-200}{12.65}=-2.41$, $z_2=\\dfrac{185.5-200}{12.65}=-1.15$; $P=\\Phi(-1.15)-\\Phi(-2.41)=0.1171$.',
+        },
+
+        {
+          text: '(b) $z_1=\\dfrac{209.5-200}{12.65}=0.75$, $z_2=\\dfrac{225.5-200}{12.65}=2.02$; $P=\\Phi(2.02)-\\Phi(0.75)=0.2049$.',
+        },
+      ],
+    },
+  }),
+
+  bookQuestion({
+    id: 'ch06-book-walpole-6-31',
+
+    chapter: 'continuous-distributions',
+
+    topic: 'Normal approximation to the binomial',
+
+    difficulty: 'easy',
+
+    citation: 'Walpole Exercise 6.31',
+
+    instance: {
+      prompt:
+        'One-sixth of the male freshmen entering a large state school are out-of-state students. If the ' +
+        'students are assigned at random to dormitories, $180$ to a building, use the normal approximation ' +
+        'with a continuity correction to find the probability that in a given dormitory at least one-fifth ' +
+        'of the students are from out of state.',
+
+      parts: [{ kind: 'numeric', answer: 0.1357, tol: 0.0005 }],
+
+      solution: [
+        {
+          text: '$\\mu=np=180(1/6)=30$ and $\\sigma=\\sqrt{npq}=\\sqrt{180(1/6)(5/6)}=5.0$; both $np=30$ and $n(1-p)=150$ exceed 5.',
+        },
+
+        {
+          text: 'One-fifth of $180$ is $36$, so with the continuity correction $z=\\dfrac{35.5-30}{5}=1.10$, giving $P(X\\ge36)\\approx P(Z>1.10)=1-0.8643=0.1357$.',
+        },
+      ],
+    },
+  }),
 ];

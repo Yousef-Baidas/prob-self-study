@@ -1,8 +1,8 @@
 import Notation from '../components/notes/Notation.astro';
 import Figure from '../components/notes/Figure.astro';
+import InCode from '../components/notes/InCode.astro';
 import BalancePoint from '../components/notes/ch04/BalancePoint.astro';
 import SpreadPair from '../components/notes/ch04/SpreadPair.astro';
-import ChebyshevFence from '../components/notes/ch04/ChebyshevFence.astro';
 import CovarianceScatter from '../components/notes/ch04/CovarianceScatter.astro';
 
 import { CHART_WIDTH } from '../components/notes/chartkit';
@@ -54,6 +54,18 @@ For a continuous measurement, the sum becomes an integral over the density:
 $$
 \mu=E(X)=\int_{-\infty}^{\infty} xf(x)\,dx.
 $$
+
+<InCode
+  title="Expectation is a weighted sum, and the weights are the probabilities"
+  note="The continuous case is the same reduce with the sum replaced by a limit — an integral against the density instead of a running total against a pmf."
+>
+```ts
+const mean = (values: number[], mass: number[]) =>
+  values.reduce((total, x, i) => total + x * mass[i], 0);
+
+// mean([0, 1, 2, 3], [1/35, 12/35, 18/35, 4/35]) === 12 / 7
+```
+</InCode>
 
 Unlike the *sample mean* of Chapter 1, which averages data you actually collected, $E(X)$
 is computed straight from the probability distribution — it describes the population the
@@ -124,6 +136,18 @@ $$
     { name: 'the mean of that rule', symbol: '\\mu_{g(X)}=E[g(X)]' },
   ]}
 />
+
+<InCode
+  title="E(g(X)) is the same reduce, with g applied to the values before they are weighted"
+  note="Only the values passed in change — the mass array, mass, is untouched, because g never rewrites the probabilities."
+>
+```ts
+const meanOf = (g: (x: number) => number, values: number[], mass: number[]) =>
+  values.reduce((total, x, i) => total + g(x) * mass[i], 0);
+
+// meanOf((x) => 2 * x - 1, [4, 5, 6, 7, 8, 9], carCountMass) is E(2X - 1)
+```
+</InCode>
 
 > **Worked example** (Walpole §4.1, Example 4.4). Cars passing a car wash between 4 and 5
 > p.m., `carCount` (written $X$), has pmf $f(4)=\tfrac{1}{12}$, $f(5)=\tfrac{1}{12}$,
@@ -218,6 +242,21 @@ squaring it:
 $$
 \sigma^2=E(X^2)-\mu^2.
 $$
+
+<InCode
+  title="Variance by definition and variance by the shortcut are the same function of the data, computed two ways"
+  note="Both take (values, mass) and return the same number — the shortcut just avoids building an intermediate array of squared deviations."
+>
+```ts
+const variance = (values: number[], mass: number[]) => {
+  const mu = mean(values, mass);
+  return meanOf((x) => (x - mu) ** 2, values, mass); // Definition 4.3
+};
+
+const varianceShortcut = (values: number[], mass: number[]) =>
+  meanOf((x) => x ** 2, values, mass) - mean(values, mass) ** 2; // Theorem 4.2
+```
+</InCode>
 
 > **Worked example** (Walpole §4.2, Example 4.9). The number of defective parts,
 > `defectCount`, out of $3$ sampled has $f(0)=0.51$, $f(1)=0.38$, $f(2)=0.10$,
@@ -369,6 +408,19 @@ $$
 \sigma^2_{aX+bY+c}=a^2\sigma_X^2+b^2\sigma_Y^2+2ab\,\sigma_{XY}.
 $$
 
+<InCode
+  title="Var(aX + bY) keeps the cross term unless independence is known to erase it"
+  note="Dropping the covariance parameter instead of passing 0 is exactly the forgetting-the-cross-term error the misconceptions list below calls out."
+>
+```ts
+const varOfCombo = (a: number, b: number, varX: number, varY: number, covXY: number) =>
+  a ** 2 * varX + b ** 2 * varY + 2 * a * b * covXY; // Theorem 4.9
+
+const varOfComboIndependent = (a: number, b: number, varX: number, varY: number) =>
+  varOfCombo(a, b, varX, varY, 0); // Corollary 4.9 — the special case covXY = 0
+```
+</InCode>
+
 <Notation
   rows={[
     { name: 'the combined measurement', symbol: 'aX+bY+c' },
@@ -401,67 +453,7 @@ A handful of corollaries fall out of Theorem 4.9 by setting terms to zero:
 Independence is what removes the covariance term; nothing else in Theorem 4.9 depends on
 the distributions of $X$ and $Y$ at all.
 
-## 4.4 Chebyshev's theorem
-
-Suppose a machine fills bags with a mean weight of $500$ grams, but its exact distribution
-of fill weights is unknown — only the mean and the standard deviation have been measured.
-How much of the output can still be guaranteed to fall near the mean?
-
-**Theorem 4.10 (Chebyshev's theorem).** For *any* random variable $X$ with mean $\mu$ and
-standard deviation $\sigma$, and any real number $k>1$,
-
-$$
-P(\mu-k\sigma<X<\mu+k\sigma)\ge1-\frac{1}{k^2}.
-$$
-
-<Notation
-  rows={[
-    { name: 'the fence k standard deviations either side of the mean', symbol: '\\mu\\pm k\\sigma' },
-    { name: 'the guaranteed floor on the probability inside it', symbol: '1-\\dfrac{1}{k^2}' },
-  ]}
-/>
-
-For $k=2$, at least $1-\tfrac{1}{4}=\tfrac34$ of the distribution lies within two standard
-deviations of the mean — for *every* distribution, whatever its shape. For $k=3$, at least
-$\tfrac89$ lies within three. The complementary form is often more directly useful:
-
-$$
-P(|X-\mu|\ge k\sigma)\le\frac{1}{k^2}.
-$$
-
-<Figure width={CHART_WIDTH.chebyshevFence} caption="Whatever the true shape of the curve turns out to be, the hatched area between the fences is guaranteed to hold at least this much probability.">
-  <ChebyshevFence
-    title="A density with Chebyshev fences at μ ± 2σ and the guaranteed area hatched"
-    axisLabel="fillWeight"
-    guaranteedLabel="≥ 3/4"
-    mean={5}
-    sigma={1}
-    k={2}
-    domain={[1, 9]}
-    fn={(x) => Math.exp(-((x - 5) ** 2) / 2) / Math.sqrt(2 * Math.PI)}
-  />
-</Figure>
-
-> **Worked example** (Walpole §4.4, Example 4.27). A measurement has $\mu=8$,
-> $\sigma^2=9$ (so $\sigma=3$), distribution otherwise unknown.
->
-> $$
-> P(-4<X<20)=P\!\left(8-(4)(3)<X<8+(4)(3)\right)\ge1-\frac{1}{4^2}=\frac{15}{16},
-> $$
->
-> $$
-> P(|X-8|\ge6)=P\!\left(|X-8|\ge(2)(3)\right)\le\frac{1}{2^2}=\frac14.
-> $$
-
-**Chebyshev's theorem is distribution-free**, which is exactly its strength and its
-weakness. It holds no matter what the true distribution is, which is why the bound it
-gives is only a *floor*: the true probability inside $\mu\pm k\sigma$ could be — and
-usually is — considerably higher than $1-1/k^2$ once the actual distribution is known. The
-theorem is used precisely when the distribution is *not* known; once it is, the exact
-probability from that distribution is always the better answer. It also has nothing useful
-to say for $k\le1$: $1-1/k^2$ is zero or negative there, a true but empty guarantee.
-
-## 4.5 Potential misconceptions and hazards
+## 4.4 Potential misconceptions and hazards
 
 Mistakes this chapter actually punishes, gathered in one place:
 
@@ -482,10 +474,6 @@ Mistakes this chapter actually punishes, gathered in one place:
   variance nor standard deviation from one kind of measurement (heights) is comparable to
   either from an unrelated kind (aptitude scores) — only distributions sharing a unit are
   worth comparing this way.
-- **Chebyshev's theorem gives a bound, not the actual probability.** It is a guaranteed
-  floor that holds for every distribution, so the true probability is usually higher once
-  the actual distribution is known. It is also uninformative for $k\le1$, where
-  $1-1/k^2\le0$ says nothing at all.
 - **A mean can be a value the measurement never takes.** `headCount` averaging $1.06$ heads
   per toss, or `goodCount` averaging $12/7$ good components, are both long-run averages —
   neither number is ever the outcome of any single trial.

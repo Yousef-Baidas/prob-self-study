@@ -1,10 +1,26 @@
 import type { QuestionTemplate } from '../types';
 
+import type { SeededRng } from '../rng';
+
 import { generatedQuestion } from '../authoring';
 
 import { ch03JointGenerators } from './ch03-joint';
 
 import { nCr, round } from '../mathx';
+
+/** Fisher-Yates over the first `k` slots -- a local shuffle, since `SeededRng`
+ * only exposes `pick` (with replacement) and no chapter file may add to it. */
+const pickDistinctIndices = (rng: SeededRng, size: number, k: number): number[] => {
+  const idx = Array.from({ length: size }, (_, i) => i);
+
+  for (let i = size - 1; i > 0; i--) {
+    const j = rng.int(0, i);
+
+    [idx[i], idx[j]] = [idx[j], idx[i]];
+  }
+
+  return idx.slice(0, k);
+};
 
 const sampleSpaceValuesTemplate = generatedQuestion({
   id: 'ch03-gen-sample-space-values',
@@ -49,6 +65,122 @@ const sampleSpaceValuesTemplate = generatedQuestion({
 
         {
           text: `A value of $X$ is not an outcome — it names the event $\\{X=${r}\\}$, a subset of $S$ with ${mapped} points.`,
+        },
+      ],
+    };
+  },
+});
+
+const classifyDiscreteContinuousTemplate = generatedQuestion({
+  id: 'ch03-gen-classify-discrete-continuous',
+
+  chapter: 'random-variables',
+
+  topic: 'Random variables',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    // Tagged by hand once, so no draw can invent a wrong classification --
+    // the randomness only picks which four of the eight appear.
+    const pool: { name: string; discrete: boolean }[] = [
+      { name: 'the number of typos on a printed page', discrete: true },
+
+      { name: 'the download speed of a network link, in Mbps', discrete: false },
+
+      { name: 'the number of failed login attempts before a lockout', discrete: true },
+
+      { name: 'the volume of coffee poured into a cup, in millilitres', discrete: false },
+
+      { name: 'the number of cars passing a sensor in an hour', discrete: true },
+
+      { name: 'the shelf life of a carton of milk, in days', discrete: false },
+
+      { name: 'the number of characters in a text message', discrete: true },
+
+      { name: 'the reaction time of a sprinter, in seconds', discrete: false },
+    ];
+
+    const picked = pickDistinctIndices(rng, pool.length, 4).map((i) => pool[i]);
+
+    const discreteCount = picked.filter((p) => p.discrete).length;
+
+    const list = picked.map((p, i) => `${i + 1}. ${p.name}`).join('; ');
+
+    return {
+      prompt:
+        `Classify each of the following as **discrete** (counted) or **continuous** (measured): ${list}. ` +
+        `How many of the four are discrete?`,
+
+      params: { picked: picked.map((p) => (p.discrete ? 1 : 0)) },
+
+      parts: [{ kind: 'mcq', choices: ['0', '1', '2', '3', '4'], answer: discreteCount }],
+
+      solution: [
+        {
+          text: picked
+            .map(
+              (p) =>
+                `*${p.name}* is **${p.discrete ? 'discrete' : 'continuous'}**, since it is ${p.discrete ? 'counted' : 'measured'}.`,
+            )
+            .join(' '),
+        },
+
+        {
+          text: `That makes ${discreteCount} of the four discrete.`,
+        },
+      ],
+    };
+  },
+});
+
+const geometricWaitingTemplate = generatedQuestion({
+  id: 'ch03-gen-geometric-waiting',
+
+  chapter: 'random-variables',
+
+  topic: 'Random variables',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const pTenths = rng.int(3, 7); // P(tail) = pTenths / 10, kept away from 0 and 1
+
+    const p = pTenths / 10;
+
+    const k = rng.int(1, 4);
+
+    const atK = round(p * (1 - p) ** (k - 1), 4);
+
+    const upToK = round(1 - (1 - p) ** k, 4);
+
+    return {
+      prompt:
+        `A biased coin, with $P(\\text{tail})=${p}$ on each toss, is tossed repeatedly until the first ` +
+        `tail appears. Let $X$ be the toss number on which the first tail occurs. Find $P(X=${k})$ and ` +
+        `$P(X\\le${k})$.`,
+
+      params: { p, k },
+
+      parts: [
+        { kind: 'numeric', label: `P(X = ${k})`, answer: atK, tol: 0.0005 },
+
+        { kind: 'numeric', label: `P(X <= ${k})`, answer: upToK, tol: 0.0005 },
+
+        { kind: 'tf', label: 'The sample space of X is finite', answer: false },
+      ],
+
+      solution: [
+        {
+          text: `$X=${k}$ means the first $${k - 1}$ tosses land heads and the ${k}th lands tails: $P(X=${k})=(1-${p})^{${k - 1}}\\cdot${p}\\approx${atK}$.`,
+        },
+
+        {
+          text: `$P(X\\le${k})=1-P(X>${k})=1-(1-${p})^{${k}}\\approx${upToK}$ — the complement is cheaper than summing the geometric run directly.`,
+        },
+
+        {
+          text: `Nothing stops the coin from landing heads every time, so $X$ can in principle take any positive integer value: its range is **countably infinite**, not finite.`,
         },
       ],
     };
@@ -273,6 +405,108 @@ const cdfToPmfTemplate = generatedQuestion({
   },
 });
 
+const validPmfCheckTemplate = generatedQuestion({
+  id: 'ch03-gen-valid-pmf-check',
+
+  chapter: 'random-variables',
+
+  topic: 'Discrete distributions',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const n = rng.int(3, 5);
+
+    const a = rng.int(0, 2);
+
+    // sum_{x=0}^{n} (x + a) = (n+1)*a + n(n+1)/2 -- the only k that normalises f.
+    const trueK = (n + 1) * a + (n * (n + 1)) / 2;
+
+    const isValid = rng.bool();
+
+    const shownK = isValid ? trueK : trueK + rng.int(1, 4);
+
+    return {
+      prompt:
+        `A discrete random variable $X$ takes the values $x=0,1,\\dots,${n}$ with proposed mass function ` +
+        `$f(x)=\\dfrac{x+${a}}{${shownK}}$. Find the constant $k$ that actually makes $f$ a pmf, and decide ` +
+        `whether the proposed $f$ (with $k=${shownK}$) is valid.`,
+
+      params: { n, a, shownK, trueK, isValid: isValid ? 1 : 0 },
+
+      parts: [
+        { kind: 'numeric', label: 'correct k', answer: trueK, tol: 0 },
+
+        { kind: 'tf', label: `f is a valid pmf with k = ${shownK}`, answer: isValid },
+      ],
+
+      solution: [
+        {
+          text: `A pmf must satisfy $\\sum_x f(x)=1$: $\\sum_{x=0}^{${n}}\\dfrac{x+${a}}{k}=\\dfrac{1}{k}\\left(${a}\\cdot(${n}+1)+\\dfrac{${n}(${n}+1)}{2}\\right)=1$.`,
+        },
+
+        {
+          text: `That forces $k=${trueK}$.`,
+        },
+
+        {
+          text: isValid
+            ? `Since the proposed constant is exactly $${shownK}$, $f$ **is** a valid pmf.`
+            : `The proposed constant $${shownK}\\neq${trueK}$, so the values sum to $\\dfrac{${trueK}}{${shownK}}\\neq1$ and $f$ is **not** a valid pmf.`,
+        },
+      ],
+    };
+  },
+});
+
+const cacheHitBinomialTemplate = generatedQuestion({
+  id: 'ch03-gen-cache-hit-binomial',
+
+  chapter: 'random-variables',
+
+  topic: 'Discrete distributions',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const n = rng.int(4, 6);
+
+    const pPct = rng.int(85, 98); // P(cache hit) as a percentage, kept comfortably below 100
+
+    const p = pPct / 100;
+
+    const allHit = round(p ** n, 4);
+
+    const atLeastOneMiss = round(1 - allHit, 4);
+
+    return {
+      prompt:
+        `A content cache serves each request with probability $${p}$ of a hit, independently of every ` +
+        `other request. Let $Y$ be the number of hits among $${n}$ consecutive requests, so ` +
+        `$f(y)=\\binom{${n}}{y}(${p})^{y}(1-${p})^{${n}-y}$ for $y=0,1,\\dots,${n}$. Find $P(Y=${n})$, the ` +
+        `chance every request hits, and the chance at least one request misses.`,
+
+      params: { n, p },
+
+      parts: [
+        { kind: 'numeric', label: `P(Y = ${n})`, answer: allHit, tol: 0.0005 },
+
+        { kind: 'numeric', label: 'P(at least one miss)', answer: atLeastOneMiss, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `$Y=${n}$ needs every one of the $${n}$ requests to hit: $f(${n})=\\binom{${n}}{${n}}(${p})^{${n}}(1-${p})^0=(${p})^{${n}}\\approx${allHit}$.`,
+        },
+
+        {
+          text: `"At least one miss" is the complement of "all hit": $1-${allHit}\\approx${atLeastOneMiss}$ — cheaper than summing $f(0)$ through $f(${n - 1})$.`,
+        },
+      ],
+    };
+  },
+});
+
 const densityConstantTemplate = generatedQuestion({
   id: 'ch03-gen-density-constant',
 
@@ -365,6 +599,107 @@ const densityIntervalTemplate = generatedQuestion({
 
         {
           text: `$X$ is continuous, so $P(X\\le${d})=P(X<${d})$ — the endpoint carries no probability.`,
+        },
+      ],
+    };
+  },
+});
+
+const validDensityCheckTemplate = generatedQuestion({
+  id: 'ch03-gen-valid-density-check',
+
+  chapter: 'random-variables',
+
+  topic: 'Continuous distributions',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const a = rng.int(2, 5);
+
+    // integral of k x^2 over (0, a) is k a^3 / 3, so k = 3 / a^3 is the only normalising constant.
+    const trueK = round(3 / a ** 3, 5);
+
+    const isValid = rng.bool();
+
+    const factor = rng.pick([0.5, 1.5, 2]); // never 1, so an invalid draw never accidentally matches
+
+    const shownK = isValid ? trueK : round(trueK * factor, 5);
+
+    return {
+      prompt:
+        `The shelf life, in days, of a perishable component is a continuous random variable $X$ with ` +
+        `proposed density $f(x)=kx^2$ for $0<x<${a}$ and $f(x)=0$ elsewhere. Find the constant $k$ that ` +
+        `actually makes $f$ a density, and decide whether the proposed value $k=${shownK}$ is valid.`,
+
+      params: { a, shownK, trueK, isValid: isValid ? 1 : 0 },
+
+      parts: [
+        { kind: 'numeric', label: 'correct k', answer: trueK, tol: 0.0005 },
+
+        { kind: 'tf', label: `f is a valid density with k = ${shownK}`, answer: isValid },
+      ],
+
+      solution: [
+        {
+          text: `A density must integrate to $1$: $\\displaystyle\\int_0^{${a}} kx^2\\,dx=\\dfrac{k\\cdot${a}^3}{3}=1$, so $k=\\dfrac{3}{${a}^3}\\approx${trueK}$.`,
+        },
+
+        {
+          text: isValid
+            ? `The proposed $k=${shownK}$ matches this value, so $f$ **is** a valid density.`
+            : `The proposed $k=${shownK}$ does not match $${trueK}$, so $\\int_0^{${a}} f(x)\\,dx\\neq1$ and $f$ is **not** a valid density.`,
+        },
+      ],
+    };
+  },
+});
+
+const latencyCdfInverseTemplate = generatedQuestion({
+  id: 'ch03-gen-latency-cdf-inverse',
+
+  chapter: 'random-variables',
+
+  topic: 'Continuous distributions',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const a = rng.int(1, 3) * 10; // lower bound of latency, ms
+
+    const width = rng.int(2, 5) * 10;
+
+    const b = a + width;
+
+    const pTenths = rng.int(2, 8); // target probability strictly inside (0, 1)
+
+    const p = pTenths / 10;
+
+    const density = round(1 / width, 4);
+
+    const xp = round(a + p * width, 2);
+
+    return {
+      prompt:
+        `The response time $X$ of a web request, in milliseconds, is uniformly distributed on ` +
+        `$(${a},${b})$, so $F(x)=\\dfrac{x-${a}}{${width}}$ for $${a}<x<${b}$. Find the density $f(x)$, and ` +
+        `find the response time $x_p$ such that $F(x_p)=${p}$.`,
+
+      params: { a, b, p },
+
+      parts: [
+        { kind: 'numeric', label: 'f(x)', answer: density, tol: 0.0005 },
+
+        { kind: 'numeric', label: `x with F(x) = ${p}`, answer: xp, tol: 0.01 },
+      ],
+
+      solution: [
+        {
+          text: `A uniform density is constant on its support: $f(x)=\\dfrac{1}{${b}-${a}}=\\dfrac{1}{${width}}\\approx${density}$.`,
+        },
+
+        {
+          text: `Solving $F(x_p)=${p}$ for $x_p$: $\\dfrac{x_p-${a}}{${width}}=${p}\\implies x_p=${a}+${p}\\cdot${width}=${xp}$.`,
         },
       ],
     };
@@ -568,7 +903,15 @@ const piecewiseDensityTemplate = generatedQuestion({
 export const ch03Generators: QuestionTemplate[] = [
   sampleSpaceValuesTemplate,
 
+  classifyDiscreteContinuousTemplate,
+
+  geometricWaitingTemplate,
+
   pmfConstantTemplate,
+
+  validPmfCheckTemplate,
+
+  cacheHitBinomialTemplate,
 
   hypergeometricPmfTemplate,
 
@@ -578,7 +921,11 @@ export const ch03Generators: QuestionTemplate[] = [
 
   densityConstantTemplate,
 
+  validDensityCheckTemplate,
+
   densityIntervalTemplate,
+
+  latencyCdfInverseTemplate,
 
   continuousCdfTemplate,
 

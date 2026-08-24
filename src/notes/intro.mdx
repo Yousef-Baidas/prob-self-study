@@ -1,4 +1,5 @@
 import Notation from '../components/notes/Notation.astro';
+import InCode from '../components/notes/InCode.astro';
 import Figure from '../components/notes/Figure.astro';
 import DotPlot from '../components/notes/ch01/DotPlot.astro';
 import BoxPlot from '../components/notes/ch01/BoxPlot.astro';
@@ -116,6 +117,23 @@ order for the median, and $n$ is the sample size.
 > $\tilde{x} = 5$. The single large value drags the mean far from the bulk of the data,
 > while the median still reflects the centre — the median **resists outliers**.
 
+<InCode title="The mean is dragged toward outliers; the median resists them">
+```ts
+const deliveryDelays = [2, 4, 5, 6, 100];
+
+const sampleMean = (xs: number[]) =>
+  xs.reduce((total, x) => total + x, 0) / xs.length;
+
+const sampleMedian = (xs: number[]) => {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+```
+</InCode>
+
 ### Trimmed mean
 
 The **$p\%$ trimmed mean** sorts the deliveries by delay, discards the largest $p\%$
@@ -128,6 +146,21 @@ observation(s) is trimmed away.
 <Notation rows={[
   { name: 'the trimmed average', symbol: '\\bar{x}_{\\mathrm{tr}(p)}' },
 ]} />
+
+<InCode title="The trimmed mean drops the extremes, then averages what's left">
+```ts
+const deliveryDelays = [2, 3, 5, 6, 7, 8, 9, 10, 11, 50];
+
+const trimmedMean = (xs: number[], trimPct: number) => {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const trimCount = Math.round(sorted.length * trimPct);
+  const kept = sorted.slice(trimCount, sorted.length - trimCount);
+  return kept.reduce((total, x) => total + x, 0) / kept.length;
+};
+
+trimmedMean(deliveryDelays, 0.1); // 7.375, close to the median, not the mean
+```
+</InCode>
 
 > **Worked example.** Ten delivery delays, in minutes, sorted: $2,\ 3,\ 5,\ 6,\ 7,\ 8,\
 > 9,\ 10,\ 11,\ 50$.
@@ -184,6 +217,23 @@ $\sum_{i=1}^{n}(x_i - \bar{x}) = 0$, only $n-1$ of them are free to vary. Varian
 *squared* units; the standard deviation is back in the original units of the data. (The
 sample variance is used more in inferential *theory*; the standard deviation, sharing
 the data's own units, is used more in applications.)
+
+<InCode
+  title="Variance is the mean squared distance from the mean — divided by n − 1, not n"
+  note="Dividing by n instead would systematically understate the population variance; n − 1 is the count of deviations actually free to vary, not an arbitrary correction."
+>
+```ts
+const phReadings = [7.07, 7.00, 7.10, 6.97, 7.00, 7.03, 7.01, 7.01, 6.98, 7.08];
+
+const sampleMean = phReadings.reduce((t, x) => t + x, 0) / phReadings.length;
+
+const sampleVariance =
+  phReadings.reduce((total, x) => total + (x - sampleMean) ** 2, 0) /
+  (phReadings.length - 1);
+
+const sampleStdDev = Math.sqrt(sampleVariance); // 0.044
+```
+</InCode>
 
 > **Worked example — pH‑meter readings** (Walpole §1.4, Example 1.4). Ten readings:
 >
@@ -266,6 +316,24 @@ $$
 So a position of $2.75$ means *three quarters of the way from the 2nd observation to
 the 3rd*, and you report that exact point — **not** whichever observation happens to
 be nearest.
+
+<InCode
+  title="A quartile is a position in the sorted list, not a lookup"
+  note="numpy.percentile's default (linear) interpolation places Q1 at a different position than L_k = k(n+1)/4 does here — the two conventions only converge for large n."
+>
+```ts
+const waitTimes = [1, 5, 6, 7, 9, 12, 14, 15, 18, 22];
+
+const quartile = (xs: number[], k: 1 | 2 | 3) => {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const position = (k * (sorted.length + 1)) / 4;
+  const j = Math.floor(position);
+  const frac = position - j;
+  if (j >= sorted.length) return sorted[sorted.length - 1];
+  return sorted[j - 1] + frac * (sorted[j] - sorted[j - 1]);
+};
+```
+</InCode>
 
 > **Worked example.** Ten wait times, in minutes, already sorted:
 >
@@ -456,6 +524,20 @@ $1.5 \times \mathrm{IQR}$ from the box:
 $$
 \text{outlier if } x < Q_1 - 1.5\,\mathrm{IQR} \quad \text{or} \quad x > Q_3 + 1.5\,\mathrm{IQR}.
 $$
+
+<InCode title="A value counts as an outlier once it clears 1.5 IQRs past the box">
+```ts
+const q1 = 29.5;
+const q3 = 44.75;
+const iqr = q3 - q1;
+
+const lowerFence = q1 - 1.5 * iqr;
+const upperFence = q3 + 1.5 * iqr;
+
+const isOutlier = (processingTime: number) =>
+  processingTime < lowerFence || processingTime > upperFence;
+```
+</InCode>
 
 > **Worked example — continuing the processing-time data** $(n = 12)$. Using
 > $L_k = k(n+1)/4$ from §1.4:

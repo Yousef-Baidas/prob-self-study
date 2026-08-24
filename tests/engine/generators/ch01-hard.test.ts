@@ -1,6 +1,18 @@
 import { describe, expect, it } from 'vitest';
 
-import { ch01Generators, ch01StudyScenarios, studyTypeChoices } from '../../../src/engine/generators/ch01';
+import {
+  ch01Generators,
+  ch01StudyScenarios,
+  studyTypeChoices,
+  ch01VariableBank,
+  ch01VariableKindChoices,
+  ch01ScaleBank,
+  ch01ScaleChoices,
+  ch01PopSampleScenarios,
+  ch01ParamStatScenarios,
+  ch01SamplingMethodScenarios,
+  ch01SamplingMethodChoices,
+} from '../../../src/engine/generators/ch01';
 
 import { mulberry32 } from '../../../src/engine/rng';
 
@@ -97,16 +109,21 @@ describe('ch01 cvTwoLines', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { dataA, dataB } = inst.params as unknown as { dataA: number[]; dataB: number[] };
+      const { dataA, dataB } = inst.params as unknown as {
+        dataA: number[];
+        dataB: number[];
+      };
 
       // Guard: both lines have strictly positive spread (never degenerate to s = 0).
       expect(independentSampleStdDev(dataA)).toBeGreaterThan(0);
 
       expect(independentSampleStdDev(dataB)).toBeGreaterThan(0);
 
-      const cvA = (independentSampleStdDev(dataA) / independentMean(dataA)) * 100;
+      const cvA =
+        (independentSampleStdDev(dataA) / independentMean(dataA)) * 100;
 
-      const cvB = (independentSampleStdDev(dataB) / independentMean(dataB)) * 100;
+      const cvB =
+        (independentSampleStdDev(dataB) / independentMean(dataB)) * 100;
 
       // Guard: same offsets on both lines ⇒ identical spread ⇒ never a tie in CV.
       expect(cvA).not.toBeCloseTo(cvB, 6);
@@ -119,9 +136,11 @@ describe('ch01 cvTwoLines', () => {
 
       expect(partWinner.kind).toBe('mcq');
 
-      if (partA.kind === 'numeric') expect(Math.abs(partA.answer - cvA)).toBeLessThanOrEqual(partA.tol);
+      if (partA.kind === 'numeric')
+        expect(Math.abs(partA.answer - cvA)).toBeLessThanOrEqual(partA.tol);
 
-      if (partB.kind === 'numeric') expect(Math.abs(partB.answer - cvB)).toBeLessThanOrEqual(partB.tol);
+      if (partB.kind === 'numeric')
+        expect(Math.abs(partB.answer - cvB)).toBeLessThanOrEqual(partB.tol);
 
       if (partWinner.kind === 'mcq') {
         const expectedWinner = cvA > cvB ? 0 : 1;
@@ -150,7 +169,10 @@ describe('ch01 quartileFence', () => {
     for (let seed = 0; seed < QUARTILE_FENCE_SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { data, testValue } = inst.params as unknown as { data: number[]; testValue: number };
+      const { data, testValue } = inst.params as unknown as {
+        data: number[];
+        testValue: number;
+      };
 
       const q1 = independentQuartile(data, 1);
 
@@ -178,12 +200,16 @@ describe('ch01 quartileFence', () => {
 
       expect(partOutlier.kind).toBe('tf');
 
-      if (partQ1.kind === 'numeric') expect(Math.abs(partQ1.answer - q1)).toBeLessThanOrEqual(partQ1.tol);
+      if (partQ1.kind === 'numeric')
+        expect(Math.abs(partQ1.answer - q1)).toBeLessThanOrEqual(partQ1.tol);
 
-      if (partQ3.kind === 'numeric') expect(Math.abs(partQ3.answer - q3)).toBeLessThanOrEqual(partQ3.tol);
+      if (partQ3.kind === 'numeric')
+        expect(Math.abs(partQ3.answer - q3)).toBeLessThanOrEqual(partQ3.tol);
 
       if (partIqr.kind === 'numeric')
-        expect(Math.abs(partIqr.answer - iqrValue)).toBeLessThanOrEqual(partIqr.tol);
+        expect(Math.abs(partIqr.answer - iqrValue)).toBeLessThanOrEqual(
+          partIqr.tol,
+        );
 
       // Guard: the test value is always unambiguously inside or outside the
       // fences (built with a real margin), so the stated verdict is correct.
@@ -253,17 +279,22 @@ describe('ch01 trimmedMean', () => {
 
       expect(partMean.kind).toBe('numeric');
 
-      if (partMean.kind === 'numeric') expect(Math.abs(partMean.answer - m)).toBeLessThanOrEqual(partMean.tol);
+      if (partMean.kind === 'numeric')
+        expect(Math.abs(partMean.answer - m)).toBeLessThanOrEqual(partMean.tol);
 
       expect(partMedian.kind).toBe('numeric');
 
       if (partMedian.kind === 'numeric')
-        expect(Math.abs(partMedian.answer - md)).toBeLessThanOrEqual(partMedian.tol);
+        expect(Math.abs(partMedian.answer - md)).toBeLessThanOrEqual(
+          partMedian.tol,
+        );
 
       expect(partTrimmed.kind).toBe('numeric');
 
       if (partTrimmed.kind === 'numeric')
-        expect(Math.abs(partTrimmed.answer - trimmedMean)).toBeLessThanOrEqual(partTrimmed.tol);
+        expect(Math.abs(partTrimmed.answer - trimmedMean)).toBeLessThanOrEqual(
+          partTrimmed.tol,
+        );
 
       // The "closer to the median" verdict is computed from the draw, not
       // asserted to a fixed value — check it matches, and that it is never
@@ -274,7 +305,9 @@ describe('ch01 trimmedMean', () => {
       if (partCloser.kind === 'tf') {
         expect(Math.abs(trimmedMean - md)).not.toBeCloseTo(Math.abs(m - md), 6);
 
-        expect(partCloser.answer).toBe(Math.abs(trimmedMean - md) < Math.abs(m - md));
+        expect(partCloser.answer).toBe(
+          Math.abs(trimmedMean - md) < Math.abs(m - md),
+        );
       }
     }
   });
@@ -287,7 +320,11 @@ describe('ch01 rescaleShift', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { data, a, b } = inst.params as unknown as { data: number[]; a: number; b: number };
+      const { data, a, b } = inst.params as unknown as {
+        data: number[];
+        a: number;
+        b: number;
+      };
 
       expect(a).not.toBe(1);
 
@@ -306,16 +343,23 @@ describe('ch01 rescaleShift', () => {
       expect(partMean.kind).toBe('numeric');
 
       if (partMean.kind === 'numeric')
-        expect(Math.abs(partMean.answer - (a * xMean + b))).toBeLessThanOrEqual(partMean.tol);
+        expect(Math.abs(partMean.answer - (a * xMean + b))).toBeLessThanOrEqual(
+          partMean.tol,
+        );
 
       expect(partMedian.kind).toBe('numeric');
 
       if (partMedian.kind === 'numeric')
-        expect(Math.abs(partMedian.answer - (a * xMedian + b))).toBeLessThanOrEqual(partMedian.tol);
+        expect(
+          Math.abs(partMedian.answer - (a * xMedian + b)),
+        ).toBeLessThanOrEqual(partMedian.tol);
 
       expect(partStd.kind).toBe('numeric');
 
-      if (partStd.kind === 'numeric') expect(Math.abs(partStd.answer - a * xStd)).toBeLessThanOrEqual(partStd.tol);
+      if (partStd.kind === 'numeric')
+        expect(Math.abs(partStd.answer - a * xStd)).toBeLessThanOrEqual(
+          partStd.tol,
+        );
     }
   });
 });
@@ -327,7 +371,11 @@ describe('ch01 missingValue', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { known, M, n } = inst.params as unknown as { known: number[]; M: number; n: number };
+      const { known, M, n } = inst.params as unknown as {
+        known: number[];
+        M: number;
+        n: number;
+      };
 
       expect(known).toHaveLength(n - 1);
 
@@ -345,12 +393,16 @@ describe('ch01 missingValue', () => {
       expect(partMissing.kind).toBe('numeric');
 
       if (partMissing.kind === 'numeric')
-        expect(Math.abs(partMissing.answer - missing)).toBeLessThanOrEqual(partMissing.tol);
+        expect(Math.abs(partMissing.answer - missing)).toBeLessThanOrEqual(
+          partMissing.tol,
+        );
 
       expect(partCorrected.kind).toBe('numeric');
 
       if (partCorrected.kind === 'numeric')
-        expect(Math.abs(partCorrected.answer - correctedMean)).toBeLessThanOrEqual(partCorrected.tol);
+        expect(
+          Math.abs(partCorrected.answer - correctedMean),
+        ).toBeLessThanOrEqual(partCorrected.tol);
     }
   });
 });
@@ -390,7 +442,9 @@ describe('ch01 pooledMean', () => {
       expect(partPooled.kind).toBe('numeric');
 
       if (partPooled.kind === 'numeric')
-        expect(Math.abs(partPooled.answer - pooledMean)).toBeLessThanOrEqual(partPooled.tol);
+        expect(Math.abs(partPooled.answer - pooledMean)).toBeLessThanOrEqual(
+          partPooled.tol,
+        );
 
       expect(partEqual.kind).toBe('tf');
 
@@ -431,26 +485,34 @@ describe('ch01 stemLeafQuartile', () => {
 
       expect(partQ1.kind).toBe('numeric');
 
-      if (partQ1.kind === 'numeric') expect(Math.abs(partQ1.answer - q1)).toBeLessThanOrEqual(partQ1.tol);
+      if (partQ1.kind === 'numeric')
+        expect(Math.abs(partQ1.answer - q1)).toBeLessThanOrEqual(partQ1.tol);
 
       expect(partQ3.kind).toBe('numeric');
 
-      if (partQ3.kind === 'numeric') expect(Math.abs(partQ3.answer - q3)).toBeLessThanOrEqual(partQ3.tol);
+      if (partQ3.kind === 'numeric')
+        expect(Math.abs(partQ3.answer - q3)).toBeLessThanOrEqual(partQ3.tol);
 
       expect(partIqr.kind).toBe('numeric');
 
       if (partIqr.kind === 'numeric')
-        expect(Math.abs(partIqr.answer - iqrValue)).toBeLessThanOrEqual(partIqr.tol);
+        expect(Math.abs(partIqr.answer - iqrValue)).toBeLessThanOrEqual(
+          partIqr.tol,
+        );
 
       expect(partLower.kind).toBe('numeric');
 
       if (partLower.kind === 'numeric')
-        expect(Math.abs(partLower.answer - lowerFence)).toBeLessThanOrEqual(partLower.tol);
+        expect(Math.abs(partLower.answer - lowerFence)).toBeLessThanOrEqual(
+          partLower.tol,
+        );
 
       expect(partUpper.kind).toBe('numeric');
 
       if (partUpper.kind === 'numeric')
-        expect(Math.abs(partUpper.answer - upperFence)).toBeLessThanOrEqual(partUpper.tol);
+        expect(Math.abs(partUpper.answer - upperFence)).toBeLessThanOrEqual(
+          partUpper.tol,
+        );
     }
   });
 
@@ -478,7 +540,9 @@ describe('ch01 stemLeafQuartile', () => {
         }
       }
 
-      expect(decoded.sort((a, b) => a - b)).toEqual([...data].sort((a, b) => a - b));
+      expect(decoded.sort((a, b) => a - b)).toEqual(
+        [...data].sort((a, b) => a - b),
+      );
     }
   });
 });
@@ -499,7 +563,9 @@ describe('ch01 studyDesign', () => {
       expect(s.confounderAnswer).toBeLessThan(s.confounderChoices.length);
 
       // Every scenario's MCQ choices are pairwise distinct.
-      expect(new Set(s.confounderChoices).size).toBe(s.confounderChoices.length);
+      expect(new Set(s.confounderChoices).size).toBe(
+        s.confounderChoices.length,
+      );
 
       // A designed experiment (randomized assignment) is the only study type
       // in this bank that supports a causal conclusion.
@@ -572,7 +638,9 @@ describe('ch01 studyDesign', () => {
     for (let seed = 0; seed < 4000; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { scenarioIndex } = inst.params as unknown as { scenarioIndex: number };
+      const { scenarioIndex } = inst.params as unknown as {
+        scenarioIndex: number;
+      };
 
       seen.add(scenarioIndex);
 
@@ -586,7 +654,9 @@ describe('ch01 studyDesign', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { scenarioIndex } = inst.params as unknown as { scenarioIndex: number };
+      const { scenarioIndex } = inst.params as unknown as {
+        scenarioIndex: number;
+      };
 
       const s = ch01StudyScenarios[scenarioIndex];
 
@@ -604,7 +674,8 @@ describe('ch01 studyDesign', () => {
 
       expect(partConfounder.kind).toBe('mcq');
 
-      if (partConfounder.kind === 'mcq') expect(partConfounder.answer).toBe(s.confounderAnswer);
+      if (partConfounder.kind === 'mcq')
+        expect(partConfounder.answer).toBe(s.confounderAnswer);
     }
   });
 });
@@ -636,7 +707,9 @@ describe('ch01 studyDesign easy/medium templates', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = easy.generate(mulberry32(seed));
 
-      const { scenarioIndex } = inst.params as unknown as { scenarioIndex: number };
+      const { scenarioIndex } = inst.params as unknown as {
+        scenarioIndex: number;
+      };
 
       const s = ch01StudyScenarios[scenarioIndex];
 
@@ -654,7 +727,9 @@ describe('ch01 studyDesign easy/medium templates', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = medium.generate(mulberry32(seed));
 
-      const { scenarioIndex } = inst.params as unknown as { scenarioIndex: number };
+      const { scenarioIndex } = inst.params as unknown as {
+        scenarioIndex: number;
+      };
 
       const s = ch01StudyScenarios[scenarioIndex];
 
@@ -680,11 +755,15 @@ describe('ch01 studyDesign easy/medium templates', () => {
 
       const hardInst = hard.generate(mulberry32(seed));
 
-      const easyIdx = (easyInst.params as unknown as { scenarioIndex: number }).scenarioIndex;
+      const easyIdx = (easyInst.params as unknown as { scenarioIndex: number })
+        .scenarioIndex;
 
-      const mediumIdx = (mediumInst.params as unknown as { scenarioIndex: number }).scenarioIndex;
+      const mediumIdx = (
+        mediumInst.params as unknown as { scenarioIndex: number }
+      ).scenarioIndex;
 
-      const hardIdx = (hardInst.params as unknown as { scenarioIndex: number }).scenarioIndex;
+      const hardIdx = (hardInst.params as unknown as { scenarioIndex: number })
+        .scenarioIndex;
 
       const easyType = ch01StudyScenarios[easyIdx].studyType;
 
@@ -711,7 +790,9 @@ describe('ch01 studyDesign easy/medium templates', () => {
       for (let seed = 0; seed < 4000; seed++) {
         const inst = template.generate(mulberry32(seed));
 
-        const { scenarioIndex } = inst.params as unknown as { scenarioIndex: number };
+        const { scenarioIndex } = inst.params as unknown as {
+          scenarioIndex: number;
+        };
 
         seen.add(scenarioIndex);
 
@@ -719,6 +800,366 @@ describe('ch01 studyDesign easy/medium templates', () => {
       }
 
       expect(seen.size).toBe(ch01StudyScenarios.length);
+    }
+  });
+});
+
+describe('ch01 typesOfDataClassify', () => {
+  const t = byId('ch01-gen-types-of-data-classify');
+
+  it('the variable bank is non-degenerate and balanced across the three kinds', () => {
+    expect(ch01VariableBank.length).toBeGreaterThanOrEqual(9);
+
+    for (const v of ch01VariableBank) {
+      expect(v.kind).toBeGreaterThanOrEqual(0);
+
+      expect(v.kind).toBeLessThan(ch01VariableKindChoices.length);
+    }
+
+    const counts = [0, 1, 2].map(
+      (k) => ch01VariableBank.filter((v) => v.kind === k).length,
+    );
+
+    for (const c of counts) expect(c).toBeGreaterThan(0);
+  });
+
+  it('every draw reproduces the bank answer for its variable, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { variableIndex } = inst.params as unknown as {
+        variableIndex: number;
+      };
+
+      const v = ch01VariableBank[variableIndex];
+
+      expect(v).toBeDefined();
+
+      const [part] = inst.parts;
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq') expect(part.answer).toBe(v.kind);
+    }
+  });
+
+  it('every bank entry is reachable across a seed sweep', () => {
+    const seen = new Set<number>();
+
+    for (let seed = 0; seed < 4000; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { variableIndex } = inst.params as unknown as {
+        variableIndex: number;
+      };
+
+      seen.add(variableIndex);
+
+      if (seen.size === ch01VariableBank.length) break;
+    }
+
+    expect(seen.size).toBe(ch01VariableBank.length);
+  });
+});
+
+describe('ch01 typesOfDataScale', () => {
+  const t = byId('ch01-gen-types-of-data-scale');
+
+  it('the scale bank is non-degenerate and balanced across the four scales', () => {
+    expect(ch01ScaleBank.length).toBeGreaterThanOrEqual(8);
+
+    for (const v of ch01ScaleBank) {
+      expect(v.scale).toBeGreaterThanOrEqual(0);
+
+      expect(v.scale).toBeLessThan(ch01ScaleChoices.length);
+    }
+
+    const counts = [0, 1, 2, 3].map(
+      (k) => ch01ScaleBank.filter((v) => v.scale === k).length,
+    );
+
+    for (const c of counts) expect(c).toBeGreaterThan(0);
+  });
+
+  it('every draw reproduces the bank answer for its variable, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { scaleIndex } = inst.params as unknown as { scaleIndex: number };
+
+      const v = ch01ScaleBank[scaleIndex];
+
+      expect(v).toBeDefined();
+
+      const [part] = inst.parts;
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq') expect(part.answer).toBe(v.scale);
+    }
+  });
+});
+
+describe('ch01 typesOfDataCount', () => {
+  const t = byId('ch01-gen-types-of-data-count');
+
+  it('the reported counts are each strictly positive, sum to the listed variable count, and every listed variable actually has the claimed kind, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { indices } = inst.params as unknown as { indices: number[] };
+
+      expect(new Set(indices).size).toBe(indices.length); // no repeats
+
+      const kinds = indices.map((i) => ch01VariableBank[i].kind);
+
+      const nQual = kinds.filter((k) => k === 0).length;
+
+      const nDisc = kinds.filter((k) => k === 1).length;
+
+      const nCont = kinds.filter((k) => k === 2).length;
+
+      expect(nQual).toBeGreaterThan(0);
+
+      expect(nDisc).toBeGreaterThan(0);
+
+      expect(nCont).toBeGreaterThan(0);
+
+      expect(nQual + nDisc + nCont).toBe(indices.length);
+
+      const [partQual, partDisc, partCont] = inst.parts;
+
+      expect(partQual.kind).toBe('numeric');
+
+      if (partQual.kind === 'numeric') expect(partQual.answer).toBe(nQual);
+
+      expect(partDisc.kind).toBe('numeric');
+
+      if (partDisc.kind === 'numeric') expect(partDisc.answer).toBe(nDisc);
+
+      expect(partCont.kind).toBe('numeric');
+
+      if (partCont.kind === 'numeric') expect(partCont.answer).toBe(nCont);
+
+      // Every listed variable's text actually appears in the prompt, so the
+      // prompt is not silently out of sync with `params.indices`.
+      for (const i of indices) {
+        expect(inst.prompt).toContain(ch01VariableBank[i].text);
+      }
+    }
+  });
+});
+
+describe('ch01 typesOfDataIdentify', () => {
+  const t = byId('ch01-gen-types-of-data-identify');
+
+  it('exactly one listed variable is qualitative, one discrete, and one continuous, and the mcq answers point at the right ones, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { indices } = inst.params as unknown as { indices: number[] };
+
+      expect(indices).toHaveLength(3);
+
+      const kinds = indices.map((i) => ch01VariableBank[i].kind);
+
+      expect(new Set(kinds)).toEqual(new Set([0, 1, 2]));
+
+      const expectedDiscretePosition = kinds.indexOf(1);
+
+      const expectedContinuousPosition = kinds.indexOf(2);
+
+      const [partDiscrete, partContinuous, partQualTf] = inst.parts;
+
+      expect(partDiscrete.kind).toBe('mcq');
+
+      if (partDiscrete.kind === 'mcq')
+        expect(partDiscrete.answer).toBe(expectedDiscretePosition);
+
+      expect(partContinuous.kind).toBe('mcq');
+
+      if (partContinuous.kind === 'mcq')
+        expect(partContinuous.answer).toBe(expectedContinuousPosition);
+
+      expect(partQualTf.kind).toBe('tf');
+
+      if (partQualTf.kind === 'tf') expect(partQualTf.answer).toBe(false);
+    }
+  });
+});
+
+describe('ch01 popSampleIdentify', () => {
+  const t = byId('ch01-gen-pop-sample-identify');
+
+  it('the scenario bank is non-degenerate', () => {
+    expect(ch01PopSampleScenarios.length).toBeGreaterThanOrEqual(6);
+
+    for (const s of ch01PopSampleScenarios) {
+      expect(s.population.length).toBeGreaterThan(10);
+
+      expect(s.sample.length).toBeGreaterThan(10);
+
+      expect(s.population).not.toBe(s.sample);
+    }
+  });
+
+  it('every draw asks about exactly the population or exactly the sample described in its own scenario, with the matching mcq answer, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { scenarioIndex, askAboutSample } = inst.params as unknown as {
+        scenarioIndex: number;
+        askAboutSample: number;
+      };
+
+      const s = ch01PopSampleScenarios[scenarioIndex];
+
+      expect(s).toBeDefined();
+
+      const described = askAboutSample === 1 ? s.sample : s.population;
+
+      expect(inst.prompt).toContain(described);
+
+      const [part] = inst.parts;
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq')
+        expect(part.answer).toBe(askAboutSample === 1 ? 1 : 0);
+    }
+  });
+
+  it('both directions (asking about the population and asking about the sample) occur across a seed sweep', () => {
+    const seenDirections = new Set<number>();
+
+    for (let seed = 0; seed < 500; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { askAboutSample } = inst.params as unknown as {
+        askAboutSample: number;
+      };
+
+      seenDirections.add(askAboutSample);
+
+      if (seenDirections.size === 2) break;
+    }
+
+    expect(seenDirections.size).toBe(2);
+  });
+});
+
+describe('ch01 paramVsStatistic', () => {
+  const t = byId('ch01-gen-param-vs-statistic');
+
+  it('the scenario bank has a self-consistent answer key and includes both parameters and statistics', () => {
+    expect(ch01ParamStatScenarios.length).toBeGreaterThanOrEqual(6);
+
+    for (const s of ch01ParamStatScenarios) {
+      expect(s.correctSymbolIndex).toBeGreaterThanOrEqual(0);
+
+      expect(s.correctSymbolIndex).toBeLessThan(s.symbolChoices.length);
+
+      expect(new Set(s.symbolChoices).size).toBe(s.symbolChoices.length);
+    }
+
+    const distinctKinds = new Set(
+      ch01ParamStatScenarios.map((s) => s.isParameter),
+    );
+
+    expect(distinctKinds.size).toBe(2);
+  });
+
+  it('every draw reproduces the parts recorded for its scenario, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { scenarioIndex } = inst.params as unknown as {
+        scenarioIndex: number;
+      };
+
+      const s = ch01ParamStatScenarios[scenarioIndex];
+
+      expect(s).toBeDefined();
+
+      const [partKind, partSymbol] = inst.parts;
+
+      expect(partKind.kind).toBe('mcq');
+
+      if (partKind.kind === 'mcq')
+        expect(partKind.answer).toBe(s.isParameter ? 0 : 1);
+
+      expect(partSymbol.kind).toBe('mcq');
+
+      if (partSymbol.kind === 'mcq')
+        expect(partSymbol.answer).toBe(s.correctSymbolIndex);
+    }
+  });
+});
+
+describe('ch01 samplingFraction', () => {
+  const t = byId('ch01-gen-sampling-fraction');
+
+  it('the reported percentage matches an independent recompute of n/N, and always lands comfortably away from zero, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { N, n } = inst.params as unknown as { N: number; n: number };
+
+      expect(n).toBeGreaterThan(0);
+
+      expect(n).toBeLessThanOrEqual(N);
+
+      const fraction = (n / N) * 100;
+
+      // Guard: never anywhere near the zero-answer boundary.
+      expect(fraction).toBeGreaterThanOrEqual(1);
+
+      const [part] = inst.parts;
+
+      expect(part.kind).toBe('numeric');
+
+      if (part.kind === 'numeric')
+        expect(Math.abs(part.answer - fraction)).toBeLessThanOrEqual(part.tol);
+    }
+  });
+});
+
+describe('ch01 samplingMethod', () => {
+  const t = byId('ch01-gen-sampling-method');
+
+  it('the scenario bank is non-degenerate and covers more than one method', () => {
+    expect(ch01SamplingMethodScenarios.length).toBeGreaterThanOrEqual(6);
+
+    for (const s of ch01SamplingMethodScenarios) {
+      expect(s.method).toBeGreaterThanOrEqual(0);
+
+      expect(s.method).toBeLessThan(ch01SamplingMethodChoices.length);
+    }
+
+    const distinctMethods = new Set(
+      ch01SamplingMethodScenarios.map((s) => s.method),
+    );
+
+    expect(distinctMethods.size).toBeGreaterThan(1);
+  });
+
+  it('every draw reproduces the bank answer for its scenario, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { scenarioIndex } = inst.params as unknown as {
+        scenarioIndex: number;
+      };
+
+      const s = ch01SamplingMethodScenarios[scenarioIndex];
+
+      expect(s).toBeDefined();
+
+      const [part] = inst.parts;
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq') expect(part.answer).toBe(s.method);
     }
   });
 });

@@ -2,7 +2,56 @@ import type { QuestionTemplate } from '../types';
 
 import { generatedQuestion } from '../authoring';
 
-import { invNormalCdf, normalCdf, round } from '../mathx';
+import { factorial, invNormalCdf, normalCdf, round } from '../mathx';
+
+import type { SeededRng } from '../rng';
+
+/**
+ * Build a multiple-choice part whose options are all distinct.
+ *
+ * The distractors in this chapter are misreadings of the normal table, so they
+ * are computed from the same z values as the answer — which means that on
+ * particular draws two of them collapse onto one number. A symmetric interval
+ * (z1 = -z2) makes "area left of z2" and "area right of z1" identical; an
+ * interval whose area is exactly 0.50 makes the complement identical to the
+ * answer. Rendered, that is a question showing the same value twice and marking
+ * a learner wrong for picking its twin.
+ *
+ * Callers pass candidates in preference order and get the first three that are
+ * distinct from each other and from the answer, so a collision costs a weaker
+ * distractor rather than a broken question. Pass more candidates than you need:
+ * the last ones are only reached when an earlier pair collides. Rounding to
+ * `dp` happens here because two values that differ in the ninth decimal are the
+ * same option once they are on screen.
+ */
+function distinctChoices(
+  answer: number,
+  candidates: readonly number[],
+  rng: SeededRng,
+  dp = 4,
+): { choices: string[]; answer: number } {
+  const answerText = answer.toFixed(dp);
+
+  const distractors: string[] = [];
+
+  for (const candidate of candidates) {
+    if (distractors.length === 3) break;
+
+    const text = candidate.toFixed(dp);
+
+    if (text === answerText || distractors.includes(text)) continue;
+
+    distractors.push(text);
+  }
+
+  const index = rng.int(0, distractors.length);
+
+  const choices = [...distractors];
+
+  choices.splice(index, 0, answerText);
+
+  return { choices, answer: index };
+}
 
 const uniformProbabilityMeanVarianceTemplate = generatedQuestion({
   id: 'ch06-gen-uniform-probability-mean-variance',
@@ -873,22 +922,694 @@ const normalSolveSigmaFromTailTemplate = generatedQuestion({
   },
 });
 
+const uniformConditionalTemplate = generatedQuestion({
+  id: 'ch06-gen-uniform-conditional',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Continuous uniform',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const M = rng.int(20, 40);
+
+    // b kept at least 12 below M so the remaining range M-b is comfortably
+    // wide, and a kept at least 2 above b and 2 below M, so both P(X>a) and
+    // P(X>b) stay well clear of 0.
+    const b = rng.int(2, M - 12);
+
+    const a = rng.int(b + 2, M - 2);
+
+    const probability = round((M - a) / (M - b), 4);
+
+    return {
+      prompt:
+        `A machine's cycle-start time $X$ is uniform on $[0,${M}]$. Given that the cycle has not started by ` +
+        `time $${b}$, find the probability it still has not started by time $${a}$, i.e. $P(X>${a}\\mid X>${b})$.`,
+
+      params: { M, a, b },
+
+      parts: [
+        { kind: 'numeric', answer: probability, tol: 0.0005 },
+
+        { kind: 'tf', label: 'the uniform distribution has the memoryless property', answer: false },
+      ],
+
+      solution: [
+        {
+          text: `Both events are subsets of $[0,${M}]$, so $P(X>${a}\\mid X>${b})=\\dfrac{P(X>${a})}{P(X>${b})}=\\dfrac{${M}-${a}}{${M}-${b}}\\approx${probability}$.`,
+        },
+
+        {
+          text: `This depends on both $${a}$ and $${b}$ individually, not just on the gap $${a}-${b}=${a - b}$ -- unlike the exponential distribution, the uniform distribution is **not** memoryless: how long the cycle has already waited changes what happens next.`,
+        },
+      ],
+    };
+  },
+});
+
+const uniformSumVarianceTemplate = generatedQuestion({
+  id: 'ch06-gen-uniform-sum-variance',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Continuous uniform',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const w = rng.int(1, 5); // rounding resolution: one error is uniform on [-w/2, w/2]
+
+    const n = rng.int(8, 25); // readings summed
+
+    const oneVarianceExact = (w * w) / 12;
+
+    const sumVarianceExact = n * oneVarianceExact;
+
+    const oneVariance = round(oneVarianceExact, 4);
+
+    const sumSd = round(Math.sqrt(sumVarianceExact), 4);
+
+    return {
+      prompt:
+        `A data logger rounds each reading to the nearest $${w}$ unit, so each rounding error is uniform on ` +
+        `$[-${w}/2,${w}/2]$ and errors are independent. $${n}$ readings are summed. Find the variance of a ` +
+        `single rounding error and the standard deviation of the total accumulated error.`,
+
+      params: { w, n },
+
+      parts: [
+        { kind: 'numeric', label: 'variance of one error', answer: oneVariance, tol: 0.0005 },
+
+        { kind: 'numeric', label: 'sd of total error', answer: sumSd, tol: 0.005 },
+
+        { kind: 'tf', label: 'the total standard deviation grows proportional to n', answer: false },
+      ],
+
+      solution: [
+        {
+          text: `A single error is uniform on an interval of width $${w}$, so $\\sigma^2=\\dfrac{${w}^2}{12}\\approx${oneVariance}$.`,
+        },
+
+        {
+          text: `Independent errors have variances that add: $\\text{Var}(\\text{total})=${n}\\times${oneVariance}\\approx${round(sumVarianceExact, 4)}$, so $\\sigma_{\\text{total}}=\\sqrt{${round(sumVarianceExact, 4)}}\\approx${sumSd}$.`,
+        },
+
+        {
+          text: `Because variances (not standard deviations) add, the total standard deviation grows as $\\sqrt{n}$, **not** proportionally to $n$.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalDiffersFromMeanTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-differs-from-mean',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Normal distribution',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const mu = rng.int(20, 80);
+
+    const sigma = rng.int(3, 15);
+
+    // k kept between 0.5 and 2.8 sigma, so the two-tail probability
+    // 2(1-Phi(k)) always lies between 2(1-Phi(2.8))~0.0051 and
+    // 2(1-Phi(0.5))~0.617 -- never within rounding distance of 0.
+    const k = round(rng.int(5, 28) / 10, 1);
+
+    const probOutside = round(2 * (1 - normalCdf(k)), 4);
+
+    return {
+      prompt:
+        `For a normal distribution with $\\mu=${mu}$ and $\\sigma=${sigma}$, find the fraction of observations ` +
+        `that differ from the mean by more than $${k}\\sigma$, i.e. $P(|X-\\mu|>${k}\\sigma)$.`,
+
+      params: { mu, sigma, k },
+
+      parts: [
+        { kind: 'numeric', answer: probOutside, tol: 0.0005 },
+
+        { kind: 'tf', label: 'this fraction is the same for every mu and sigma', answer: true },
+      ],
+
+      solution: [
+        {
+          text: `Standardizing, $|X-\\mu|>${k}\\sigma$ is exactly $|Z|>${k}$, so $P=2(1-\\Phi(${k}))\\approx${probOutside}$.`,
+        },
+
+        {
+          text: `The mean and standard deviation cancel out of this calculation entirely -- $k$ is already measured in units of $\\sigma$ -- so the answer is identical for every normal distribution, not just this one.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalMiddlePercentTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-middle-percent',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Normal distribution',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    // mu kept well above sigma's reach (mu >= 50, sigma <= 10, z <= ~2), so
+    // x1 = mu - z*sigma never comes close to crossing 0.
+    const mu = rng.int(50, 90);
+
+    const sigma = rng.int(3, 10);
+
+    const pct = rng.int(50, 95);
+
+    const p = pct / 100;
+
+    const z = round(invNormalCdf(0.5 + p / 2), 2);
+
+    const x1 = round(mu - z * sigma, 2);
+
+    const x2 = round(mu + z * sigma, 2);
+
+    return {
+      prompt:
+        `A normal distribution has $\\mu=${mu}$ and $\\sigma=${sigma}$. Find the two values of $x$ that contain ` +
+        `the middle $${pct}\\%$ of the area under the curve.`,
+
+      params: { mu, sigma, pct },
+
+      parts: [
+        { kind: 'numeric', label: 'z', answer: z, tol: 0.01 },
+
+        { kind: 'numeric', label: 'x1', answer: x1, tol: 0.05 },
+
+        { kind: 'numeric', label: 'x2', answer: x2, tol: 0.05 },
+      ],
+
+      solution: [
+        {
+          text: `The middle $${pct}\\%$ leaves $${round((1 - p) / 2, 4)}$ in each tail, so we need $z$ with $\\Phi(z)=${round(0.5 + p / 2, 4)}$: $z\\approx${z}$.`,
+        },
+
+        {
+          text: `By symmetry the two values are $x_{1,2}=\\mu\\mp z\\sigma$: $x_1\\approx${x1}$ and $x_2\\approx${x2}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalApplicationEasyLatencyTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-application-easy-latency',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Applications of the normal distribution',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const mu = rng.int(100, 400); // ms
+
+    const sigma = rng.int(10, 50);
+
+    // |z| kept between 0.5 and 2.0, so P(X < x0) always lies strictly
+    // between Phi(-2.0)~0.0228 and Phi(2.0)~0.9772.
+    const sign = rng.bool() ? 1 : -1;
+
+    const zTarget = (sign * rng.int(5, 20)) / 10;
+
+    const x0 = Math.round(mu + zTarget * sigma);
+
+    const z = round((x0 - mu) / sigma, 2);
+
+    const probability = round(normalCdf(z), 4);
+
+    return {
+      prompt:
+        `A web service's response time is normally distributed with $\\mu=${mu}$ ms and $\\sigma=${sigma}$ ms. ` +
+        `Find the probability that a randomly sampled request takes less than $${x0}$ ms.`,
+
+      params: { mu, sigma, x0 },
+
+      parts: [{ kind: 'numeric', answer: probability, tol: 0.0005 }],
+
+      solution: [
+        {
+          text: `$z=\\dfrac{${x0}-${mu}}{${sigma}}=${z}$.`,
+        },
+
+        {
+          text: `$P(X<${x0})=P(Z<${z})\\approx${probability}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalApplicationTwoSidedMcqTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-application-two-sided-mcq',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Applications of the normal distribution',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const mu = rng.int(500, 2000); // hours
+
+    const sigma = rng.int(50, 300);
+
+    // z1, z2 kept at least 0.5 in magnitude and on opposite sides of 0, so
+    // the interval probability stays comfortably material.
+    const z1Target = -rng.int(5, 20) / 10;
+
+    const z2Target = rng.int(5, 20) / 10;
+
+    const x1 = Math.round(mu + z1Target * sigma);
+
+    const x2 = Math.round(mu + z2Target * sigma);
+
+    const z1 = round((x1 - mu) / sigma, 2);
+
+    const z2 = round((x2 - mu) / sigma, 2);
+
+    const probability = round(normalCdf(z2) - normalCdf(z1), 4);
+
+    // Ordered by how instructive the mistake is. The last two are spares that
+    // only get used when a symmetric draw collapses the first two together --
+    // see distinctChoices.
+    const { choices, answer } = distinctChoices(
+      probability,
+      [
+        round(normalCdf(z2), 4), // read only the area left of x2
+
+        round(1 - normalCdf(z1), 4), // read the area right of x1
+
+        round(probability / 2, 4), // halved it, as if the interval were symmetric
+
+        round(1 - probability, 4), // gave the two tails rather than the middle
+
+        round(normalCdf(z1), 4), // read the x1 row and stopped
+      ],
+      rng,
+    );
+
+    return {
+      prompt:
+        `Component lifetimes are normally distributed with $\\mu=${mu}$ hours and $\\sigma=${sigma}$ hours. ` +
+        `What is $P(${x1}<X<${x2})$?`,
+
+      params: { mu, sigma, x1, x2 },
+
+      parts: [{ kind: 'mcq', choices, answer }],
+
+      solution: [
+        {
+          text: `Standardize both endpoints: $z_1=\\dfrac{${x1}-${mu}}{${sigma}}=${z1}$ and $z_2=\\dfrac{${x2}-${mu}}{${sigma}}=${z2}$.`,
+        },
+
+        {
+          text: `$P(${x1}<X<${x2})=\\Phi(${z2})-\\Phi(${z1})\\approx${probability}$. (Using only $\\Phi(${z2})$ or only $1-\\Phi(${z1})$ keeps the wrong tail; halving the answer double-counts nothing but is simply not the identity.)`,
+        },
+      ],
+    };
+  },
+});
+
+const normalApproxLegitimacyTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-approx-binomial-legitimacy',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Normal approximation to the binomial',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const n = rng.int(20, 150);
+
+    const p = round(rng.int(2, 50) / 100, 2); // deliberately wide, so the check sometimes fails
+
+    const npVal = round(n * p, 2);
+
+    const nq = round(n * (1 - p), 2);
+
+    const legitimate = npVal >= 5 && nq >= 5;
+
+    return {
+      prompt:
+        `A binomial experiment has $n=${n}$ trials with success probability $p=${p}$. Compute $np$ and ` +
+        `$n(1-p)$, and state whether the normal approximation to the binomial is appropriate here.`,
+
+      params: { n, p },
+
+      parts: [
+        { kind: 'numeric', label: 'np', answer: npVal, tol: 0.05 },
+
+        { kind: 'numeric', label: 'n(1-p)', answer: nq, tol: 0.05 },
+
+        { kind: 'tf', label: 'normal approximation is appropriate', answer: legitimate },
+      ],
+
+      solution: [
+        {
+          text: `$np=${n}\\times${p}=${npVal}$ and $n(1-p)=${n}\\times${round(1 - p, 4)}=${nq}$.`,
+        },
+
+        {
+          text: legitimate
+            ? `Both exceed 5, so the normal curve is a reasonable approximation to this binomial.`
+            : `At least one of $np$, $n(1-p)$ falls short of 5, so the binomial is too skewed for the normal approximation to be trustworthy here -- use the exact binomial formula instead.`,
+        },
+      ],
+    };
+  },
+});
+
+const normalApproxCorrectionComparisonTemplate = generatedQuestion({
+  id: 'ch06-gen-normal-approx-binomial-correction-comparison',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Normal approximation to the binomial',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const n = rng.int(60, 200);
+
+    const p = round(rng.int(3, 7) / 10, 1);
+
+    const mu = n * p;
+
+    const sigma = Math.sqrt(n * p * (1 - p));
+
+    const sign = rng.bool() ? 1 : -1;
+
+    const zTarget = (sign * rng.int(5, 25)) / 10;
+
+    const x0 = Math.min(n - 1, Math.max(1, Math.round(mu + 0.5 + zTarget * sigma)));
+
+    const zCorrected = round((x0 - 0.5 - mu) / sigma, 2);
+
+    const zUncorrected = round((x0 - mu) / sigma, 2);
+
+    const probCorrected = round(normalCdf(zCorrected), 4);
+
+    const probUncorrected = round(normalCdf(zUncorrected), 4);
+
+    return {
+      prompt:
+        `Using the normal approximation to the binomial with $n=${n}$ and $p=${p}$, find $P(X<${x0})$ ` +
+        `(a) with the continuity correction and (b) without it.`,
+
+      params: { n, p, x0 },
+
+      parts: [
+        { kind: 'numeric', label: '(a) with correction', answer: probCorrected, tol: 0.0005 },
+
+        { kind: 'numeric', label: '(b) without correction', answer: probUncorrected, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `$\\mu=np=${round(mu, 4)}$ and $\\sigma=\\sqrt{npq}=${round(sigma, 4)}$.`,
+        },
+
+        {
+          text: `(a) With the correction, $z=\\dfrac{${x0}-0.5-${round(mu, 4)}}{${round(sigma, 4)}}\\approx${zCorrected}$, so $P\\approx${probCorrected}$.`,
+        },
+
+        {
+          text: `(b) Skipping the correction uses $z=\\dfrac{${x0}-${round(mu, 4)}}{${round(sigma, 4)}}\\approx${zUncorrected}$ instead, giving $P\\approx${probUncorrected}$ -- a different, gradable answer, which is exactly why the correction is not optional here.`,
+        },
+      ],
+    };
+  },
+});
+
+const areasForwardLookupTemplate = generatedQuestion({
+  id: 'ch06-gen-areas-forward-lookup',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Areas under the normal curve',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const z1 = -(rng.int(5, 25) / 10);
+
+    const z2 = rng.int(5, 25) / 10;
+
+    const area = round(normalCdf(z2) - normalCdf(z1), 4);
+
+    // The last candidate can never collide with anything: z1 <= -0.5 and
+    // z2 >= 0.5 hold it below 0.31, while every other value here sits above
+    // 0.38. So three distinct distractors always survive, however the draw
+    // falls -- see distinctChoices.
+    const { choices, answer } = distinctChoices(
+      area,
+      [
+        round(normalCdf(z2), 4), // read only the area left of z2
+
+        round(1 - normalCdf(z1), 4), // read the area right of z1
+
+        round(normalCdf(z2) + normalCdf(z1), 4), // added the two areas instead of subtracting
+
+        round(1 - area, 4), // gave the two tails rather than the middle
+
+        round(normalCdf(z1), 4), // read the z1 row and stopped
+      ],
+      rng,
+    );
+
+    return {
+      prompt: `Given a standard normal distribution, find the area under the curve between $z=${z1}$ and $z=${z2}$.`,
+
+      params: { z1, z2 },
+
+      parts: [{ kind: 'mcq', choices, answer }],
+
+      solution: [
+        {
+          text: `The area between two $z$ values is the difference of their areas to the left: $\\Phi(${z2})-\\Phi(${z1})\\approx${area}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const areasSymmetryFactTemplate = generatedQuestion({
+  id: 'ch06-gen-areas-symmetry-fact',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Areas under the normal curve',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    // z kept between 0.5 and 2.8, so P(Z>z) always lies between roughly
+    // Phi(-2.8)~0.0026 and Phi(-0.5)~0.309 -- never within rounding distance
+    // of 0.
+    const z = round(rng.int(5, 28) / 10, 1);
+
+    const probRight = round(1 - normalCdf(z), 4);
+
+    return {
+      prompt: `Given a standard normal distribution, find $P(Z>${z})$, and state whether $P(Z<-${z})=P(Z>${z})$.`,
+
+      params: { z },
+
+      parts: [
+        { kind: 'numeric', answer: probRight, tol: 0.0005 },
+
+        { kind: 'tf', label: 'P(Z<-z) = P(Z>z)', answer: true },
+      ],
+
+      solution: [
+        {
+          text: `$P(Z>${z})=1-\\Phi(${z})\\approx${probRight}$.`,
+        },
+
+        {
+          text: `The standard normal curve is symmetric about 0, so the area beyond $${z}$ on the right always equals the area beyond $-${z}$ on the left -- true for every $z$, not just this one.`,
+        },
+      ],
+    };
+  },
+});
+
+const areasInverseSymmetricTemplate = generatedQuestion({
+  id: 'ch06-gen-areas-inverse-symmetric',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Areas under the normal curve',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const pct = rng.int(50, 95);
+
+    const p = pct / 100;
+
+    const k = round(invNormalCdf(0.5 + p / 2), 2);
+
+    return {
+      prompt: `Given a standard normal distribution, find the value of $k$ such that $P(-k<Z<k)=${p}$.`,
+
+      params: { p },
+
+      parts: [{ kind: 'numeric', answer: k, tol: 0.01 }],
+
+      solution: [
+        {
+          text: `By symmetry, $P(-k<Z<k)=${p}$ leaves $${round((1 - p) / 2, 4)}$ in each tail, so $\\Phi(k)=${round(0.5 + p / 2, 4)}$: $k\\approx${k}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const areasTwoStepTailTemplate = generatedQuestion({
+  id: 'ch06-gen-areas-two-step-tail',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Areas under the normal curve',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const z0 = -(rng.int(5, 20) / 10); // -0.5..-2.0
+
+    // k is chosen positive and at least 0.3, so it is always both comfortably
+    // above z0 (which is negative) and comfortably away from 0.
+    const k = round(rng.int(3, 20) / 10, 1);
+
+    const p = round(normalCdf(k) - normalCdf(z0), 4);
+
+    return {
+      prompt: `Given a standard normal distribution and $P(${z0}<Z<k)=${p}$, find $k$.`,
+
+      params: { z0, p },
+
+      parts: [{ kind: 'numeric', answer: k, tol: 0.01 }],
+
+      solution: [
+        {
+          text: `$P(Z<${z0})\\approx${round(normalCdf(z0), 4)}$, so $P(Z<k)=${p}+${round(normalCdf(z0), 4)}\\approx${round(p + normalCdf(z0), 4)}$.`,
+        },
+
+        {
+          text: `Reading that area off the standard normal curve in reverse gives $k\\approx${k}$.`,
+        },
+      ],
+    };
+  },
+});
+
+const exponentialPoissonReverseTemplate = generatedQuestion({
+  id: 'ch06-gen-exponential-poisson-reverse',
+
+  chapter: 'continuous-distributions',
+
+  topic: 'Exponential distribution',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const lambda = rng.int(2, 8); // arrivals per hour
+
+    const k = rng.int(1, 3); // exact count asked about
+
+    // lambda*t kept near k (within 40%), so the Poisson pmf at x = k stays
+    // near its own peak and well clear of 0.
+    const lambdaT = round(k * (rng.int(6, 14) / 10), 2);
+
+    const t = round(lambdaT / lambda, 4);
+
+    const meanWait = round(1 / lambda, 4);
+
+    const poissonProb = round((Math.exp(-lambdaT) * lambdaT ** k) / factorial(k), 4);
+
+    return {
+      prompt:
+        `Arrivals form a Poisson process with rate $\\lambda=${lambda}$ per hour, so the time between arrivals ` +
+        `is exponential with mean $1/\\lambda$. Find that mean inter-arrival time, and the Poisson probability ` +
+        `of exactly $${k}$ arrivals in $${t}$ hours.`,
+
+      params: { lambda, k, t },
+
+      parts: [
+        { kind: 'numeric', label: 'mean inter-arrival time', answer: meanWait, tol: 0.0005 },
+
+        { kind: 'numeric', label: `P(exactly ${k} arrivals)`, answer: poissonProb, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `The exponential inter-arrival mean is just $1/\\lambda=${meanWait}$ hours -- the Poisson rate and the exponential mean are two views of the same process.`,
+        },
+
+        {
+          text: `Over $${t}$ hours, $\\lambda t=${lambdaT}$, so $P(X=${k})=e^{-\\lambda t}\\dfrac{(\\lambda t)^${k}}{${k}!}\\approx${poissonProb}$ -- this time the correspondence runs from the Poisson *count* back to the exponential *rate*, the reverse of asking for $P(T>t)$.`,
+        },
+      ],
+    };
+  },
+});
+
 export const ch06Generators: QuestionTemplate[] = [
   uniformProbabilityMeanVarianceTemplate,
 
   uniformWaitingTimeTemplate,
 
+  uniformConditionalTemplate,
+
+  uniformSumVarianceTemplate,
+
   normalTwoSidedTemplate,
 
   normalCurveInReverseTemplate,
+
+  normalDiffersFromMeanTemplate,
+
+  normalMiddlePercentTemplate,
 
   normalApplicationForwardTemplate,
 
   normalApplicationInverseTemplate,
 
+  normalApplicationEasyLatencyTemplate,
+
+  normalApplicationTwoSidedMcqTemplate,
+
   normalApproxBinomialSingleTemplate,
 
   normalApproxBinomialRangeTemplate,
+
+  normalApproxLegitimacyTemplate,
+
+  normalApproxCorrectionComparisonTemplate,
+
+  areasForwardLookupTemplate,
+
+  areasSymmetryFactTemplate,
+
+  areasInverseSymmetricTemplate,
+
+  areasTwoStepTailTemplate,
 
   exponentialProbabilityTemplate,
 
@@ -901,6 +1622,8 @@ export const ch06Generators: QuestionTemplate[] = [
   exponentialMedianVsMeanTemplate,
 
   exponentialPoissonEquivalenceTemplate,
+
+  exponentialPoissonReverseTemplate,
 
   normalSolveMeanFromTailTemplate,
 

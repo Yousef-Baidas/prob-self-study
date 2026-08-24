@@ -457,3 +457,39 @@ describe('ch03 jointDensityMarginal', () => {
     }
   });
 });
+
+describe('ch03 jointMarginalMcq', () => {
+  const t = byId('ch03-gen-joint-marginal-mcq');
+
+  it('the correct choice matches an independently recomputed marginal, and all choices are distinct', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const params = inst.params as Record<string, number | number[]>;
+
+      const flat = params.w as number[];
+
+      const a = params.a as number;
+
+      const correct = params.correct as number;
+
+      const { gx, total } = rebuild(flat);
+
+      expect(correct).toBeCloseTo(gx[a] / total, 4);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind !== 'mcq') return;
+
+      // Every choice string parses back to a distinct number, and the answer
+      // index really does point at the recomputed marginal.
+      const numeric = part.choices.map(Number);
+
+      expect(new Set(numeric).size).toBe(numeric.length);
+
+      expect(numeric[part.answer]).toBeCloseTo(correct, 10);
+    }
+  });
+});

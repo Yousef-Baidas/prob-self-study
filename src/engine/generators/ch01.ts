@@ -7,7 +7,12 @@ import { generatedQuestion } from '../authoring';
 import { mean, median, sampleStdDev, quartile, iqr, round } from '../mathx';
 
 /** A small random integer dataset, printed as bold markdown "**a, b, c, …**" in prompts. */
-function sampleData(rng: SeededRng, n: number, lo: number, hi: number): number[] {
+function sampleData(
+  rng: SeededRng,
+  n: number,
+  lo: number,
+  hi: number,
+): number[] {
   return Array.from({ length: n }, () => rng.int(lo, hi));
 }
 
@@ -48,7 +53,11 @@ function spreadOffsets(rng: SeededRng, n: number, maxOffset: number): number[] {
  * cluster split from the printed data; it doesn't touch the ranks the
  * guarantee relies on, since those are ranks of the *sorted* sample.
  */
-function quartileClusterOffsets(rng: SeededRng, n: number, maxOffset: number): number[] {
+function quartileClusterOffsets(
+  rng: SeededRng,
+  n: number,
+  maxOffset: number,
+): number[] {
   const gap = 2;
 
   const lowMax = Math.floor((maxOffset - gap) / 2);
@@ -100,7 +109,9 @@ const descriptiveSummaryTemplate = generatedQuestion({
       ],
 
       solution: [
-        { text: `Mean $=\\dfrac{\\sum x_i}{n}=\\dfrac{${data.reduce((a, b) => a + b, 0)}}{${n}}=${m}$.` },
+        {
+          text: `Mean $=\\dfrac{\\sum x_i}{n}=\\dfrac{${data.reduce((a, b) => a + b, 0)}}{${n}}=${m}$.`,
+        },
 
         { text: `Median: sort the data and take the middle value $=${md}$.` },
       ],
@@ -136,7 +147,9 @@ const sampleStdDevTemplate = generatedQuestion({
       solution: [
         { text: `Sample mean $\\bar{x}=${m}$.` },
 
-        { text: `$s=\\sqrt{\\dfrac{\\sum (x_i-\\bar{x})^2}{n-1}}=${s}$ (divide by $n-1=${n - 1}$).` },
+        {
+          text: `$s=\\sqrt{\\dfrac{\\sum (x_i-\\bar{x})^2}{n-1}}=${s}$ (divide by $n-1=${n - 1}$).`,
+        },
       ],
     };
   },
@@ -216,9 +229,13 @@ const cvTwoLinesTemplate = generatedQuestion({
       ],
 
       solution: [
-        { text: `Line A: $\\bar{x}_A=${meanA}$, $s_A=${sA}$, so $CV_A=\\dfrac{${sA}}{${meanA}}\\times100=${cvA}\\%$.` },
+        {
+          text: `Line A: $\\bar{x}_A=${meanA}$, $s_A=${sA}$, so $CV_A=\\dfrac{${sA}}{${meanA}}\\times100=${cvA}\\%$.`,
+        },
 
-        { text: `Line B: $\\bar{x}_B=${meanB}$, $s_B=${sB}$, so $CV_B=\\dfrac{${sB}}{${meanB}}\\times100=${cvB}\\%$.` },
+        {
+          text: `Line B: $\\bar{x}_B=${meanB}$, $s_B=${sB}$, so $CV_B=\\dfrac{${sB}}{${meanB}}\\times100=${cvB}\\%$.`,
+        },
 
         {
           text: `Both lines vary by the same absolute amount, but ${winnerLabel} has the smaller mean, so ${winnerLabel} has the larger $CV$ — the more relatively variable line.`,
@@ -266,7 +283,9 @@ const quartileFenceTemplate = generatedQuestion({
 
     const margin = rng.int(3, 8);
 
-    const testValue = isOutlierDraw ? round(upperFence + margin, 1) : round(quartile(data, 2), 1);
+    const testValue = isOutlierDraw
+      ? round(upperFence + margin, 1)
+      : round(quartile(data, 2), 1);
 
     return {
       prompt:
@@ -293,7 +312,9 @@ const quartileFenceTemplate = generatedQuestion({
 
         { text: `$IQR=Q_3-Q_1=${q3}-${q1}=${iqrValue}$.` },
 
-        { text: `Fences: lower $=Q_1-1.5\\,IQR=${lowerFence}$, upper $=Q_3+1.5\\,IQR=${upperFence}$.` },
+        {
+          text: `Fences: lower $=Q_1-1.5\\,IQR=${lowerFence}$, upper $=Q_3+1.5\\,IQR=${upperFence}$.`,
+        },
 
         {
           text: `${testValue} ppm is ${isOutlierDraw ? '' : 'not '}outside $[${lowerFence}, ${upperFence}]$, so it ${isOutlierDraw ? 'is' : 'is not'} flagged as an outlier.`,
@@ -359,7 +380,9 @@ const trimmedMeanTemplate = generatedQuestion({
 
     let m = round(mean([...ordinaryValues, outlier]), 3);
 
-    if (Math.abs(round(m - md, 3)) === Math.abs(round(trimmedMeanVal - md, 3))) {
+    if (
+      Math.abs(round(m - md, 3)) === Math.abs(round(trimmedMeanVal - md, 3))
+    ) {
       outlierBonus += 1;
 
       outlier += 1;
@@ -398,15 +421,26 @@ const trimmedMeanTemplate = generatedQuestion({
 
         { kind: 'numeric', label: 'Median', answer: md, tol: 0.01 },
 
-        { kind: 'numeric', label: '10% trimmed mean', answer: trimmedMeanVal, tol: 0.01 },
+        {
+          kind: 'numeric',
+          label: '10% trimmed mean',
+          answer: trimmedMeanVal,
+          tol: 0.01,
+        },
 
-        { kind: 'tf', label: 'Trimmed mean closer to the median than the mean is', answer: closerToMedian },
+        {
+          kind: 'tf',
+          label: 'Trimmed mean closer to the median than the mean is',
+          answer: closerToMedian,
+        },
       ],
 
       solution: [
         { text: `Mean $\\bar{x}=\\dfrac{\\sum x_i}{${n}}=${m}$.` },
 
-        { text: `Median: sort the data and average the two middle values $=${md}$.` },
+        {
+          text: `Median: sort the data and average the two middle values $=${md}$.`,
+        },
 
         {
           text: `$10\\%$ of $${n}$ is $1$, so drop the smallest and largest sorted value, leaving $${n - 2}$ values: $\\bar{x}_{\\mathrm{tr}(10)}=${trimmedMeanVal}$.`,
@@ -476,11 +510,18 @@ const rescaleShiftTemplate = generatedQuestion({
 
         { kind: 'numeric', label: 'Median of y', answer: yMedian, tol: 0.01 },
 
-        { kind: 'numeric', label: 'Sample std dev of y', answer: yStd, tol: 0.01 },
+        {
+          kind: 'numeric',
+          label: 'Sample std dev of y',
+          answer: yStd,
+          tol: 0.01,
+        },
       ],
 
       solution: [
-        { text: `Original: $\\bar{x}=${xMean}$, $\\tilde{x}=${xMedian}$, $s_x=${xStd}$.` },
+        {
+          text: `Original: $\\bar{x}=${xMean}$, $\\tilde{x}=${xMedian}$, $s_x=${xStd}$.`,
+        },
 
         {
           text: `A linear transform carries the mean and median along with it: $\\bar{y}=${a}\\bar{x}${b >= 0 ? '+' : '-'}${Math.abs(b)}=${yMean}$, and likewise $\\tilde{y}=${a}\\tilde{x}${b >= 0 ? '+' : '-'}${Math.abs(b)}=${yMedian}$.`,
@@ -518,7 +559,9 @@ const missingValueTemplate = generatedQuestion({
 
     const M = rng.int(50, 70);
 
-    const knownOffsets = Array.from({ length: n - 1 }, () => rng.int(-maxDev, maxDev));
+    const knownOffsets = Array.from({ length: n - 1 }, () =>
+      rng.int(-maxDev, maxDev),
+    );
 
     const known = knownOffsets.map((o) => M + o);
 
@@ -541,9 +584,19 @@ const missingValueTemplate = generatedQuestion({
       params: { known, M, n },
 
       parts: [
-        { kind: 'numeric', label: 'Missing reading', answer: missing, tol: 0.01 },
+        {
+          kind: 'numeric',
+          label: 'Missing reading',
+          answer: missing,
+          tol: 0.01,
+        },
 
-        { kind: 'numeric', label: 'Corrected mean', answer: correctedMean, tol: 0.01 },
+        {
+          kind: 'numeric',
+          label: 'Corrected mean',
+          answer: correctedMean,
+          tol: 0.01,
+        },
       ],
 
       solution: [
@@ -601,13 +654,24 @@ const pooledMeanTemplate = generatedQuestion({
       params: { n1, n2, totalA, totalB },
 
       parts: [
-        { kind: 'numeric', label: 'Pooled mean (g)', answer: pooledMean, tol: 0.01 },
+        {
+          kind: 'numeric',
+          label: 'Pooled mean (g)',
+          answer: pooledMean,
+          tol: 0.01,
+        },
 
-        { kind: 'tf', label: 'Equal to the simple average of the two means', answer: false },
+        {
+          kind: 'tf',
+          label: 'Equal to the simple average of the two means',
+          answer: false,
+        },
       ],
 
       solution: [
-        { text: `Line A mean $=\\dfrac{${totalA}}{${n1}}=${m1}$; Line B mean $=\\dfrac{${totalB}}{${n2}}=${m2}$.` },
+        {
+          text: `Line A mean $=\\dfrac{${totalA}}{${n1}}=${m1}$; Line B mean $=\\dfrac{${totalB}}{${n2}}=${m2}$.`,
+        },
 
         {
           text: `Pooled mean $=\\dfrac{n_1\\bar{x}_1+n_2\\bar{x}_2}{n_1+n_2}=\\dfrac{${totalA}+${totalB}}{${n1}+${n2}}=${pooledMean}$.`,
@@ -695,9 +759,19 @@ const stemLeafQuartileTemplate = generatedQuestion({
 
         { kind: 'numeric', label: 'IQR', answer: iqrValue, tol: 0.05 },
 
-        { kind: 'numeric', label: 'Lower fence', answer: lowerFence, tol: 0.05 },
+        {
+          kind: 'numeric',
+          label: 'Lower fence',
+          answer: lowerFence,
+          tol: 0.05,
+        },
 
-        { kind: 'numeric', label: 'Upper fence', answer: upperFence, tol: 0.05 },
+        {
+          kind: 'numeric',
+          label: 'Upper fence',
+          answer: upperFence,
+          tol: 0.05,
+        },
       ],
 
       solution: [
@@ -705,16 +779,24 @@ const stemLeafQuartileTemplate = generatedQuestion({
           text: `Reading the display stem by stem gives the sorted list $${[...data].sort((a, b) => a - b).join(', ')}$.`,
         },
 
-        { text: `$Q_1=${q1}$ and $Q_3=${q3}$ by the position rule $L_k=k(n+1)/4$, so $IQR=${iqrValue}$.` },
+        {
+          text: `$Q_1=${q1}$ and $Q_3=${q3}$ by the position rule $L_k=k(n+1)/4$, so $IQR=${iqrValue}$.`,
+        },
 
-        { text: `Fences: lower $=Q_1-1.5\\,IQR=${lowerFence}$, upper $=Q_3+1.5\\,IQR=${upperFence}$.` },
+        {
+          text: `Fences: lower $=Q_1-1.5\\,IQR=${lowerFence}$, upper $=Q_3+1.5\\,IQR=${upperFence}$.`,
+        },
       ],
     };
   },
 });
 
 /** Choices shared by every draw of `studyDesignTemplate`. */
-export const studyTypeChoices = ['Designed experiment', 'Observational study', 'Retrospective study'];
+export const studyTypeChoices = [
+  'Designed experiment',
+  'Observational study',
+  'Retrospective study',
+];
 
 /**
  * A small, hand-verified bank of study-design scenarios rather than
@@ -1165,7 +1247,14 @@ const studyDesignEasyTemplate = generatedQuestion({
 
       params: { scenarioIndex },
 
-      parts: [{ kind: 'mcq', label: 'Study type', choices: studyTypeChoices, answer: s.studyType }],
+      parts: [
+        {
+          kind: 'mcq',
+          label: 'Study type',
+          choices: studyTypeChoices,
+          answer: s.studyType,
+        },
+      ],
 
       solution: [{ text: classifyReasonByType[s.studyType] }],
     };
@@ -1192,12 +1281,20 @@ const studyDesignMediumTemplate = generatedQuestion({
       params: { scenarioIndex },
 
       parts: [
-        { kind: 'mcq', label: 'Study type', choices: studyTypeChoices, answer: s.studyType },
+        {
+          kind: 'mcq',
+          label: 'Study type',
+          choices: studyTypeChoices,
+          answer: s.studyType,
+        },
 
         { kind: 'tf', label: 'Supports a causal conclusion', answer: s.causal },
       ],
 
-      solution: [{ text: classifyReasonByType[s.studyType] }, { text: causalReasonByType[s.studyType] }],
+      solution: [
+        { text: classifyReasonByType[s.studyType] },
+        { text: causalReasonByType[s.studyType] },
+      ],
     };
   },
 });
@@ -1222,14 +1319,719 @@ const studyDesignTemplate = generatedQuestion({
       params: { scenarioIndex },
 
       parts: [
-        { kind: 'mcq', label: 'Study type', choices: studyTypeChoices, answer: s.studyType },
+        {
+          kind: 'mcq',
+          label: 'Study type',
+          choices: studyTypeChoices,
+          answer: s.studyType,
+        },
 
         { kind: 'tf', label: 'Supports a causal conclusion', answer: s.causal },
 
-        { kind: 'mcq', label: 'Biggest threat / reason', choices: s.confounderChoices, answer: s.confounderAnswer },
+        {
+          kind: 'mcq',
+          label: 'Biggest threat / reason',
+          choices: s.confounderChoices,
+          answer: s.confounderAnswer,
+        },
       ],
 
       solution: [{ text: s.explanation }],
+    };
+  },
+});
+
+/**
+ * k distinct indices drawn from [0, poolSize), via a partial Fisher-Yates
+ * shuffle of the index range. Used to pick several *different* variables out
+ * of a category bank without repeats — reused across the "types of data"
+ * templates below instead of re-deriving a no-repeat draw each time.
+ */
+function distinctIndices(
+  rng: SeededRng,
+  poolSize: number,
+  k: number,
+): number[] {
+  const indices = Array.from({ length: poolSize }, (_, i) => i);
+
+  for (let i = indices.length - 1; i > 0; i--) {
+    const j = rng.int(0, i);
+
+    [indices[i], indices[j]] = [indices[j], indices[i]];
+  }
+
+  return indices.slice(0, k);
+}
+
+/**
+ * A bank of everyday variables, each hand-tagged with its "nature" kind —
+ * whether it is qualitative, discrete quantitative, or continuous
+ * quantitative — since that classification is a judgment call a procedural
+ * generator cannot responsibly invent (same reasoning as `ch01StudyScenarios`
+ * above). Balanced 4/4/4 across the three kinds so no kind dominates a
+ * uniform draw, and exported so the test file can check the balance and
+ * recompute expected answers from `params.variableIndex` / `params.indices`
+ * without duplicating the bank.
+ */
+export const ch01VariableKindChoices = [
+  'Qualitative (categorical)',
+  'Discrete quantitative',
+  'Continuous quantitative',
+];
+
+export const ch01VariableBank: Array<{ text: string; kind: number }> = [
+  { text: 'The color of a car sold at a dealership', kind: 0 },
+  { text: "A patient's blood type", kind: 0 },
+  { text: 'The brand of laptop owned by a student', kind: 0 },
+  { text: "A survey respondent's marital status", kind: 0 },
+  { text: 'The number of emails received by an employee in a day', kind: 1 },
+  { text: 'The number of bugs found in a software build', kind: 1 },
+  {
+    text: 'The number of failed login attempts on a server in an hour',
+    kind: 1,
+  },
+  { text: 'The number of goals scored in a soccer match', kind: 1 },
+  { text: "A runner's time to finish a 100m dash (seconds)", kind: 2 },
+  { text: 'The weight of a shipped package (kg)', kind: 2 },
+  { text: 'The temperature recorded by a weather station (°C)', kind: 2 },
+  { text: "A basketball player's height (cm)", kind: 2 },
+];
+
+const typesOfDataClassifyTemplate = generatedQuestion({
+  id: 'ch01-gen-types-of-data-classify',
+
+  chapter: 'intro',
+
+  topic: 'Types of data',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const variableIndex = rng.int(0, ch01VariableBank.length - 1);
+
+    const v = ch01VariableBank[variableIndex];
+
+    return {
+      prompt: `Classify the following variable: "${v.text}."`,
+
+      params: { variableIndex },
+
+      parts: [
+        { kind: 'mcq', choices: ch01VariableKindChoices, answer: v.kind },
+      ],
+
+      solution: [
+        {
+          text:
+            v.kind === 0
+              ? 'This variable sorts observations into named categories rather than counting or measuring them, so it is qualitative.'
+              : v.kind === 1
+                ? 'This variable is a count — only whole-number values are possible — so it is discrete quantitative.'
+                : 'This variable can take any value on a continuum (limited only by the precision of the measuring instrument), so it is continuous quantitative.',
+        },
+      ],
+    };
+  },
+});
+
+/** Measurement scale ("level of measurement") for a second, hand-tagged bank, balanced 3/3/3/3 across nominal/ordinal/interval/ratio. */
+export const ch01ScaleChoices = ['Nominal', 'Ordinal', 'Interval', 'Ratio'];
+
+export const ch01ScaleBank: Array<{ text: string; scale: number }> = [
+  { text: "A customer's postal code", scale: 0 },
+  { text: 'An employee ID number', scale: 0 },
+  { text: "A survey respondent's gender", scale: 0 },
+  { text: 'T-shirt size (S, M, L, XL)', scale: 1 },
+  { text: 'A customer satisfaction rating (1-5 stars)', scale: 1 },
+  { text: 'Military rank', scale: 1 },
+  { text: 'Temperature in degrees Celsius', scale: 2 },
+  { text: 'The calendar year a car was manufactured', scale: 2 },
+  { text: 'SAT score (200-800 scale)', scale: 2 },
+  { text: 'The weight of a package (kg)', scale: 3 },
+  { text: 'Distance traveled (km)', scale: 3 },
+  { text: 'Years of work experience', scale: 3 },
+];
+
+const typesOfDataScaleTemplate = generatedQuestion({
+  id: 'ch01-gen-types-of-data-scale',
+
+  chapter: 'intro',
+
+  topic: 'Types of data',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const scaleIndex = rng.int(0, ch01ScaleBank.length - 1);
+
+    const v = ch01ScaleBank[scaleIndex];
+
+    const explanationByScale: Record<number, string> = {
+      0: 'Nominal data name categories with no natural order between them.',
+      1: 'Ordinal data have a meaningful order, but the gaps between ranks are not equal or numerically meaningful.',
+      2: 'Interval data have equal, meaningful gaps between values, but no true zero — a value of 0 does not mean "none."',
+      3: 'Ratio data have equal gaps *and* a true zero, so ratios between values (twice as much, half as much) are meaningful.',
+    };
+
+    return {
+      prompt: `What is the measurement scale of the following variable: "${v.text}"?`,
+
+      params: { scaleIndex },
+
+      parts: [{ kind: 'mcq', choices: ch01ScaleChoices, answer: v.scale }],
+
+      solution: [{ text: explanationByScale[v.scale] }],
+    };
+  },
+});
+
+/**
+ * Draws a fixed count from each of the three kinds in `ch01VariableBank`
+ * (never 0, so no category count is ever degenerately zero) and lists them
+ * in a shuffled order, then asks for the count of each kind back — a
+ * "reconstruct the tally" shape rather than another single-variable
+ * classification, testing the same concept from the opposite direction.
+ */
+const typesOfDataCountTemplate = generatedQuestion({
+  id: 'ch01-gen-types-of-data-count',
+
+  chapter: 'intro',
+
+  topic: 'Types of data',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const qualIndicesInBank = ch01VariableBank
+      .map((_, i) => i)
+      .filter((i) => ch01VariableBank[i].kind === 0);
+
+    const discIndicesInBank = ch01VariableBank
+      .map((_, i) => i)
+      .filter((i) => ch01VariableBank[i].kind === 1);
+
+    const contIndicesInBank = ch01VariableBank
+      .map((_, i) => i)
+      .filter((i) => ch01VariableBank[i].kind === 2);
+
+    const nQual = rng.int(1, 3);
+
+    const nDisc = rng.int(1, 3);
+
+    const nCont = rng.int(1, 3);
+
+    const chosenQual = distinctIndices(
+      rng,
+      qualIndicesInBank.length,
+      nQual,
+    ).map((i) => qualIndicesInBank[i]);
+
+    const chosenDisc = distinctIndices(
+      rng,
+      discIndicesInBank.length,
+      nDisc,
+    ).map((i) => discIndicesInBank[i]);
+
+    const chosenCont = distinctIndices(
+      rng,
+      contIndicesInBank.length,
+      nCont,
+    ).map((i) => contIndicesInBank[i]);
+
+    const allIndices = [...chosenQual, ...chosenDisc, ...chosenCont];
+
+    // Shuffle only the display order — the counts above are already fixed.
+    const displayOrder = distinctIndices(
+      rng,
+      allIndices.length,
+      allIndices.length,
+    ).map((i) => allIndices[i]);
+
+    const listing = displayOrder
+      .map((i, k) => `${k + 1}. ${ch01VariableBank[i].text}`)
+      .join('\n');
+
+    return {
+      prompt: `A survey records the following ${allIndices.length} variables:\n\n${listing}\n\nHow many of them are qualitative, how many are discrete quantitative, and how many are continuous quantitative?`,
+
+      params: { indices: displayOrder },
+
+      parts: [
+        { kind: 'numeric', label: 'Qualitative', answer: nQual, tol: 0 },
+        {
+          kind: 'numeric',
+          label: 'Discrete quantitative',
+          answer: nDisc,
+          tol: 0,
+        },
+        {
+          kind: 'numeric',
+          label: 'Continuous quantitative',
+          answer: nCont,
+          tol: 0,
+        },
+      ],
+
+      solution: [
+        {
+          text: `Sorting each of the ${allIndices.length} variables by kind gives $${nQual}$ qualitative, $${nDisc}$ discrete quantitative, and $${nCont}$ continuous quantitative.`,
+        },
+      ],
+    };
+  },
+});
+
+/**
+ * One variable from each kind, shuffled into a labelled list, then asked
+ * from the *opposite* direction of the easy classify template: given the
+ * kind, name the variable, rather than given the variable, name the kind.
+ */
+const typesOfDataIdentifyTemplate = generatedQuestion({
+  id: 'ch01-gen-types-of-data-identify',
+
+  chapter: 'intro',
+
+  topic: 'Types of data',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const qualIndicesInBank = ch01VariableBank
+      .map((_, i) => i)
+      .filter((i) => ch01VariableBank[i].kind === 0);
+
+    const discIndicesInBank = ch01VariableBank
+      .map((_, i) => i)
+      .filter((i) => ch01VariableBank[i].kind === 1);
+
+    const contIndicesInBank = ch01VariableBank
+      .map((_, i) => i)
+      .filter((i) => ch01VariableBank[i].kind === 2);
+
+    const qualIdx = qualIndicesInBank[rng.int(0, qualIndicesInBank.length - 1)];
+
+    const discIdx = discIndicesInBank[rng.int(0, discIndicesInBank.length - 1)];
+
+    const contIdx = contIndicesInBank[rng.int(0, contIndicesInBank.length - 1)];
+
+    const unshuffled = [qualIdx, discIdx, contIdx];
+
+    const order = distinctIndices(rng, 3, 3);
+
+    const indices = order.map((i) => unshuffled[i]);
+
+    const listing = indices
+      .map((i, k) => `Variable ${k + 1}: ${ch01VariableBank[i].text}`)
+      .join('\n');
+
+    const discretePosition = indices.indexOf(discIdx);
+
+    const continuousPosition = indices.indexOf(contIdx);
+
+    const qualitativePosition = indices.indexOf(qualIdx);
+
+    const optionLabels = indices.map((_, k) => `Variable ${k + 1}`);
+
+    return {
+      prompt: `${listing}\n\n(a) Which variable is discrete quantitative? (b) Which variable is continuous quantitative?`,
+
+      params: { indices },
+
+      parts: [
+        {
+          kind: 'mcq',
+          label: 'Discrete quantitative variable',
+          choices: optionLabels,
+          answer: discretePosition,
+        },
+        {
+          kind: 'mcq',
+          label: 'Continuous quantitative variable',
+          choices: optionLabels,
+          answer: continuousPosition,
+        },
+        {
+          kind: 'tf',
+          label: `Variable ${qualitativePosition + 1} is a meaningful candidate for computing a sample mean`,
+          answer: false,
+        },
+      ],
+
+      solution: [
+        {
+          text: `Variable ${discretePosition + 1} ("${ch01VariableBank[discIdx].text}") is a count, so it is discrete quantitative.`,
+        },
+        {
+          text: `Variable ${continuousPosition + 1} ("${ch01VariableBank[contIdx].text}") is measured on a continuum, so it is continuous quantitative.`,
+        },
+        {
+          text: `Variable ${qualitativePosition + 1} ("${ch01VariableBank[qualIdx].text}") is qualitative — categories have no numeric value, so averaging them is meaningless.`,
+        },
+      ],
+    };
+  },
+});
+
+/**
+ * Scenario bank pairing a population description with a sample description
+ * drawn from the same study, so "which is being described here" always has
+ * exactly one correct answer regardless of which half of the pair is asked
+ * about — the direction is randomized per draw, not fixed by the bank.
+ */
+export const ch01PopSampleScenarios: Array<{
+  population: string;
+  sample: string;
+}> = [
+  {
+    population:
+      'every board the firm will ever manufacture on this production line',
+    sample:
+      'the 50 computer boards pulled from the line this morning for inspection',
+  },
+  {
+    population: 'every registered voter in the state',
+    sample: 'the 1,200 voters who responded to the phone poll',
+  },
+  {
+    population: 'every battery of this model the company will ever produce',
+    sample: 'the 40 batteries pulled from the warehouse for a life test',
+  },
+  {
+    population: 'every patient who suffers from this form of hypertension',
+    sample: 'the 200 patients enrolled in the drug trial',
+  },
+  {
+    population: 'every weld produced on this assembly line this year',
+    sample: "the 25 welds x-rayed during Tuesday's quality audit",
+  },
+  {
+    population: 'every server request handled by the data center',
+    sample: 'the 10,000 requests logged during the one-hour load test',
+  },
+  {
+    population: 'every household in the city',
+    sample: 'the 500 households surveyed about water usage',
+  },
+  {
+    population: 'every tree in the national forest',
+    sample: 'the 60 trees measured along the survey transect',
+  },
+];
+
+const popSampleIdentifyTemplate = generatedQuestion({
+  id: 'ch01-gen-pop-sample-identify',
+
+  chapter: 'intro',
+
+  topic: 'Populations and samples',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const scenarioIndex = rng.int(0, ch01PopSampleScenarios.length - 1);
+
+    const s = ch01PopSampleScenarios[scenarioIndex];
+
+    const askAboutSample = rng.bool();
+
+    const described = askAboutSample ? s.sample : s.population;
+
+    const answer = askAboutSample ? 1 : 0;
+
+    return {
+      prompt: `In a study, the quantity of interest is "${described}." Does this describe the population or the sample?`,
+
+      params: { scenarioIndex, askAboutSample: askAboutSample ? 1 : 0 },
+
+      parts: [{ kind: 'mcq', choices: ['Population', 'Sample'], answer }],
+
+      solution: [
+        {
+          text: askAboutSample
+            ? `"${s.sample}" is the subset actually observed — a sample. The population here is "${s.population}."`
+            : `"${s.population}" is the entire collection the study is meant to describe — a population. The sample here is "${s.sample}."`,
+        },
+      ],
+    };
+  },
+});
+
+/**
+ * Parameter-vs-statistic bank: each entry states a numeric summary either
+ * about an entire population (a parameter, using Greek notation) or about a
+ * sample drawn from it (a statistic, using Roman notation) — hand-written
+ * because "is this claim about the whole population or a subset of it" is a
+ * reading-comprehension judgment, not something to fabricate procedurally.
+ */
+export const ch01ParamStatScenarios: Array<{
+  text: string;
+  isParameter: boolean;
+  symbolChoices: string[];
+  correctSymbolIndex: number;
+}> = [
+  {
+    text: 'The true proportion of all voters in the city who support the measure is 62%.',
+    isParameter: true,
+    symbolChoices: [
+      '$p$ (population proportion)',
+      '$\\hat{p}$ (sample proportion)',
+      '$\\mu$ (population mean)',
+      '$\\bar{x}$ (sample mean)',
+    ],
+    correctSymbolIndex: 0,
+  },
+  {
+    text: 'In a poll of 500 voters, 58% said they support the measure.',
+    isParameter: false,
+    symbolChoices: [
+      '$p$ (population proportion)',
+      '$\\hat{p}$ (sample proportion)',
+      '$\\mu$ (population mean)',
+      '$\\bar{x}$ (sample mean)',
+    ],
+    correctSymbolIndex: 1,
+  },
+  {
+    text: 'The average height of every student currently enrolled at the university is 171 cm.',
+    isParameter: true,
+    symbolChoices: [
+      '$\\bar{x}$ (sample mean)',
+      '$s$ (sample standard deviation)',
+      '$\\mu$ (population mean)',
+      '$\\hat{p}$ (sample proportion)',
+    ],
+    correctSymbolIndex: 2,
+  },
+  {
+    text: 'A random sample of 40 students has an average height of 169.4 cm.',
+    isParameter: false,
+    symbolChoices: [
+      '$\\bar{x}$ (sample mean)',
+      '$\\mu$ (population mean)',
+      '$\\sigma$ (population standard deviation)',
+      '$p$ (population proportion)',
+    ],
+    correctSymbolIndex: 0,
+  },
+  {
+    text: 'Every unit ever produced by this process has a variance in fill weight of 2.3 g².',
+    isParameter: true,
+    symbolChoices: [
+      '$s^2$ (sample variance)',
+      '$\\sigma^2$ (population variance)',
+      '$\\bar{x}$ (sample mean)',
+      '$\\hat{p}$ (sample proportion)',
+    ],
+    correctSymbolIndex: 1,
+  },
+  {
+    text: 'A sample of 30 units from the process has a variance in fill weight of 2.6 g².',
+    isParameter: false,
+    symbolChoices: [
+      '$s^2$ (sample variance)',
+      '$\\sigma^2$ (population variance)',
+      '$\\mu$ (population mean)',
+      '$p$ (population proportion)',
+    ],
+    correctSymbolIndex: 0,
+  },
+  {
+    text: 'Among the 5,000 tires the plant produced this week, exactly 2% are blemished.',
+    isParameter: true,
+    symbolChoices: [
+      '$\\hat{p}$ (sample proportion)',
+      '$p$ (population proportion)',
+      '$\\bar{x}$ (sample mean)',
+      '$s$ (sample standard deviation)',
+    ],
+    correctSymbolIndex: 1,
+  },
+  {
+    text: "In a random sample of 200 tires from this week's production, 1.8% are blemished.",
+    isParameter: false,
+    symbolChoices: [
+      '$\\hat{p}$ (sample proportion)',
+      '$p$ (population proportion)',
+      '$\\mu$ (population mean)',
+      '$\\sigma$ (population standard deviation)',
+    ],
+    correctSymbolIndex: 0,
+  },
+];
+
+const paramVsStatisticTemplate = generatedQuestion({
+  id: 'ch01-gen-param-vs-statistic',
+
+  chapter: 'intro',
+
+  topic: 'Populations and samples',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const scenarioIndex = rng.int(0, ch01ParamStatScenarios.length - 1);
+
+    const s = ch01ParamStatScenarios[scenarioIndex];
+
+    return {
+      prompt: `${s.text} (a) Is this a parameter or a statistic? (b) Which symbol matches it?`,
+
+      params: { scenarioIndex },
+
+      parts: [
+        {
+          kind: 'mcq',
+          label: 'Parameter or statistic',
+          choices: ['Parameter', 'Statistic'],
+          answer: s.isParameter ? 0 : 1,
+        },
+        {
+          kind: 'mcq',
+          label: 'Matching symbol',
+          choices: s.symbolChoices,
+          answer: s.correctSymbolIndex,
+        },
+      ],
+
+      solution: [
+        {
+          text: s.isParameter
+            ? 'This describes a fixed feature of the *entire* population, so it is a parameter.'
+            : 'This is computed from a *sample* drawn from the population, so it is a statistic.',
+        },
+      ],
+    };
+  },
+});
+
+/**
+ * Population size N and sample size n are drawn so the sampling fraction
+ * n/N always lands comfortably in [10%, 40%] — never a fraction so small it
+ * would round toward the zero-answer guard, and never so large the exercise
+ * stops looking like real "small sample from a big population" sampling.
+ */
+const samplingFractionTemplate = generatedQuestion({
+  id: 'ch01-gen-sampling-fraction',
+
+  chapter: 'intro',
+
+  topic: 'Populations and samples',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const N = rng.int(80, 400);
+
+    const fracPercent = rng.int(10, 40);
+
+    const n = Math.max(1, Math.round((N * fracPercent) / 100));
+
+    const samplingFraction = round((n / N) * 100, 2);
+
+    const contexts = [
+      { unit: 'employees', pool: 'company' },
+      { unit: 'components', pool: 'production batch' },
+      { unit: 'accounts', pool: 'customer database' },
+      { unit: 'plots', pool: 'research forest' },
+    ];
+
+    const ctx = contexts[rng.int(0, contexts.length - 1)];
+
+    return {
+      prompt: `A ${ctx.pool} contains $N=${N}$ ${ctx.unit}. A researcher draws a random sample of $n=${n}$ of them. What percentage of the population does the sample represent (the sampling fraction)?`,
+
+      params: { N, n },
+
+      parts: [
+        { kind: 'numeric', answer: samplingFraction, tol: 0.05, unit: '%' },
+      ],
+
+      solution: [
+        {
+          text: `Sampling fraction $=\\dfrac{n}{N}\\times100=\\dfrac{${n}}{${N}}\\times100=${samplingFraction}\\%$.`,
+        },
+      ],
+    };
+  },
+});
+
+/** Sampling-method bank, hand-tagged for the same reason as the study-design bank: classifying a described procedure is a judgment call. */
+export const ch01SamplingMethodChoices = [
+  'Simple random sampling',
+  'Stratified random sampling',
+  'Cluster sampling',
+  'Convenience sampling',
+];
+
+export const ch01SamplingMethodScenarios: Array<{
+  text: string;
+  method: number;
+}> = [
+  {
+    text: 'A city is split into ethnic groups (natural strata) for a bond-referendum survey, and a separate random sample of families is drawn from each group.',
+    method: 1,
+  },
+  {
+    text: 'Every employee in a company is assigned a number, and a computer draws 100 numbers uniformly at random with every possible group of 100 equally likely.',
+    method: 0,
+  },
+  {
+    text: 'A researcher randomly selects 15 entire school classrooms out of 200 in the district and surveys every student in each selected classroom.',
+    method: 2,
+  },
+  {
+    text: 'A marketer surveys the first 50 shoppers who happen to walk past the mall entrance on a Tuesday afternoon.',
+    method: 3,
+  },
+  {
+    text: 'A hospital divides patients into age brackets (natural strata) and draws a separate random sample of patients from each bracket.',
+    method: 1,
+  },
+  {
+    text: 'A polling firm draws phone numbers from a complete list of all registered numbers, with each number equally likely to be chosen.',
+    method: 0,
+  },
+  {
+    text: 'An inspector randomly selects 8 entire shipping pallets out of 120 and inspects every carton on each selected pallet.',
+    method: 2,
+  },
+  {
+    text: 'A student surveys only the classmates sitting nearest to them because it is convenient, rather than drawing names at random from the whole class.',
+    method: 3,
+  },
+];
+
+const samplingMethodTemplate = generatedQuestion({
+  id: 'ch01-gen-sampling-method',
+
+  chapter: 'intro',
+
+  topic: 'Populations and samples',
+
+  difficulty: 'hard',
+
+  generate: (rng) => {
+    const scenarioIndex = rng.int(0, ch01SamplingMethodScenarios.length - 1);
+
+    const s = ch01SamplingMethodScenarios[scenarioIndex];
+
+    const explanationByMethod: Record<number, string> = {
+      0: 'Every unit (or every group of the given size) is equally likely to be drawn, with no stratification or clustering — simple random sampling.',
+      1: 'The population is split into homogeneous strata first, and a separate random sample is drawn *within* each stratum — stratified random sampling.',
+      2: 'Whole naturally occurring groups (clusters) are randomly selected, and every member of a selected cluster is included — cluster sampling.',
+      3: 'Units are chosen because they happen to be easy to reach, not by any random mechanism — convenience sampling, which risks a biased sample.',
+    };
+
+    return {
+      prompt: `${s.text} Which sampling method is this?`,
+
+      params: { scenarioIndex },
+
+      parts: [
+        { kind: 'mcq', choices: ch01SamplingMethodChoices, answer: s.method },
+      ],
+
+      solution: [{ text: explanationByMethod[s.method] }],
     };
   },
 });
@@ -1258,4 +2060,20 @@ export const ch01Generators: QuestionTemplate[] = [
   studyDesignMediumTemplate,
 
   studyDesignTemplate,
+
+  typesOfDataClassifyTemplate,
+
+  typesOfDataScaleTemplate,
+
+  typesOfDataCountTemplate,
+
+  typesOfDataIdentifyTemplate,
+
+  popSampleIdentifyTemplate,
+
+  paramVsStatisticTemplate,
+
+  samplingFractionTemplate,
+
+  samplingMethodTemplate,
 ];

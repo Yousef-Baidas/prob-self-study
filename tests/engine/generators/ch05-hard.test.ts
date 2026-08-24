@@ -37,6 +37,16 @@ const independentHyperPmf = (N: number, n: number, k: number, x: number): number
 const independentPoissonPmf = (lambdaT: number, x: number): number =>
   (Math.exp(-lambdaT) * lambdaT ** x) / independentFactorial(x);
 
+// Same search the generator itself uses, kept independent by living in the
+// test file rather than importing the generator's helper.
+const independentSmallestN = (p: number, target: number): number => {
+  let n = 1;
+
+  while (1 - (1 - p) ** n < target) n++;
+
+  return n;
+};
+
 const byId = (id: string) => {
   const t = ch05Generators.find((g) => g.id === id);
 
@@ -52,6 +62,23 @@ const assertStableWording = (t: ReturnType<typeof byId>) => {
 
   for (let seed = 1; seed < SEEDS; seed++) {
     expect(wordingOf(t.generate(mulberry32(seed)).prompt)).toBe(first);
+  }
+};
+
+const expectNumericParts = (
+  parts: ReturnType<ReturnType<typeof byId>['generate']>['parts'],
+  expected: number[],
+) => {
+  expect(parts.filter((p) => p.kind === 'numeric').length).toBe(expected.length);
+
+  let i = 0;
+
+  for (const part of parts) {
+    if (part.kind !== 'numeric') continue;
+
+    expect(Math.abs(part.answer - expected[i])).toBeLessThanOrEqual(part.tol);
+
+    i++;
   }
 };
 
@@ -258,6 +285,149 @@ describe('ch05 poissonBinomialApprox', () => {
 
         expect(Math.abs(part.answer)).toBeGreaterThan(part.tol * 2);
       }
+    }
+  });
+});
+
+describe('ch05 uniformTailFromVariance', () => {
+  const t = byId('ch05-gen-uniform-tail-from-variance');
+
+  it('N inverts exactly from the stated variance, and the tail probability matches an independent recompute', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { N, variance, c } = inst.params as Record<string, number>;
+
+      expect(variance).toBe((N ** 2 - 1) / 12);
+
+      // The inverse recovers N exactly, since NICE_UNIFORM_N is chosen so
+      // (N^2 - 1) / 12 is always a whole number.
+      expect(Math.sqrt(12 * variance + 1)).toBeCloseTo(N, 9);
+
+      const favourable = N - c + 1;
+
+      const tailProb = favourable / N;
+
+      const parts = inst.parts;
+
+      expect(parts[0].kind).toBe('numeric');
+
+      if (parts[0].kind === 'numeric') expect(parts[0].answer).toBe(N);
+
+      expect(parts[1].kind).toBe('numeric');
+
+      if (parts[1].kind === 'numeric') expect(Math.abs(parts[1].answer - tailProb)).toBeLessThanOrEqual(parts[1].tol);
+    }
+  });
+});
+
+describe('ch05 binomialInverseN', () => {
+  const t = byId('ch05-gen-binomial-inverse-n');
+
+  it('n is the smallest sample size clearing the stated target, matching an independent search', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { p, target, n } = inst.params as Record<string, number>;
+
+      const indepN = independentSmallestN(p, target);
+
+      expect(n).toBe(indepN);
+
+      // n itself must actually clear the target, and n - 1 must not.
+      expect(1 - (1 - p) ** n).toBeGreaterThanOrEqual(target);
+
+      expect(1 - (1 - p) ** (n - 1)).toBeLessThan(target);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
+
+      if (part.kind === 'numeric') expect(part.answer).toBe(n);
+    }
+  });
+});
+
+describe('ch05 hypergeometricApproxValidity', () => {
+  const t = byId('ch05-gen-hypergeometric-approx-validity');
+
+  it('exact and approximate probabilities match an independent recompute, and validity tracks n/N <= 0.05', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { N, k, n, x, ratio } = inst.params as Record<string, number>;
+
+      expect(ratio).toBeCloseTo(n / N, 10);
+
+      const exact = independentHyperPmf(N, n, k, x);
+
+      const approx = independentBinomialPmf(n, k / N, x);
+
+      const parts = inst.parts;
+
+      expect(parts[0].kind).toBe('numeric');
+
+      if (parts[0].kind === 'numeric') expect(Math.abs(parts[0].answer - exact)).toBeLessThanOrEqual(parts[0].tol);
+
+      expect(parts[1].kind).toBe('numeric');
+
+      if (parts[1].kind === 'numeric') expect(Math.abs(parts[1].answer - approx)).toBeLessThanOrEqual(parts[1].tol);
+
+      expect(parts[2].kind).toBe('tf');
+
+      if (parts[2].kind === 'tf') expect(parts[2].answer).toBe(ratio <= 0.05);
+
+      for (const part of parts) {
+        if (part.kind !== 'numeric') continue;
+
+        expect(Math.abs(part.answer)).toBeGreaterThan(part.tol * 2);
+      }
+    }
+  });
+});
+
+describe('ch05 geometricInverseN', () => {
+  const t = byId('ch05-gen-geometric-inverse-n');
+
+  it('n is the smallest number of passes clearing the stated target, matching an independent search', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { p, target, n } = inst.params as Record<string, number>;
+
+      const indepN = independentSmallestN(p, target);
+
+      expect(n).toBe(indepN);
+
+      expect(1 - (1 - p) ** n).toBeGreaterThanOrEqual(target);
+
+      expect(1 - (1 - p) ** (n - 1)).toBeLessThan(target);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
+
+      if (part.kind === 'numeric') expect(part.answer).toBe(n);
+    }
+  });
+});
+
+describe('ch05 poissonRescaledInterval', () => {
+  const t = byId('ch05-gen-poisson-rescaled-interval');
+
+  it('the rate is rescaled to the stated window before P(X = x) is computed', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { lambdaT, intervalMinutes, ratePerHour, x } = inst.params as Record<string, number>;
+
+      // The whole point of the question: rescaling the rate to the window
+      // recovers lambdaT exactly, since intervalMinutes always divides 60.
+      expect(ratePerHour * (intervalMinutes / 60)).toBeCloseTo(lambdaT, 10);
+
+      const pmf = independentPoissonPmf(lambdaT, x);
+
+      expectNumericParts(inst.parts, [pmf]);
     }
   });
 });
