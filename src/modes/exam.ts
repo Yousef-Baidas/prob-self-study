@@ -12,7 +12,10 @@ export function deriveQuestionSeeds(masterSeed: number, n: number): number[] {
 }
 
 export function buildExamSession(spec: ExamSpec): ExamSession {
-  const draw = drawTemplates(spec.chapter, spec.source, spec.count, undefined, spec.difficulty);
+  // The same seed picks the questions and then seeds each one, so a shared
+  // exam link still reproduces exactly — but two different seeds are now two
+  // genuinely different exams rather than the same paper with new numbers.
+  const draw = drawTemplates(spec.chapter, spec.source, spec.count, undefined, spec.difficulty, spec.seed);
   const seeds = deriveQuestionSeeds(spec.seed, draw.templates.length);
   const questions = draw.templates.map((template, i) => ({
     template,

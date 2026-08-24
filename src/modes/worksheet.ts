@@ -22,7 +22,10 @@ export interface WorksheetSession {
 }
 
 export function buildWorksheetSession(spec: WorksheetSpec): WorksheetSession {
-  const draw = drawTemplates(spec.chapters, spec.source, spec.count, spec.topic, spec.difficulty);
+  // Seeded draw, same as the exam: re-rolling a worksheet has to hand back a
+  // different set of questions, not the same set with new numbers. See the
+  // comment on drawTemplates for what the seed was — and was not — doing before.
+  const draw = drawTemplates(spec.chapters, spec.source, spec.count, spec.topic, spec.difficulty, spec.seed);
   const seeds = deriveQuestionSeeds(spec.seed, draw.templates.length);
   const questions = draw.templates.map((template, i) => ({
     template,

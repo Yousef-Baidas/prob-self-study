@@ -26,6 +26,24 @@ describe('buildExamSession', () => {
     expect(a.questions.map((q) => q.instance.prompt)).not.toEqual(b.questions.map((q) => q.instance.prompt));
   });
 
+  it('different seeds sit a different paper, not the same paper with new numbers', () => {
+    // Book-source on purpose: book templates ignore the rng, so if the seed did
+    // not reach the DRAW this would be the identical exam every time — which is
+    // exactly what it used to be.
+    const ids = (seed: number) =>
+      buildExamSession(spec({ chapter: 'continuous-distributions', source: 'book', count: 8, seed }))
+        .questions.map((q) => q.template.id)
+        .sort();
+    expect(ids(1)).not.toEqual(ids(2));
+  });
+
+  it('a shared exam link still reproduces exactly', () => {
+    const ids = () =>
+      buildExamSession(spec({ chapter: 'continuous-distributions', source: 'book', count: 8, seed: 5150 }))
+        .questions.map((q) => q.template.id);
+    expect(ids()).toEqual(ids());
+  });
+
   it('propagates delivered/capped from the draw', () => {
     const s = buildExamSession(spec({ source: 'book', count: 10 }));
     expect(s.delivered).toBe(s.questions.length);

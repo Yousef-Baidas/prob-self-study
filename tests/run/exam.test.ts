@@ -22,11 +22,24 @@ function ready(search = '?chapter=probability&source=generated&count=3') {
 /**
  * Answers are written straight into the run by the answer inputs' two-way
  * binding, so tests fill them the same way rather than through a setter.
+ *
+ * Every gradable kind has to be filled, not just numeric. This used to answer
+ * numeric only and still scored full marks, because the draw was the fixed
+ * first three templates of the chapter and all three happened to be numeric.
+ * Once the draw became seeded the helper started meeting mcq and tf parts and
+ * scoring them zero — the helper's gap, not the exam's. `short` stays null on
+ * purpose: gradePart returns null for it and gradeInstance counts null as not
+ * wrong, since it is self-graded.
  */
 const answeredCorrectly = (run: ReadyExamRun): ReadyExamRun => ({
   ...run,
   answers: run.session.questions.map((q) =>
-    q.instance.parts.map((p) => (p.kind === 'numeric' ? p.answer : null)),
+    q.instance.parts.map((p) =>
+      p.kind === 'numeric' ? p.answer
+      : p.kind === 'mcq' ? p.answer
+      : p.kind === 'tf' ? p.answer
+      : null,
+    ),
   ),
 });
 
