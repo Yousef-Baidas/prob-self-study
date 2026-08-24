@@ -744,8 +744,72 @@ const jointChainRuleTemplate = generatedQuestion({
   },
 });
 
+const jointMarginalMcqTemplate = generatedQuestion({
+  id: 'ch03-gen-joint-marginal-mcq',
+
+  chapter: 'random-variables',
+
+  topic: 'Joint distributions',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const t = drawJointTable(rng);
+
+    const a = rng.int(0, 2);
+
+    const correct = round(t.gx[a] / t.total, 4);
+
+    // Distractors are offsets from the correct value, nudged until distinct --
+    // simpler than sourcing them from other table cells, which can coincide
+    // with the correct value by construction.
+    const choices = [correct];
+
+    for (const off of [0.06, -0.05, 0.11]) {
+      let v = round(correct + off, 4);
+
+      if (v <= 0) v = round(correct + Math.abs(off) + 0.02, 4);
+
+      while (choices.includes(v)) v = round(v + 0.01, 4);
+
+      choices.push(v);
+    }
+
+    // Shuffle so the correct choice is not always listed first.
+    for (let i = choices.length - 1; i > 0; i--) {
+      const j = rng.int(0, i);
+
+      [choices[i], choices[j]] = [choices[j], choices[i]];
+    }
+
+    const answer = choices.indexOf(correct);
+
+    return {
+      prompt:
+        `The discrete random variables $X$ and $Y$ have the joint probability distribution ` +
+        `$${tableMath(t)}$. Which of the following is the marginal distribution value $g(${a})=P(X=${a})$?`,
+
+      params: { w: flatWeights(t), a, correct },
+
+      parts: [{ kind: 'mcq', choices: choices.map((v) => String(v)), answer }],
+
+      solution: [
+        {
+          text: `The marginal of $X$ sums out $Y$: $g(${a})=f(${a},0)+f(${a},1)=\\dfrac{${t.w[a][0]}+${t.w[a][1]}}{${t.total}}=\\dfrac{${t.gx[a]}}{${t.total}}\\approx${correct}$.`,
+        },
+
+        {
+          text: `The distractors are nearby numbers, not other cells of the table — reading off the wrong row or forgetting to divide by the total both produce values close to, but not equal to, the true marginal.`,
+        },
+      ],
+    };
+  },
+});
+
 export const ch03JointGenerators: QuestionTemplate[] = [
   jointPmfConstantTemplate,
+
+  jointMarginalMcqTemplate,
 
   jointTableRegionTemplate,
 

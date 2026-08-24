@@ -42,6 +42,30 @@ const independentNegBinomialPmf = (x: number, k: number, p: number): number =>
 const independentPoissonPmf = (lambdaT: number, x: number): number =>
   (Math.exp(-lambdaT) * lambdaT ** x) / independentFactorial(x);
 
+const independentBinomialCdf = (n: number, p: number, x: number): number => {
+  let s = 0;
+
+  for (let i = 0; i <= x; i++) s += independentBinomialPmf(n, p, i);
+
+  return s;
+};
+
+const independentHyperCdf = (N: number, n: number, k: number, x: number, lower: number): number => {
+  let s = 0;
+
+  for (let i = lower; i <= x; i++) s += independentHyperPmf(N, n, k, i);
+
+  return s;
+};
+
+const independentPoissonCdf = (lambdaT: number, x: number): number => {
+  let s = 0;
+
+  for (let i = 0; i <= x; i++) s += independentPoissonPmf(lambdaT, i);
+
+  return s;
+};
+
 const byId = (id: string) => {
   const t = ch05Generators.find((g) => g.id === id);
 
@@ -377,6 +401,363 @@ describe('ch05 poissonPmf', () => {
       expect(mean).toBeCloseTo(lambdaT, 4);
 
       expect(variance).toBeCloseTo(lambdaT, 4);
+    }
+  });
+});
+
+describe('ch05 uniformPmfMeanVariance', () => {
+  const t = byId('ch05-gen-uniform-pmf-mean-variance');
+
+  // No assertStableWording here: the value list's length (k = 4..6) varies
+  // by seed, so the prose itself has a different shape, not just different
+  // numbers -- the same reason ch05-hard's multinomialTriple test skips it.
+
+  it('P(X = chosen), mean and variance match an independent recompute over the sampled value list', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { k, start, step, chosen, mean, variance } = inst.params as Record<string, number>;
+
+      const values = Array.from({ length: k }, (_, i) => start + i * step);
+
+      expect(values).toContain(chosen);
+
+      const indepMean = values.reduce((a, v) => a + v, 0) / k;
+
+      const indepVariance = values.reduce((a, v) => a + (v - indepMean) ** 2, 0) / k;
+
+      expect(mean).toBeCloseTo(indepMean, 4);
+
+      expect(variance).toBeCloseTo(indepVariance, 4);
+
+      expectNumericParts(inst.parts, [1 / k, indepMean, indepVariance]);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch05 uniformConsecutiveIntegers', () => {
+  const t = byId('ch05-gen-uniform-consecutive-integers');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('mean, variance and the tail probability match an independent recompute', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { a, N, b, c } = inst.params as Record<string, number>;
+
+      expect(b).toBe(a + N - 1);
+
+      expect(c).toBeGreaterThan(a);
+
+      expect(c).toBeLessThanOrEqual(b - 2);
+
+      const mean = (a + b) / 2;
+
+      const variance = (N ** 2 - 1) / 12;
+
+      const favourable = b - c + 1;
+
+      const tailProb = favourable / N;
+
+      expectNumericParts(inst.parts, [mean, variance, tailProb]);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch05 uniformDiscrimination', () => {
+  const t = byId('ch05-gen-uniform-discrimination');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('always identifies the discrete uniform, with the correct mean', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { N } = inst.params as Record<string, number>;
+
+      const mcq = inst.parts[0];
+
+      expect(mcq.kind).toBe('mcq');
+
+      if (mcq.kind === 'mcq') {
+        expect(mcq.choices[mcq.answer]).toBe('Discrete uniform');
+
+        expect(mcq.choices).toEqual(['Discrete uniform', 'Binomial', 'Hypergeometric', 'Poisson']);
+      }
+
+      const mean = (1 + N) / 2;
+
+      const numeric = inst.parts[1];
+
+      expect(numeric.kind).toBe('numeric');
+
+      if (numeric.kind === 'numeric') expect(Math.abs(numeric.answer - mean)).toBeLessThanOrEqual(numeric.tol);
+    }
+  });
+});
+
+describe('ch05 binomialCumulative', () => {
+  const t = byId('ch05-gen-binomial-cumulative');
+
+  it('the cumulative probability matches an independent recompute for whichever direction was drawn', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { n, p, meanRound } = inst.params as Record<string, number>;
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
+
+      if (part.kind !== 'numeric') continue;
+
+      // Recompute all three candidate directions and confirm the reported
+      // answer matches at least one of them -- the direction itself is not
+      // exposed in params, only through the label text.
+      const atMost = independentBinomialCdf(n, p, meanRound);
+
+      const atLeastC = Math.max(1, meanRound);
+
+      const atLeast = 1 - independentBinomialCdf(n, p, atLeastC - 1);
+
+      const lo = Math.max(0, meanRound - 1);
+
+      const hi = Math.min(n, meanRound + 1);
+
+      const between = independentBinomialCdf(n, p, hi) - independentBinomialCdf(n, p, lo - 1);
+
+      const matchesOne = [atMost, atLeast, between].some((v) => Math.abs(part.answer - v) <= part.tol);
+
+      expect(matchesOne).toBe(true);
+
+      expect(Math.abs(part.answer)).toBeGreaterThan(part.tol * 2);
+    }
+  });
+});
+
+describe('ch05 binomialDiscrimination', () => {
+  const t = byId('ch05-gen-binomial-discrimination');
+
+  it('always identifies binomial, and P(X = x) matches an independent recompute', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { n, p, x } = inst.params as Record<string, number>;
+
+      const mcq = inst.parts[0];
+
+      expect(mcq.kind).toBe('mcq');
+
+      if (mcq.kind === 'mcq') expect(mcq.choices[mcq.answer]).toBe('Binomial');
+
+      const pmf = independentBinomialPmf(n, p, x);
+
+      const numeric = inst.parts[1];
+
+      expect(numeric.kind).toBe('numeric');
+
+      if (numeric.kind === 'numeric') {
+        expect(Math.abs(numeric.answer - pmf)).toBeLessThanOrEqual(numeric.tol);
+
+        expect(Math.abs(numeric.answer)).toBeGreaterThan(numeric.tol * 2);
+      }
+    }
+  });
+});
+
+describe('ch05 hypergeometricCumulative', () => {
+  const t = byId('ch05-gen-hypergeometric-cumulative');
+
+  it('the cumulative probability matches an independent recompute for whichever direction was drawn', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { total, defective, sample, meanRound } = inst.params as Record<string, number>;
+
+      const lower = Math.max(0, sample - (total - defective));
+
+      const upper = Math.min(sample, defective);
+
+      expect(meanRound).toBeGreaterThanOrEqual(lower);
+
+      expect(meanRound).toBeLessThanOrEqual(upper);
+
+      const atMost = independentHyperCdf(total, sample, defective, meanRound, lower);
+
+      const atLeast = 1 - independentHyperCdf(total, sample, defective, meanRound - 1, lower);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
+
+      if (part.kind !== 'numeric') continue;
+
+      const matchesOne = [atMost, atLeast].some((v) => Math.abs(part.answer - v) <= part.tol);
+
+      expect(matchesOne).toBe(true);
+
+      expect(Math.abs(part.answer)).toBeGreaterThan(part.tol * 2);
+    }
+  });
+});
+
+describe('ch05 discriminationGeometricNegativeBinomial', () => {
+  const t = byId('ch05-gen-discrimination-geometric-negative-binomial');
+
+  it('picks geometric when r = 1 and negative binomial otherwise, with P(X = x) matching an independent recompute', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { r, p, x } = inst.params as Record<string, number>;
+
+      expect(x).toBeGreaterThanOrEqual(r);
+
+      const mcq = inst.parts[0];
+
+      expect(mcq.kind).toBe('mcq');
+
+      if (mcq.kind === 'mcq') {
+        expect(mcq.choices[mcq.answer]).toBe(r === 1 ? 'Geometric' : 'Negative binomial');
+      }
+
+      const pmf = r === 1 ? independentGeometricPmf(p, x) : independentNegBinomialPmf(x, r, p);
+
+      const numeric = inst.parts[1];
+
+      expect(numeric.kind).toBe('numeric');
+
+      if (numeric.kind === 'numeric') {
+        expect(Math.abs(numeric.answer - pmf)).toBeLessThanOrEqual(numeric.tol);
+
+        expect(Math.abs(numeric.answer)).toBeGreaterThan(numeric.tol * 2);
+      }
+    }
+  });
+});
+
+describe('ch05 poissonEasy', () => {
+  const t = byId('ch05-gen-poisson-easy');
+
+  it('P(X = x) matches an independent recompute', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { lambda, x } = inst.params as Record<string, number>;
+
+      const pmf = independentPoissonPmf(lambda, x);
+
+      expectNumericParts(inst.parts, [pmf]);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch05 poissonCumulative', () => {
+  const t = byId('ch05-gen-poisson-cumulative');
+
+  it('the cumulative probability matches an independent recompute for whichever direction was drawn', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { lambda, meanRound } = inst.params as Record<string, number>;
+
+      const atMost = independentPoissonCdf(lambda, meanRound);
+
+      const atLeast = 1 - independentPoissonCdf(lambda, meanRound - 1);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('numeric');
+
+      if (part.kind !== 'numeric') continue;
+
+      const matchesOne = [atMost, atLeast].some((v) => Math.abs(part.answer - v) <= part.tol);
+
+      expect(matchesOne).toBe(true);
+
+      expect(Math.abs(part.answer)).toBeGreaterThan(part.tol * 2);
+    }
+  });
+});
+
+describe('ch05 poissonDiscrimination', () => {
+  const t = byId('ch05-gen-poisson-discrimination');
+
+  it('always identifies Poisson, with the rate correctly scaled to the length asked about', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { lambda, lengthMeters, lambdaT, x } = inst.params as Record<string, number>;
+
+      expect(lambdaT).toBeCloseTo(lambda * lengthMeters, 10);
+
+      const mcq = inst.parts[0];
+
+      expect(mcq.kind).toBe('mcq');
+
+      if (mcq.kind === 'mcq') expect(mcq.choices[mcq.answer]).toBe('Poisson');
+
+      const pmf = independentPoissonPmf(lambdaT, x);
+
+      const numeric = inst.parts[1];
+
+      expect(numeric.kind).toBe('numeric');
+
+      if (numeric.kind === 'numeric') {
+        expect(Math.abs(numeric.answer - pmf)).toBeLessThanOrEqual(numeric.tol);
+
+        expect(Math.abs(numeric.answer)).toBeGreaterThan(numeric.tol * 2);
+      }
+    }
+  });
+});
+
+describe('ch05 poissonApproxValidity', () => {
+  const t = byId('ch05-gen-poisson-approx-validity');
+
+  it('both probabilities match an independent recompute, and validity tracks p <= 0.05 with mu = np held fixed', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { mu, n, p, x, legit } = inst.params as Record<string, number>;
+
+      expect(n * p).toBeCloseTo(mu, 6);
+
+      expect((p <= 0.05) === (legit === 1)).toBe(true);
+
+      const approx = independentPoissonPmf(mu, x);
+
+      const exact = independentBinomialPmf(n, p, x);
+
+      const parts = inst.parts;
+
+      expect(parts[0].kind).toBe('numeric');
+
+      if (parts[0].kind === 'numeric') expect(Math.abs(parts[0].answer - approx)).toBeLessThanOrEqual(parts[0].tol);
+
+      expect(parts[1].kind).toBe('numeric');
+
+      if (parts[1].kind === 'numeric') expect(Math.abs(parts[1].answer - exact)).toBeLessThanOrEqual(parts[1].tol);
+
+      expect(parts[2].kind).toBe('tf');
+
+      if (parts[2].kind === 'tf') expect(parts[2].answer).toBe(p <= 0.05);
+
+      for (const part of parts) {
+        if (part.kind !== 'numeric') continue;
+
+        expect(Math.abs(part.answer)).toBeGreaterThan(part.tol * 2);
+      }
     }
   });
 });

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildWorksheetSession, type WorksheetSpec } from '../../src/modes/worksheet';
+import { selectTemplates } from '../../src/engine/registry';
 
 const spec = (over: Partial<WorksheetSpec> = {}): WorksheetSpec =>
   ({ chapters: ['probability'], source: 'both', count: 8, seed: 2026, ...over });
@@ -8,6 +9,17 @@ describe('buildWorksheetSession', () => {
   it('same spec → identical prompts', () => {
     expect(buildWorksheetSession(spec()).questions.map((q) => q.instance.prompt))
       .toEqual(buildWorksheetSession(spec()).questions.map((q) => q.instance.prompt));
+  });
+
+  it('re-rolling the seed hands back a different sheet, not the same sheet renumbered', () => {
+    // Book-source, because book templates ignore the rng: if the seed reached
+    // only the per-question numbers and not the draw, these two sheets would be
+    // identical. Sorted, so this is about which questions, not their order.
+    const ids = (seed: number) =>
+      buildWorksheetSession(spec({ chapters: ['continuous-distributions'], source: 'book', count: 8, seed }))
+        .questions.map((q) => q.template.id)
+        .sort();
+    expect(ids(11)).not.toEqual(ids(22));
   });
 
   it('topic filter restricts questions to that topic', () => {
@@ -33,8 +45,15 @@ describe('buildWorksheetSession', () => {
   });
 
   it('a two-chapter sheet is a superset of each chapter alone', () => {
-    const both = buildWorksheetSession(spec({ chapters: ['intro', 'probability'], count: 99 }));
-    const one = buildWorksheetSession(spec({ chapters: ['intro'], count: 99 }));
+    // Only meaningful when both sheets are asked for more than their pools
+    // hold, so each is the whole pool rather than a sample of it. The literal
+    // 99 used to guarantee that and no longer does: the banks outgrew it, so
+    // both draws became strict samples and the superset claim stopped being
+    // about chapter selection at all. Ask for the combined pool plus a margin.
+    const combined = selectTemplates({ chapter: ['intro', 'probability'], source: 'both' }).length;
+    const count = combined + 10;
+    const both = buildWorksheetSession(spec({ chapters: ['intro', 'probability'], count }));
+    const one = buildWorksheetSession(spec({ chapters: ['intro'], count }));
     const ids = new Set(both.questions.map((q) => q.template.id));
     for (const q of one.questions) expect(ids.has(q.template.id)).toBe(true);
   });

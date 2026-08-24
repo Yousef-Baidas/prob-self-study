@@ -17,11 +17,15 @@ describe('orderByDifficulty', () => {
 
 describe('drawTemplates across chapters', () => {
   it('an array of chapters pools all of them', () => {
-    const ids = drawTemplates(['intro', 'probability'], 'both', 99).templates.map((t) => t.id);
+    // The count is derived from the pool, not the literal 99 this used to use.
+    // Both chapters' banks have since grown past 99, so a fixed count stopped
+    // asking "does the draw span both chapters" and started asking "are these
+    // two chapters smaller than 99", which is not a fact worth pinning.
     const expected = [
       ...selectTemplates({ chapter: 'intro', source: 'both' }),
       ...selectTemplates({ chapter: 'probability', source: 'both' }),
     ].map((t) => t.id);
+    const ids = drawTemplates(['intro', 'probability'], 'both', expected.length).templates.map((t) => t.id);
     expect(new Set(ids)).toEqual(new Set(expected));
   });
 
@@ -60,10 +64,15 @@ describe('drawTemplates', () => {
   });
 
   it('book pool short of N delivers all available and flags capped', () => {
+    // N is the pool plus a few rather than a literal 10. Every chapter's book
+    // bank now clears 50, so asking for 10 is no longer asking for more than
+    // exists — the test passed for years only because the bank was tiny, and
+    // the moment it grew it started asserting the opposite of its own name.
     const pool = selectTemplates({ chapter: 'intro', source: 'book' });
-    const r = drawTemplates('intro', 'book', 10);
+    const n = pool.length + 5;
+    const r = drawTemplates('intro', 'book', n);
     expect(r.delivered).toBe(pool.length);
-    expect(r.delivered).toBeLessThan(10);
+    expect(r.delivered).toBeLessThan(n);
     expect(r.capped).toBe(true);
   });
 
@@ -99,6 +108,62 @@ describe('drawTemplates', () => {
     const withUndef = drawTemplates('intro', 'generated', 10, undefined).templates.map((t) => t.id);
     const without = drawTemplates('intro', 'generated', 10).templates.map((t) => t.id);
     expect(withUndef).toEqual(without);
+  });
+});
+
+describe('drawTemplates seeded draw', () => {
+  // The defect this pins: the draw used to be slice(0, count) over a stable id
+  // order, so the seed only reskinned a fixed set of questions. Book templates
+  // ignore the rng entirely, so a book exam was byte-identical on every seed no
+  // matter how large the chapter's bank grew. These four assertions are the
+  // property that fixes it, stated in the order it can break.
+  const idsAt = (seed: number | undefined, count = 8) =>
+    drawTemplates('continuous-distributions', 'book', count, undefined, undefined, seed).templates.map(
+      (t) => t.id,
+    );
+
+  it('the same seed draws the same set', () => {
+    expect(idsAt(4242)).toEqual(idsAt(4242));
+  });
+
+  it('different seeds draw different sets', () => {
+    // Not merely a different ORDER — a different set. Sorting both before
+    // comparing is what makes this test about selection rather than layout.
+    const a = [...idsAt(1)].sort();
+    const b = [...idsAt(2)].sort();
+    expect(a).not.toEqual(b);
+  });
+
+  it('reaches deep into a bank that is larger than the draw', () => {
+    // Sixteen small book draws should touch far more than one draw's worth of
+    // distinct questions. The pre-fix behaviour scored exactly `count` here,
+    // whatever the seed, which is the number this guards against.
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 16; seed++) for (const id of idsAt(seed)) seen.add(id);
+    expect(seen.size).toBeGreaterThan(8 * 2);
+  });
+
+  it('omitting the seed keeps the unshuffled first-N draw', () => {
+    expect(idsAt(undefined)).toEqual(
+      drawTemplates('continuous-distributions', 'book', 8).templates.map((t) => t.id),
+    );
+  });
+
+  it('a seeded draw is still ordered easy→hard', () => {
+    const r = drawTemplates('continuous-distributions', 'both', 12, undefined, undefined, 777);
+    expect(nonDecreasing(r.templates.map((t) => t.difficulty))).toBe(true);
+  });
+
+  it('a seeded draw respects the topic filter', () => {
+    const r = drawTemplates('probability', 'both', 10, 'Counting techniques', undefined, 31337);
+    expect(r.templates.length).toBeGreaterThan(0);
+    expect(r.templates.every((t) => t.topic === 'Counting techniques')).toBe(true);
+  });
+
+  it('a seeded draw never duplicates a book template while distinct ones remain', () => {
+    const r = drawTemplates('intro', 'both', 10, undefined, undefined, 90210);
+    const bookIds = r.templates.filter((t) => t.source === 'book').map((t) => t.id);
+    expect(new Set(bookIds).size).toBe(bookIds.length);
   });
 });
 

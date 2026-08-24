@@ -19,5 +19,18 @@ export default defineConfig({
     remarkPlugins: [remarkMath],
 
     rehypePlugins: [rehypeKatex],
+
+    // Two themes, no default colour. Shiki then emits every token's light and
+    // dark colour as the CSS custom properties --shiki-light / --shiki-dark,
+    // and ChapterNotes.astro picks between them off :root[data-theme]. Baking
+    // one theme in instead would leave code blocks lit the wrong way round for
+    // half the site's readers.
+    shikiConfig: {
+      themes: { light: 'github-light', dark: 'github-dark' },
+
+      defaultColor: false,
+
+      wrap: true,
+    },
   },
 });

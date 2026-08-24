@@ -82,6 +82,213 @@ describe('ch03 sampleSpaceValues', () => {
   });
 });
 
+describe('ch03 classifyDiscreteContinuous', () => {
+  const t = byId('ch03-gen-classify-discrete-continuous');
+
+  it('the mcq answer index equals the actual count of discrete items drawn, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { picked } = inst.params as Record<string, number[]>;
+
+      // Four distinct items were drawn from the 8-item pool.
+      expect(picked.length).toBe(4);
+
+      const discreteCount = picked.filter((v) => v === 1).length;
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq') {
+        expect(part.choices).toEqual(['0', '1', '2', '3', '4']);
+
+        expect(part.answer).toBe(discreteCount);
+      }
+    }
+  });
+});
+
+describe('ch03 geometricWaiting', () => {
+  const t = byId('ch03-gen-geometric-waiting');
+
+  it('P(X = k) and P(X <= k) match an independently recomputed geometric run, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { p, k } = inst.params as Record<string, number>;
+
+      // Guard: p is kept comfortably inside (0, 1), and k is small, so no
+      // answer here can underflow toward 0.
+      expect(p).toBeGreaterThanOrEqual(0.3);
+
+      expect(p).toBeLessThanOrEqual(0.7);
+
+      expect(k).toBeGreaterThanOrEqual(1);
+
+      expect(k).toBeLessThanOrEqual(4);
+
+      // Sum the geometric pmf directly, term by term, instead of using the
+      // generator's closed-form complement.
+      let cumulative = 0;
+
+      let atK = 0;
+
+      for (let i = 1; i <= k; i++) {
+        const term = p * (1 - p) ** (i - 1);
+
+        cumulative += term;
+
+        if (i === k) atK = term;
+      }
+
+      expectNumericParts(inst.parts.slice(0, 2), [atK, cumulative]);
+
+      const tf = inst.parts[2];
+
+      expect(tf.kind).toBe('tf');
+
+      if (tf.kind === 'tf') expect(tf.answer).toBe(false);
+    }
+  });
+});
+
+describe('ch03 validPmfCheck', () => {
+  const t = byId('ch03-gen-valid-pmf-check');
+
+  it('the correct k always normalises f, and the verdict matches shownK === trueK, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { n, a, shownK, trueK, isValid } = inst.params as Record<string, number>;
+
+      // Recompute the normalising constant independently, by summing term by term.
+      let sum = 0;
+
+      for (let x = 0; x <= n; x++) sum += x + a;
+
+      expect(sum).toBe(trueK);
+
+      expect(trueK).toBeGreaterThan(0);
+
+      const kPart = inst.parts[0];
+
+      expect(kPart.kind).toBe('numeric');
+
+      if (kPart.kind === 'numeric') expect(kPart.answer).toBe(trueK);
+
+      const tfPart = inst.parts[1];
+
+      expect(tfPart.kind).toBe('tf');
+
+      if (tfPart.kind === 'tf') expect(tfPart.answer).toBe(shownK === trueK);
+
+      expect((isValid === 1) === (shownK === trueK)).toBe(true);
+    }
+  });
+});
+
+describe('ch03 cacheHitBinomial', () => {
+  const t = byId('ch03-gen-cache-hit-binomial');
+
+  it('P(Y = n) and its complement match an independent binomial recompute, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { n, p } = inst.params as Record<string, number>;
+
+      // Guard: p stays well above the point where p^n could underflow toward 0.
+      expect(p).toBeGreaterThanOrEqual(0.85);
+
+      expect(p).toBeLessThanOrEqual(0.98);
+
+      expect(n).toBeGreaterThanOrEqual(4);
+
+      expect(n).toBeLessThanOrEqual(6);
+
+      let allHit = 1;
+
+      for (let i = 0; i < n; i++) allHit *= p;
+
+      const atLeastOneMiss = 1 - allHit;
+
+      expect(allHit).toBeGreaterThan(0);
+
+      expect(allHit).toBeLessThan(1);
+
+      expectNumericParts(inst.parts, [allHit, atLeastOneMiss]);
+    }
+  });
+});
+
+describe('ch03 validDensityCheck', () => {
+  const t = byId('ch03-gen-valid-density-check');
+
+  it('the correct k normalises kx^2 on (0, a), and the verdict matches shownK === trueK, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { a, shownK, trueK, isValid } = inst.params as Record<string, number>;
+
+      // Independent Riemann-sum check that trueK really normalises k x^2 over (0, a).
+      const steps = 20000;
+
+      const dx = a / steps;
+
+      let area = 0;
+
+      for (let i = 0; i < steps; i++) area += trueK * ((i + 0.5) * dx) ** 2 * dx;
+
+      expect(area).toBeCloseTo(1, 3);
+
+      const kPart = inst.parts[0];
+
+      expect(kPart.kind).toBe('numeric');
+
+      if (kPart.kind === 'numeric') expect(Math.abs(kPart.answer - trueK)).toBeLessThanOrEqual(kPart.tol);
+
+      const tfPart = inst.parts[1];
+
+      expect(tfPart.kind).toBe('tf');
+
+      if (tfPart.kind === 'tf') expect(tfPart.answer).toBe(shownK === trueK);
+
+      expect((isValid === 1) === (shownK === trueK)).toBe(true);
+    }
+  });
+});
+
+describe('ch03 latencyCdfInverse', () => {
+  const t = byId('ch03-gen-latency-cdf-inverse');
+
+  it('f(x) and x_p match an independent uniform-CDF inversion, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { a, b, p } = inst.params as Record<string, number>;
+
+      // Guard: p sits strictly inside (0, 1), and the support has real width.
+      expect(p).toBeGreaterThan(0);
+
+      expect(p).toBeLessThan(1);
+
+      expect(b).toBeGreaterThan(a);
+
+      const width = b - a;
+
+      const density = 1 / width;
+
+      const xp = a + p * width;
+
+      expect(xp).toBeGreaterThan(a);
+
+      expect(xp).toBeLessThan(b);
+
+      expectNumericParts(inst.parts, [density, xp]);
+    }
+  });
+});
+
 describe('ch03 pmfConstant', () => {
   const t = byId('ch03-gen-pmf-constant');
 

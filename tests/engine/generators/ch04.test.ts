@@ -304,6 +304,223 @@ describe('ch04 linearMean', () => {
   });
 });
 
+describe('ch04 meanContinuousDensity', () => {
+  const t = byId('ch04-gen-mean-continuous-density');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('E(X) = 2a/3 matches the closed form for f(x) = 2x/a^2 on (0, a), across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { a } = inst.params as Record<string, number>;
+
+      expect(a).toBeGreaterThanOrEqual(3);
+
+      // Independent recompute via the antiderivative of x * (2x / a^2) = 2x^2/a^2:
+      // integral over (0, a) is (2/a^2) * (a^3/3) = 2a/3.
+      const mu = (2 * a) / 3;
+
+      expectNumericParts(inst.parts, [mu]);
+    }
+  });
+});
+
+describe('ch04 missingPmfEntry', () => {
+  const t = byId('ch04-gen-missing-pmf-entry');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the recovered percent both completes the pmf to 100% and reproduces the stated mean, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { p0, p1, p2, mu } = inst.params as Record<string, number>;
+
+      const p3 = 100 - p0 - p1 - p2;
+
+      expect(p3).toBeGreaterThan(0);
+
+      const recomputedMu = (0 * p0 + 1 * p1 + 2 * p2 + 3 * p3) / 100;
+
+      expect(recomputedMu).toBeCloseTo(mu, 4);
+
+      expectNumericParts(inst.parts, [p3]);
+    }
+  });
+});
+
+describe('ch04 varianceDefinitionVsShortcut', () => {
+  const t = byId('ch04-gen-variance-definition-vs-shortcut');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the definitional variance and the shortcut variance agree with an independent recompute of each, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { w0, w1, w2 } = inst.params as Record<string, number>;
+
+      const weights = [w0, w1, w2];
+
+      for (const w of weights) expect(w).toBeGreaterThanOrEqual(1);
+
+      const total = weights.reduce((s, w) => s + w, 0);
+
+      let mu = 0;
+
+      for (let x = 0; x < weights.length; x++) mu += x * (weights[x] / total);
+
+      let byDefinition = 0;
+
+      for (let x = 0; x < weights.length; x++) byDefinition += (x - mu) ** 2 * (weights[x] / total);
+
+      let ex2 = 0;
+
+      for (let x = 0; x < weights.length; x++) ex2 += x * x * (weights[x] / total);
+
+      const byShortcut = ex2 - mu * mu;
+
+      expect(byDefinition).toBeCloseTo(byShortcut, 8);
+
+      expectNumericParts(inst.parts, [byDefinition, byShortcut]);
+    }
+  });
+});
+
+describe('ch04 independenceFromExyDecision', () => {
+  const t = byId('ch04-gen-independence-from-exy-decision');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the tf answer is always false, since sigma_XY = 0 never implies independence, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { pNonzero, pZero } = inst.params as Record<string, number>;
+
+      expect(pNonzero).toBeGreaterThan(0);
+
+      expect(pZero).toBeGreaterThan(0);
+
+      expect(2 * pNonzero + pZero).toBe(100);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('tf');
+
+      if (part.kind === 'tf') expect(part.answer).toBe(false);
+    }
+  });
+});
+
+describe('ch04 stddevBatchYield', () => {
+  const t = byId('ch04-gen-stddev-batch-yield');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('sigma matches an independently recomputed sqrt(E(Y^2) - mu^2), across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { w1, w2, w3, w4 } = inst.params as Record<string, number>;
+
+      const weights = [w1, w2, w3, w4];
+
+      for (const w of weights) expect(w).toBeGreaterThanOrEqual(1);
+
+      const total = weights.reduce((s, w) => s + w, 0);
+
+      let mu = 0;
+
+      let ex2 = 0;
+
+      for (let i = 0; i < weights.length; i++) {
+        const y = i + 1;
+
+        mu += y * (weights[i] / total);
+
+        ex2 += y * y * (weights[i] / total);
+      }
+
+      const variance = ex2 - mu * mu;
+
+      expect(variance).toBeGreaterThan(0);
+
+      const sd = Math.sqrt(variance);
+
+      expectNumericParts(inst.parts, [sd]);
+    }
+  });
+});
+
+describe('ch04 meanPortfolioCombo', () => {
+  const t = byId('ch04-gen-mean-portfolio-combo');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('E(Z) = a*E(X) + b*E(Y) + c matches an independent recompute, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { muX, muY, a, b, c } = inst.params as Record<string, number>;
+
+      expect(a).toBeGreaterThan(0);
+
+      expect(b).toBeGreaterThan(0);
+
+      const expected = a * muX + b * muY + c;
+
+      expectNumericParts(inst.parts, [expected]);
+    }
+  });
+});
+
+describe('ch04 varianceLatencySum', () => {
+  const t = byId('ch04-gen-variance-latency-sum');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('Var(X + Y) = Var(X) + Var(Y) + 2*Cov(X,Y) matches an independent recompute, and the cross term is never silently dropped, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { vx, vy, cov } = inst.params as Record<string, number>;
+
+      expect(vx).toBeGreaterThan(0);
+
+      expect(vy).toBeGreaterThan(0);
+
+      expect(cov).toBeGreaterThan(0);
+
+      const withCrossTerm = vx + vy + 2 * cov;
+
+      const withoutCrossTerm = vx + vy;
+
+      // The cross term is guaranteed nonzero (cov > 0), so the two would-be
+      // answers can never coincide -- the trap is never accidentally graded
+      // as correct.
+      expect(withCrossTerm).not.toBe(withoutCrossTerm);
+
+      expectNumericParts(inst.parts, [withCrossTerm]);
+    }
+  });
+});
+
 describe('ch04 linearVarianceIndependent', () => {
   const t = byId('ch04-gen-linear-variance-independent');
 

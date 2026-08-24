@@ -70,6 +70,94 @@ const expectMaterialNumericParts = (parts: ReturnType<ReturnType<typeof byId>['g
   }
 };
 
+describe('ch06 uniformSumVariance', () => {
+  const t = byId('ch06-gen-uniform-sum-variance');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('one-error variance and total sd match closed forms, and the tf part is always false', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { w, n } = inst.params as Record<string, number>;
+
+      const oneVariance = (w * w) / 12;
+
+      const sumSd = Math.sqrt(n * oneVariance);
+
+      expectNumericAt(inst.parts, 0, oneVariance, 0.001);
+
+      expectNumericAt(inst.parts, 1, sumSd, 0.001);
+
+      expectMaterialNumericParts(inst.parts);
+
+      const tfPart = inst.parts.find((p) => p.kind === 'tf');
+
+      expect(tfPart?.kind).toBe('tf');
+
+      if (tfPart?.kind === 'tf') expect(tfPart.answer).toBe(false);
+    }
+  });
+});
+
+describe('ch06 normalMiddlePercent', () => {
+  const t = byId('ch06-gen-normal-middle-percent');
+
+  const SMALL_SEEDS = 250;
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    const first = wordingOf(t.generate(mulberry32(0)).prompt);
+
+    for (let seed = 1; seed < SMALL_SEEDS; seed++) {
+      expect(wordingOf(t.generate(mulberry32(seed)).prompt)).toBe(first);
+    }
+  });
+
+  it('z and the two boundaries match an independently bisected Phi^-1', () => {
+    for (let seed = 0; seed < SMALL_SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { mu, sigma, pct } = inst.params as Record<string, number>;
+
+      const p = pct / 100;
+
+      const z = independentInvNormalCdf(0.5 + p / 2);
+
+      expectNumericAt(inst.parts, 0, z, 0.005);
+
+      expectNumericAt(inst.parts, 1, mu - z * sigma, 0.05);
+
+      expectNumericAt(inst.parts, 2, mu + z * sigma, 0.05);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch06 areasTwoStepTail', () => {
+  const t = byId('ch06-gen-areas-two-step-tail');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('k matches an independently bisected Phi^-1 applied to p + Phi(z0)', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { z0, p } = inst.params as Record<string, number>;
+
+      const k = independentInvNormalCdf(p + independentNormalCdf(z0));
+
+      expectNumericAt(inst.parts, 0, k, 0.01);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
 describe('ch06 normalApplicationInverse', () => {
   const t = byId('ch06-gen-normal-application-inverse');
 

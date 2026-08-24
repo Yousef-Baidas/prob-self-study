@@ -1,5 +1,6 @@
 import Notation from '../components/notes/Notation.astro';
 import Figure from '../components/notes/Figure.astro';
+import InCode from '../components/notes/InCode.astro';
 import Venn from '../components/notes/ch02/Venn.astro';
 import DiceGrid from '../components/notes/ch02/DiceGrid.astro';
 import ProbTree from '../components/notes/ch02/ProbTree.astro';
@@ -48,6 +49,16 @@ gives $S = \{HH, HT, T1, T2, T3, T4, T5, T6\}$, one outcome per path.
 You care whether a die roll comes up even, and whether it comes up 4 or higher. Call the
 first `evenRoll`, the second `highRoll`. Any such subset of the sample space is called an
 **event**.
+
+<InCode title="An event is just a filter over the sample space">
+```ts
+const dieRoll = [1, 2, 3, 4, 5, 6];
+
+const evenRoll = dieRoll.filter((x) => x % 2 === 0); // [2, 4, 6]
+
+const highRoll = dieRoll.filter((x) => x >= 4); // [4, 5, 6]
+```
+</InCode>
 
 <Notation rows={[
   { name: 'evenRoll', symbol: 'A = \\{2, 4, 6\\}' },
@@ -158,6 +169,26 @@ partition into just two cells: the $r$ objects picked, and the $n - r$ left behi
 
 Here $n$ is the number of objects available and $r$ the number arranged or chosen.
 
+<InCode title="arrangementsOf and choicesOf multiply only the terms that survive the ratio" note="n! / (n-r)! overflows to Infinity well before n = 170 in floating point; multiplying just the r surviving terms never does.">
+```ts
+const arrangementsOf = (n: number, r: number) => {
+  let product = 1;
+
+  for (let i = 0; i < r; i++) product *= n - i; // n(n-1)...(n-r+1)
+
+  return product;
+};
+
+const choicesOf = (n: number, r: number) => {
+  let result = 1;
+
+  for (let i = 1; i <= r; i++) result = (result * (n - r + i)) / i; // divide as you go
+
+  return result;
+};
+```
+</InCode>
+
 > **Worked examples.**
 > - The committee of 3 from 10 people, order irrelevant:
 >   $\;{}_{10}C_{3} = \binom{10}{3} = \dfrac{10!}{3!\,7!} = 120$ ways.
@@ -238,6 +269,18 @@ Here $P(A \cup B) = 0.8 + 0.6 - 0.5 = 0.9$ (Walpole §2.5, Example 2.29): 90% of
 need at least one of the two. Subtracting $P(A \cap B)$ undoes the double-count of the
 overlap; when the two events are mutually exclusive the overlap vanishes and
 $P(A \cup B) = P(A) + P(B)$.
+
+<InCode title="The additive rule is just counting a union without double-counting" note="A Set dedupes the shared outcomes for you — P(A ∪ B) = P(A) + P(B) − P(A ∩ B) does the same subtraction by hand.">
+```ts
+const union = <T,>(a: T[], b: T[]) => [...new Set([...a, ...b])];
+
+const evenRoll = [2, 4, 6];
+
+const highRoll = [4, 5, 6];
+
+union(evenRoll, highRoll).length; // 4 — not 6, because 4 and 6 only count once
+```
+</InCode>
 
 **Rule 2** extends this to three events, subtracting each pairwise overlap and then
 restoring the triple overlap that got subtracted three times over:
@@ -414,6 +457,20 @@ reversal is **Bayes' rule**:
 Think of the $B_i$ as competing **causes** and $A$ as the **evidence**: Bayes weighs each
 cause by how probable it was on its own ($P(B_i)$) *and* by how well it explains the
 evidence ($P(A \mid B_i)$).
+
+<InCode title="Bayes' rule is a weighted average over a table of causes" note="Each branch's weight is prior × likelihood — the same product the probability tree multiplies along each path.">
+```ts
+type Branch = { prior: number; likelihood: number };
+
+const bayes = (branches: Branch[], causeIndex: number) => {
+  const weights = branches.map((b) => b.prior * b.likelihood);
+
+  const total = weights.reduce((sum, w) => sum + w, 0);
+
+  return weights[causeIndex] / total; // P(cause | evidence)
+};
+```
+</InCode>
 
 > **Worked example** (Walpole §2.7, Examples 2.41–2.42). Using the numbers above, the
 > chance a defective part came from `machine3` is

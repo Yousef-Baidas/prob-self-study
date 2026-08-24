@@ -4,6 +4,7 @@ import NormalCurve from '../components/notes/ch06/NormalCurve.astro';
 import Standardization from '../components/notes/ch06/Standardization.astro';
 import BinomialNormalOverlay from '../components/notes/ch06/BinomialNormalOverlay.astro';
 import Memoryless from '../components/notes/ch06/Memoryless.astro';
+import InCode from '../components/notes/InCode.astro';
 
 import { CHART_WIDTH } from '../components/notes/chartkit';
 
@@ -59,6 +60,16 @@ Because the density is constant, $F$ climbs in a straight line from $0$ at $x=A$
 $x=B$ — the CDF of a uniform variable is as flat-out simple as CDFs get, and it hands back
 $P(x_1 \le X \le x_2) = F(x_2) - F(x_1) = (x_2-x_1)/(B-A)$ without ever touching the density
 directly.
+
+<InCode title="The uniform CDF is a clamped linear ramp">
+```ts
+const clamp = (value: number, low: number, high: number) =>
+  Math.min(Math.max(value, low), high);
+
+const uniformCdf = (x: number, A: number, B: number) =>
+  clamp((x - A) / (B - A), 0, 1);
+```
+</InCode>
 
 ## 6.2 Normal distribution
 
@@ -144,6 +155,18 @@ how many standard deviations it sits from its own mean, and call that rescaled q
   ]}
 />
 
+<InCode title="Standardizing and unstandardizing are algebraic inverses">
+```ts
+const standardize = (x: number, mean: number, sd: number) =>
+  (x - mean) / sd;
+
+const unstandardize = (z: number, mean: number, sd: number) =>
+  z * sd + mean;
+
+// unstandardize(standardize(x, mean, sd), mean, sd) === x
+```
+</InCode>
+
 **Definition 6.1.** The distribution of a normal random variable with mean $0$ and variance
 $1$ is the **standard normal distribution**.
 
@@ -192,6 +215,18 @@ then solve $x = \sigma z + \mu$ for the boundary itself.
 > **Worked example** (Walpole Example 6.6). For $\mu=40$, $\sigma=6$: the value with $45\%$ of
 > the area to its left is $x = (6)(-0.13)+40 = 39.22$; the value with $14\%$ of the area to
 > its right is $x = (6)(1.08)+40 = 46.48$.
+
+<InCode title="The site's normalCdf is an erf approximation, not the printed table" note="Expect the fourth decimal place to occasionally differ from a hand-copied Table A.3 value -- that is the approximation, not a grading bug.">
+```ts
+import { normalCdf } from '../engine/mathx';
+
+normalCdf(1.2); // 0.884930... -- Table A.3 rounds this to 0.8849
+
+// normalCdf evaluates an erf series (Abramowitz & Stegun 7.1.26) instead
+// of interpolating a printed table, so it can disagree by a few units in
+// the fourth decimal.
+```
+</InCode>
 
 ## 6.4 Applications of the normal distribution
 
@@ -254,6 +289,17 @@ $$
 
 and the approximation is good whenever **both** `np > 5` **and** `n(1-p) > 5` hold — check
 both, not just one; a `p` near $0$ or $1$ can satisfy one and badly fail the other.
+
+<InCode title="The continuity correction is a ±0.5 shift applied before standardizing" note="Drop the ±0.5 and z changes -- a different, and wrong, number, not just a less precise one.">
+```ts
+const continuityCorrectedZ = (
+  x: number, mean: number, sd: number, direction: 1 | -1,
+) => (x + direction * 0.5 - mean) / sd;
+
+// P(X <= x) includes the whole bar at x, so direction = +1.
+// P(X >= x) also includes the whole bar at x, so direction = -1.
+```
+</InCode>
 
 <Figure width={CHART_WIDTH.binomialNormalOverlay} caption="The dashed bars are the exact binomial masses b(x; 15, 0.4); the solid curve is the normal density with the same mean and variance. The hatched slice from 3.5 to 4.5 is the curve's stand-in for the single bar at x = 4 — close to it, but not equal to it.">
   <BinomialNormalOverlay
@@ -398,6 +444,17 @@ The $e^{-\lambda t_1}$ in the numerator and denominator cancel exactly, leaving 
 `t₁` behind. That cancellation is the whole property: the tail of the curve beyond `t₁`,
 rescaled by dividing out $P(X>t_1)$, is not merely *similar in shape* to the original curve —
 it is the *same curve*, restarted at zero.
+
+<InCode title="Lack of memory is an assertion you can run, not just derive" note="t1 = 1.5 never appears on the right -- it cancelled algebraically above before this code ever ran.">
+```ts
+const survive = (t: number, rate: number) => Math.exp(-rate * t);
+
+const lhs = survive(1.5 + 1, 0.4) / survive(1.5, 0.4);
+const rhs = survive(1, 0.4);
+
+// lhs and rhs agree to floating-point precision.
+```
+</InCode>
 
 <Figure width={CHART_WIDTH.memoryless} caption="Left: the survival curve S(x) = e^(−λx) beyond t₁, hatched over [t₁, t₁+t₂]. Right: the identical curve replotted from 0, hatched over [0, t₂]. Dividing the left panel by S(t₁) reproduces the right panel exactly — the tail is a rescaled copy of the whole curve, not just a shape that resembles it.">
   <Memoryless

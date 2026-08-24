@@ -1,4 +1,5 @@
 import Notation from '../components/notes/Notation.astro';
+import InCode from '../components/notes/InCode.astro';
 import Figure from '../components/notes/Figure.astro';
 import MassChart from '../components/notes/ch03/MassChart.astro';
 import CdfStep from '../components/notes/ch03/CdfStep.astro';
@@ -43,6 +44,17 @@ sample space.
     { name: 'the event "defectiveCount is 2"', symbol: '\\{X = 2\\} = \\{NDD,\\; DND,\\; DDN\\}' },
   ]}
 />
+
+<InCode title="A random variable is a function from outcomes to numbers" note="Nothing here is random about defectiveCount itself — only which outcome it happens to be fed.">
+```ts
+type Outcome = 'NNN' | 'NND' | 'NDN' | 'DNN' | 'NDD' | 'DND' | 'DDN' | 'DDD';
+
+const defectiveCount = (outcome: Outcome): number =>
+  outcome.split('').filter((c) => c === 'D').length;
+
+defectiveCount('DDN'); // 2 — the rule, not a probability
+```
+</InCode>
 
 Random variables split into two kinds, by what their values look like:
 
@@ -109,6 +121,20 @@ $$
   distribution until it passes all three. Solving for an unknown constant $c$ is exactly
   the act of forcing $\sum_x f(x) = 1$.
 
+<InCode title="A pmf is a lookup table with two checks, not just a table" note="Both checks have to hold at once — non-negativity alone, or summing to 1 alone, is not enough.">
+```ts
+const pmf: Map<number, number> = new Map([
+  [0, 136 / 190],
+  [1, 51 / 190],
+  [2, 3 / 190],
+]);
+
+const isValid =
+  [...pmf.values()].every((p) => p >= 0) && // condition 1
+  Math.abs([...pmf.values()].reduce((a, p) => a + p, 0) - 1) < 1e-9; // condition 2
+```
+</InCode>
+
 - A pmf can be presented three ways — as a **table** of $x$ against $f(x)$, as a
   **formula** in $x$, or as a **graph** (a bar chart or probability histogram, where the
   area of each bar is the probability of that value). All three carry the same
@@ -151,6 +177,18 @@ Three properties are worth committing to memory:
   the endpoints: $P(a < X \le b) = F(b) - F(a)$ includes $b$ but excludes $a$, so for a
   discrete measurement moving an endpoint across a value it can actually take changes
   the answer.
+
+<InCode title="The CDF is a running total over the sorted support" note="Each entry only adds to the one before it — that is why the graph never comes back down.">
+```ts
+const sortedSupport = [0, 1, 2, 3, 4];
+const pmfAt: Record<number, number> = { 0: 1 / 16, 1: 4 / 16, 2: 6 / 16, 3: 4 / 16, 4: 1 / 16 };
+
+const cdf = sortedSupport.reduce<Record<number, number>>((running, x) => {
+  running[x] = (running[x - 1] ?? 0) + pmfAt[x];
+  return running;
+}, {});
+```
+</InCode>
 
 Between two values, $P(a < X \le b) = F(b) - F(a)$.
 
@@ -437,6 +475,22 @@ above, $g(x)$ is the column of totals along the bottom and $h(y)$ the row of tot
 the side — the numbers written in the **margins** of the table. Each is a genuine pmf in its
 own right, satisfying every condition of §3.2, which is why $P(a < X < b)$ can be computed
 from $g$ alone, without ever looking at $Y$.
+
+<InCode title="A joint pmf is a grid, and each marginal is a sum along one axis" note="Independence means every cell equals its row total times its column total — one mismatch, like the (0, 1) cell here, is enough to rule it out.">
+```ts
+const joint = [
+  [3 / 28, 9 / 28, 3 / 28], // row redCount = 0
+  [6 / 28, 6 / 28, 0], //      row redCount = 1
+  [1 / 28, 0, 0], //           row redCount = 2
+];
+
+const marginalX = joint[0].map((_, x) => joint.reduce((sum, row) => sum + row[x], 0));
+const marginalY = joint.map((row) => row.reduce((sum, cell) => sum + cell, 0));
+
+const cellMatchesProduct = (x: number, y: number) =>
+  Math.abs(joint[y][x] - marginalX[x] * marginalY[y]) < 1e-9; // false at (x=0, y=1)
+```
+</InCode>
 
 ### Conditional distributions
 

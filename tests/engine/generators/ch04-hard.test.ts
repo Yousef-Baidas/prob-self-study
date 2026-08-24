@@ -164,45 +164,101 @@ describe('ch04 linearVarianceCovariance', () => {
   });
 });
 
-describe('ch04 chebyshevBound', () => {
-  const t = byId('ch04-gen-chebyshev-bound');
+describe('ch04 nonlinearGSensor', () => {
+  const t = byId('ch04-gen-nonlinear-g-sensor');
 
   it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
     assertStableWording(t);
   });
 
-  it('the lower and upper bounds are complementary, both in [0, 1), and k is always > 1, across seeds', () => {
+  it('E[g(X)] matches an independent recompute over the signed-error support, and the tf answer matches whether it equals [E(X)]^2, across seeds', () => {
     for (let seed = 0; seed < SEEDS; seed++) {
       const inst = t.generate(mulberry32(seed));
 
-      const { mu, sigma, k } = inst.params as Record<string, number>;
+      const { w0, w1, w2, w3, w4 } = inst.params as Record<string, number>;
 
-      // Guards: sigma is strictly positive (a variance-free bound is
-      // meaningless), and k > 1, so the bound is genuinely informative
-      // rather than vacuous (k <= 1 gives a bound of 0 or less).
-      expect(sigma).toBeGreaterThan(0);
+      const weights = [w0, w1, w2, w3, w4];
 
-      expect(k).toBeGreaterThan(1);
+      for (const w of weights) expect(w).toBeGreaterThanOrEqual(1);
 
-      const lowerBound = 1 - 1 / (k * k);
+      const values = [-2, -1, 0, 1, 2];
 
-      const upperBound = 1 / (k * k);
+      const total = weights.reduce((s, w) => s + w, 0);
 
-      expect(lowerBound).toBeGreaterThan(0);
+      let mu = 0;
 
-      expect(lowerBound).toBeLessThan(1);
+      let eg = 0;
 
-      expect(upperBound).toBeGreaterThan(0);
+      for (let i = 0; i < values.length; i++) {
+        const f = weights[i] / total;
 
-      expect(upperBound).toBeLessThan(1);
+        mu += values[i] * f;
 
-      expect(lowerBound + upperBound).toBeCloseTo(1, 10);
+        eg += values[i] * values[i] * f;
+      }
 
-      // The bound depends only on k, never on mu or sigma directly --
-      // that is the distribution-free property the notes make of it.
-      expect(Number.isFinite(mu)).toBe(true);
+      const numericPart = inst.parts[0];
 
-      expectNumericParts(inst.parts, [lowerBound, upperBound]);
+      expect(numericPart.kind).toBe('numeric');
+
+      if (numericPart.kind === 'numeric') {
+        expect(Math.abs(numericPart.answer - eg)).toBeLessThanOrEqual(numericPart.tol + 1e-9);
+      }
+
+      const tfPart = inst.parts[1];
+
+      expect(tfPart.kind).toBe('tf');
+
+      // Round the same way the generator does before comparing equality --
+      // otherwise a genuine near-miss at 4dp could disagree with the
+      // generator's own (correct) rounded judgement.
+      const round4 = (x: number) => Math.round(x * 10000) / 10000;
+
+      if (tfPart.kind === 'tf') expect(tfPart.answer).toBe(Math.abs(round4(eg) - round4(mu * mu)) < 1e-9);
+    }
+  });
+});
+
+describe('ch04 linearVarianceTrapMcq', () => {
+  const t = byId('ch04-gen-linear-variance-trap-mcq');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the mcq answer index points at Theorem 4.9 recomputed independently, and every distractor differs from it, across seeds', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { vx, vy, a, b, cov } = inst.params as Record<string, number>;
+
+      expect(vx).toBeGreaterThan(0);
+
+      expect(vy).toBeGreaterThan(0);
+
+      expect(a).toBeGreaterThan(0);
+
+      expect(b).toBeGreaterThan(0);
+
+      expect(cov).not.toBe(0);
+
+      const correct = a * a * vx + b * b * vy + 2 * a * b * cov;
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind !== 'mcq') return;
+
+      expect(part.answer).toBe(0);
+
+      expect(part.choices[part.answer]).toContain(String(correct));
+
+      // Every distractor is textually distinct from the correct choice, so
+      // no two answer options collapse onto the same number.
+      const distinctChoices = new Set(part.choices);
+
+      expect(distinctChoices.size).toBe(part.choices.length);
     }
   });
 });

@@ -1034,6 +1034,538 @@ const independenceTestTemplate = generatedQuestion({
   },
 });
 
+// --- Counting techniques (§2.3): multiplication rule over a password string -
+//
+// letters is drawn from [2, 3] and digits from [2, 3], so the smallest
+// possible count is 26^2 * 10^2 = 67,600 -- nowhere near the numeric-answer
+// tolerance of 0 for an exact integer count.
+const passwordMultiplicationTemplate = generatedQuestion({
+  id: 'ch02-gen-password-multiplication',
+
+  chapter: 'probability',
+
+  topic: 'Counting techniques',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const letters = rng.int(2, 3);
+
+    const digits = rng.int(2, 3);
+
+    const total = 26 ** letters * 10 ** digits;
+
+    return {
+      prompt:
+        `A network device password consists of ${letters} uppercase letters (A–Z) followed by ${digits} ` +
+        `digits (0–9), with repetition allowed within each part. How many distinct passwords are possible, ` +
+        `and which counting principle applies?`,
+
+      params: { letters, digits },
+
+      parts: [
+        { kind: 'numeric', label: 'Distinct passwords', answer: total, tol: 0 },
+
+        {
+          kind: 'mcq',
+          label: 'Principle used',
+          choices: ['Permutation rule', 'Combination rule', 'Multiplication rule', 'Partitioning'],
+          answer: 2,
+        },
+      ],
+
+      solution: [
+        {
+          text: `Each of the ${letters} letter slots has 26 choices, and each of the ${digits} digit slots has 10 choices; the slots are filled independently, so the multiplication rule applies.`,
+        },
+
+        { text: `Total: $26^{${letters}}\\times 10^{${digits}}=${total}$.` },
+      ],
+    };
+  },
+});
+
+// --- Counting techniques (§2.3): permutation-vs-combination discrimination -
+//
+// n is drawn from [6, 10] and r from [2, 4], so both nPr(n, r) and nCr(n, r)
+// are always well-defined positive integers -- the discrimination is in
+// which one the scenario calls for, decided by an rng coin flip, not in the
+// arithmetic ever failing to produce a count.
+const permCombDiscriminationTemplate = generatedQuestion({
+  id: 'ch02-gen-perm-comb-discrimination',
+
+  chapter: 'probability',
+
+  topic: 'Counting techniques',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const n = rng.int(6, 10);
+
+    const r = rng.int(2, 4);
+
+    const orderMatters = rng.bool();
+
+    const scenario = orderMatters
+      ? `rank the top ${r} finishers, in order, out of ${n} racers`
+      : `choose ${r} representatives (no ranking among them) out of ${n} candidates`;
+
+    const answer = orderMatters ? nPr(n, r) : nCr(n, r);
+
+    return {
+      prompt: `A contest must ${scenario}. Does the order of selection matter, and how many outcomes are there?`,
+
+      params: { n, r, orderMatters: orderMatters ? 1 : 0 },
+
+      parts: [
+        { kind: 'tf', label: 'Order matters', answer: orderMatters },
+
+        { kind: 'numeric', label: 'Number of outcomes', answer, tol: 0 },
+      ],
+
+      solution: [
+        {
+          text: orderMatters
+            ? `Ranking the finishers assigns a distinct position to each choice, so order matters: use permutations.`
+            : `Choosing representatives with no ranking among them means order is irrelevant: use combinations.`,
+        },
+
+        {
+          text: orderMatters
+            ? `$_{${n}}P_{${r}}=\\dfrac{${n}!}{(${n}-${r})!}=${answer}$.`
+            : `$\\dbinom{${n}}{${r}}=\\dfrac{${n}!}{${r}!\\,(${n}-${r})!}=${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
+// --- Additive rules (§2.5): mutually-exclusive discrimination -------------
+//
+// pA and pB are each drawn from [0.10, 0.40], so P(A ∪ B) is always at least
+// about 0.20 -- comfortably clear of the numeric tolerance -- whether or not
+// the draw lands on the mutually-exclusive branch (P(A ∩ B) = 0).
+const mutuallyExclusiveDiscriminationTemplate = generatedQuestion({
+  id: 'ch02-gen-mutually-exclusive-discrimination',
+
+  chapter: 'probability',
+
+  topic: 'Additive rules',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const pAPct = rng.int(10, 40);
+
+    const pBPct = rng.int(10, 40);
+
+    const mutuallyExclusive = rng.bool();
+
+    const minPct = Math.min(pAPct, pBPct);
+
+    const pABPct = mutuallyExclusive ? 0 : rng.int(2, Math.max(2, minPct - 2));
+
+    const pA = pAPct / 100;
+
+    const pB = pBPct / 100;
+
+    const pAB = pABPct / 100;
+
+    const union = round(pA + pB - pAB, 4);
+
+    return {
+      prompt:
+        `A router logs two problems on a packet: event $A$ is "arrived late" ($P(A)=${pA}$) and event $B$ is ` +
+        `"arrived corrupted" ($P(B)=${pB}$)${mutuallyExclusive ? ', and no packet is ever both' : ` and $P(A\\cap B)=${pAB}$`}. ` +
+        `Are $A$ and $B$ mutually exclusive, and what is $P(A\\cup B)$?`,
+
+      params: { pA, pB, pAB, mutuallyExclusive: mutuallyExclusive ? 1 : 0 },
+
+      parts: [
+        { kind: 'tf', label: 'Mutually exclusive', answer: mutuallyExclusive },
+
+        { kind: 'numeric', label: 'P(A ∪ B)', answer: union, tol: 0.001 },
+      ],
+
+      solution: [
+        {
+          text: mutuallyExclusive
+            ? `No packet is both late and corrupted, so $P(A\\cap B)=0$ and $A$, $B$ are mutually exclusive.`
+            : `$P(A\\cap B)=${pAB}\\neq 0$, so $A$ and $B$ are not mutually exclusive.`,
+        },
+
+        { text: `$P(A\\cup B)=P(A)+P(B)-P(A\\cap B)=${pA}+${pB}-${pAB}=${union}$.` },
+      ],
+    };
+  },
+});
+
+// --- Additive rules (§2.5): complement-vs-direct discrimination -----------
+//
+// n is drawn from [3, 6] and the per-disk failure percentage from [2, 10],
+// so P(none fail) = (1-p)^n never drops so low that P(at least one) rounds
+// to a value indistinguishable from 1, and P(at least one) itself stays
+// comfortably above its 0.0005 tolerance (worst case ~0.059).
+const complementVsDirectTemplate = generatedQuestion({
+  id: 'ch02-gen-complement-vs-direct',
+
+  chapter: 'probability',
+
+  topic: 'Additive rules',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const n = rng.int(3, 6);
+
+    const pPct = rng.int(2, 10);
+
+    const p = pPct / 100;
+
+    const pNone = round((1 - p) ** n, 4);
+
+    const pAtLeastOne = round(1 - pNone, 4);
+
+    return {
+      prompt:
+        `A RAID array has ${n} disks, each failing independently with probability ${pPct}\\%. Which approach finds ` +
+        `$P(\\text{at least one disk fails})$ more efficiently, and what is that probability?`,
+
+      params: { n, p },
+
+      parts: [
+        {
+          kind: 'mcq',
+          label: 'More efficient approach',
+          choices: [
+            'List and add every way exactly 1, 2, ..., or n disks fail',
+            'Complement rule: 1 minus P(no disk fails)',
+          ],
+          answer: 1,
+        },
+
+        { kind: 'numeric', label: 'P(at least one fails)', answer: pAtLeastOne, tol: 0.0005 },
+      ],
+
+      solution: [
+        {
+          text: `Directly summing "exactly 1 fails", "exactly 2 fail", ..., "exactly ${n} fail" takes ${n} separate cases; the complement "no disk fails" is a single case, so the complement rule is faster.`,
+        },
+
+        { text: `$P(\\text{none fail})=(1-${p})^{${n}}=${pNone}$, so $P(\\text{at least one})=1-${pNone}=${pAtLeastOne}$.` },
+      ],
+    };
+  },
+});
+
+// --- Additive rules (§2.5): find-the-error over a flawed additive-rule step
+//
+// pA and pB are each drawn from [0.20, 0.50] and pAB strictly below
+// min(pA, pB) - 0.04 (floor 0.05) -- the same guard as additiveRuleBasic
+// above -- so the correct P(A ∪ B) always stays strictly between 0 and 1,
+// and the flawed sum pA + pB is always demonstrably too large (it never
+// subtracts the overlap it should).
+const findTheErrorAdditiveTemplate = generatedQuestion({
+  id: 'ch02-gen-find-the-error-additive',
+
+  chapter: 'probability',
+
+  topic: 'Additive rules',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const pAPct = rng.int(20, 50);
+
+    const pBPct = rng.int(20, 50);
+
+    const minPct = Math.min(pAPct, pBPct);
+
+    const pABPct = rng.int(5, minPct - 4);
+
+    const pA = pAPct / 100;
+
+    const pB = pBPct / 100;
+
+    const pAB = pABPct / 100;
+
+    const flawedSum = round(pA + pB, 4);
+
+    const correctAnswer = round(pA + pB - pAB, 4);
+
+    return {
+      prompt:
+        `A student computes $P(A\\cup B)=P(A)+P(B)=${pA}+${pB}=${flawedSum}$ for a packet that can arrive late ` +
+        `($A$) or corrupted ($B$), given $P(A\\cap B)=${pAB}$. Is this computation correct? Find the correct ` +
+        `value of $P(A\\cup B)$.`,
+
+      params: { pA, pB, pAB },
+
+      parts: [
+        { kind: 'tf', label: 'Is the shown work correct?', answer: false },
+
+        { kind: 'numeric', label: 'Correct P(A ∪ B)', answer: correctAnswer, tol: 0.001 },
+      ],
+
+      solution: [
+        {
+          text: `The shown work never subtracts $P(A\\cap B)$, so it double-counts the overlap and overstates $P(A\\cup B)$.`,
+        },
+
+        { text: `Correctly, $P(A\\cup B)=P(A)+P(B)-P(A\\cap B)=${pA}+${pB}-${pAB}=${correctAnswer}$.` },
+      ],
+    };
+  },
+});
+
+// --- Conditional probability (§2.6): direct two-way read-off --------------
+//
+// n is drawn from [20, 40], lateCount (a proper subset of n) from [8, 16],
+// and corruptLate from [1, lateCount] -- always at least 1 and at most
+// lateCount -- so P(corrupted | late) = corruptLate / lateCount always
+// stays strictly between 0 and 1 (worst case 1/16 = 0.0625, well clear of
+// the 0.001 tolerance).
+const conditionalBasicTableTemplate = generatedQuestion({
+  id: 'ch02-gen-conditional-basic-table',
+
+  chapter: 'probability',
+
+  topic: 'Conditional probability',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const n = rng.int(20, 40);
+
+    const lateCount = rng.int(8, 16);
+
+    const corruptLate = rng.int(1, lateCount);
+
+    const answer = round(corruptLate / lateCount, 4);
+
+    return {
+      prompt:
+        `A network monitor logs ${n} packets; ${lateCount} of them arrive late. Of those late packets, ` +
+        `${corruptLate} are also corrupted. Find $P(\\text{corrupted}\\mid\\text{late})$.`,
+
+      params: { n, lateCount, corruptLate },
+
+      parts: [{ kind: 'numeric', answer, tol: 0.001 }],
+
+      solution: [
+        {
+          text: `Restrict attention to the ${lateCount} late packets (the conditioning event): $\\dfrac{${corruptLate}}{${lateCount}}=${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
+// --- Conditional probability (§2.6): product rule, forward ----------------
+//
+// p1 is drawn from [0.80, 0.95] and p2given1 from [0.85, 0.98], so the
+// product P(both) never drops below 0.80 * 0.85 = 0.68 -- far clear of its
+// 0.0005 tolerance.
+const productRuleForwardTemplate = generatedQuestion({
+  id: 'ch02-gen-product-rule-forward',
+
+  chapter: 'probability',
+
+  topic: 'Conditional probability',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const p1Pct = rng.int(80, 95);
+
+    const p2Pct = rng.int(85, 98);
+
+    const p1 = p1Pct / 100;
+
+    const p2given1 = p2Pct / 100;
+
+    const answer = round(p1 * p2given1, 4);
+
+    return {
+      prompt:
+        `A circuit board passes stage-1 testing with probability ${p1}. Given that it passed stage 1, it passes ` +
+        `stage-2 testing with probability ${p2given1}. Using the product rule, find the probability a board ` +
+        `passes both stages.`,
+
+      params: { p1, p2given1 },
+
+      parts: [{ kind: 'numeric', answer, tol: 0.0005 }],
+
+      solution: [
+        { text: `Product rule: $P(\\text{both})=P(\\text{stage 1})\\,P(\\text{stage 2}\\mid\\text{stage 1})$.` },
+
+        { text: `$=${p1}\\times${p2given1}=${answer}$.` },
+      ],
+    };
+  },
+});
+
+// --- Conditional probability (§2.6): product rule, inverse -----------------
+//
+// pA is drawn from [0.20, 0.60] and pCondGiven from [0.30, 0.70]; the
+// intersection pIntersect = round(pA * pCondGiven, 4) is displayed and the
+// missing factor is recovered by dividing back out. Verified numerically
+// (2000 draws) that the round-trip through the 4dp display never drifts
+// more than 0.002 from the original pA, so tol = 0.003 absorbs the
+// double-rounding with margin to spare.
+const productRuleInverseTemplate = generatedQuestion({
+  id: 'ch02-gen-product-rule-inverse',
+
+  chapter: 'probability',
+
+  topic: 'Conditional probability',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const pAPct = rng.int(20, 60);
+
+    const pCondPct = rng.int(30, 70);
+
+    const pA = pAPct / 100;
+
+    const pCondGiven = pCondPct / 100;
+
+    const pIntersect = round(pA * pCondGiven, 4);
+
+    const answer = round(pIntersect / pCondGiven, 4);
+
+    return {
+      prompt:
+        `For a network link, $P(\\text{late}\\cap\\text{corrupted})=${pIntersect}$ and ` +
+        `$P(\\text{corrupted}\\mid\\text{late})=${pCondGiven}$. Find $P(\\text{late})$.`,
+
+      params: { pA, pCondGiven },
+
+      parts: [{ kind: 'numeric', answer, tol: 0.003 }],
+
+      solution: [
+        { text: `Rearranging the product rule: $P(\\text{late})=\\dfrac{P(\\text{late}\\cap\\text{corrupted})}{P(\\text{corrupted}\\mid\\text{late})}$.` },
+
+        { text: `$=\\dfrac{${pIntersect}}{${pCondGiven}}=${answer}$.` },
+      ],
+    };
+  },
+});
+
+// --- Bayes theorem (§2.7): theorem of total probability, easy -------------
+//
+// pAPct is drawn from [30, 70] (pBPct = 100 - pAPct), dAPct from [1, 5] and
+// dBPct from [6, 12]. The smallest possible P(positive) is
+// 0.30 * 0.01 + 0.70 * 0.06 = 0.045 -- verified by direct search over the
+// full range -- comfortably clear of the 0.0005 tolerance.
+const bayesEasyTotalTemplate = generatedQuestion({
+  id: 'ch02-gen-bayes-easy-total',
+
+  chapter: 'probability',
+
+  topic: 'Bayes theorem',
+
+  difficulty: 'easy',
+
+  generate: (rng) => {
+    const pAPct = rng.int(30, 70);
+
+    const pBPct = 100 - pAPct;
+
+    const dAPct = rng.int(1, 5);
+
+    const dBPct = rng.int(6, 12);
+
+    const pA = pAPct / 100;
+
+    const pB = pBPct / 100;
+
+    const dA = dAPct / 100;
+
+    const dB = dBPct / 100;
+
+    const answer = round(pA * dA + pB * dB, 4);
+
+    return {
+      prompt:
+        `A clinic screens two patient groups: ${pAPct}\\% are low-risk and ${pBPct}\\% are high-risk. ${dAPct}\\% ` +
+        `of low-risk and ${dBPct}\\% of high-risk patients test positive. Using the theorem of total probability, ` +
+        `find the overall probability a randomly selected patient tests positive.`,
+
+      params: { pA, pB, dA, dB },
+
+      parts: [{ kind: 'numeric', answer, tol: 0.0005 }],
+
+      solution: [
+        { text: `Total probability: $P(\\text{positive})=P(\\text{low})P(\\text{positive}\\mid\\text{low})+P(\\text{high})P(\\text{positive}\\mid\\text{high})$.` },
+
+        { text: `$=${pA}\\times${dA}+${pB}\\times${dB}=${answer}$.` },
+      ],
+    };
+  },
+});
+
+// --- Bayes theorem (§2.7): inverse — recover the missing prior ------------
+//
+// x0 (the true prior) is drawn from [0.20, 0.60], L1 from [0.60, 0.90], and
+// L2 from [0.05, 0.30]. The exact posterior p = x0*L1 / (x0*L1 + (1-x0)*L2)
+// is rounded to 4dp for display, then inverted via
+// x = p*L2 / (L1*(1-p) + p*L2) to recover x0. Verified numerically (5000
+// draws) that this round-trip never drifts more than 0.003 from x0, so
+// tol = 0.005 absorbs the double-rounding with margin.
+const bayesInversePriorTemplate = generatedQuestion({
+  id: 'ch02-gen-bayes-inverse-prior',
+
+  chapter: 'probability',
+
+  topic: 'Bayes theorem',
+
+  difficulty: 'medium',
+
+  generate: (rng) => {
+    const x0Pct = rng.int(20, 60);
+
+    const l1Pct = rng.int(60, 90);
+
+    const l2Pct = rng.int(5, 30);
+
+    const x0 = x0Pct / 100;
+
+    const l1 = l1Pct / 100;
+
+    const l2 = l2Pct / 100;
+
+    const pExact = (x0 * l1) / (x0 * l1 + (1 - x0) * l2);
+
+    const p = round(pExact, 4);
+
+    const answer = round((p * l2) / (l1 * (1 - p) + p * l2), 4);
+
+    return {
+      prompt:
+        `Disks come from two batches. A Batch-1 disk fails with probability ${l1}, and a Batch-2 disk fails with ` +
+        `probability ${l2}. Auditing every failed disk shows that a fraction ${p} of them came from Batch 1. ` +
+        `What fraction of all disks originally came from Batch 1?`,
+
+      params: { x0, l1, l2 },
+
+      parts: [{ kind: 'numeric', answer, tol: 0.005 }],
+
+      solution: [
+        {
+          text: `Bayes: $P(\\text{Batch1}\\mid\\text{fail})=\\dfrac{P(\\text{Batch1})\\,P(\\text{fail}\\mid\\text{Batch1})}{P(\\text{Batch1})P(\\text{fail}\\mid\\text{Batch1})+P(\\text{Batch2})P(\\text{fail}\\mid\\text{Batch2})}$; solve this for $P(\\text{Batch1})$ given the posterior $${p}$.`,
+        },
+
+        {
+          text: `$P(\\text{Batch1})=\\dfrac{p\\,L_2}{L_1(1-p)+p\\,L_2}=\\dfrac{${p}\\times${l2}}{${l1}\\times${round(1 - p, 4)}+${p}\\times${l2}}=${answer}$.`,
+        },
+      ],
+    };
+  },
+});
+
 export const ch02Generators: QuestionTemplate[] = [
   permutationsTemplate,
 
@@ -1072,4 +1604,24 @@ export const ch02Generators: QuestionTemplate[] = [
   partitionCellsTemplate,
 
   independenceTestTemplate,
+
+  passwordMultiplicationTemplate,
+
+  permCombDiscriminationTemplate,
+
+  mutuallyExclusiveDiscriminationTemplate,
+
+  complementVsDirectTemplate,
+
+  findTheErrorAdditiveTemplate,
+
+  conditionalBasicTableTemplate,
+
+  productRuleForwardTemplate,
+
+  productRuleInverseTemplate,
+
+  bayesEasyTotalTemplate,
+
+  bayesInversePriorTemplate,
 ];

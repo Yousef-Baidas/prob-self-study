@@ -393,6 +393,314 @@ describe('ch06 exponentialMedianVsMean', () => {
   });
 });
 
+describe('ch06 uniformConditional', () => {
+  const t = byId('ch06-gen-uniform-conditional');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('P(X>a|X>b) matches the closed form, and the tf part is always false', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { M, a, b } = inst.params as Record<string, number>;
+
+      expect(b).toBeGreaterThanOrEqual(2);
+
+      expect(a).toBeGreaterThanOrEqual(b + 2);
+
+      expect(a).toBeLessThanOrEqual(M - 2);
+
+      const probability = (M - a) / (M - b);
+
+      expectNumericParts(inst.parts, [probability]);
+
+      expectMaterialNumericParts(inst.parts);
+
+      const tfPart = inst.parts.find((p) => p.kind === 'tf');
+
+      expect(tfPart?.kind).toBe('tf');
+
+      if (tfPart?.kind === 'tf') expect(tfPart.answer).toBe(false);
+    }
+  });
+});
+
+describe('ch06 normalDiffersFromMean', () => {
+  const t = byId('ch06-gen-normal-differs-from-mean');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('P(|X-mu|>k*sigma) matches an independently-integrated Phi, and the tf part is always true', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { k } = inst.params as Record<string, number>;
+
+      expect(k).toBeGreaterThanOrEqual(0.5 - 1e-9);
+
+      expect(k).toBeLessThanOrEqual(2.8 + 1e-9);
+
+      const probability = 2 * (1 - independentNormalCdf(k));
+
+      expectNumericParts(inst.parts, [probability], 0.0005);
+
+      expectMaterialNumericParts(inst.parts);
+
+      const tfPart = inst.parts.find((p) => p.kind === 'tf');
+
+      expect(tfPart?.kind).toBe('tf');
+
+      if (tfPart?.kind === 'tf') expect(tfPart.answer).toBe(true);
+    }
+  });
+});
+
+describe('ch06 normalApplicationEasyLatency', () => {
+  const t = byId('ch06-gen-normal-application-easy-latency');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('P(X<x0) matches an independently-integrated Phi', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { mu, sigma, x0 } = inst.params as Record<string, number>;
+
+      const z = Math.round(((x0 - mu) / sigma) * 100) / 100;
+
+      const probability = independentNormalCdf(z);
+
+      expectNumericParts(inst.parts, [probability], 0.0005);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch06 normalApplicationTwoSidedMcq', () => {
+  const t = byId('ch06-gen-normal-application-two-sided-mcq');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the mcq choice at the declared answer index matches an independently-integrated Phi', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { mu, sigma, x1, x2 } = inst.params as Record<string, number>;
+
+      const z1 = Math.round(((x1 - mu) / sigma) * 100) / 100;
+
+      const z2 = Math.round(((x2 - mu) / sigma) * 100) / 100;
+
+      const probability = independentNormalCdf(z2) - independentNormalCdf(z1);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq') {
+        expect(part.choices.length).toBe(4);
+
+        const declared = Number.parseFloat(part.choices[part.answer]);
+
+        expect(Math.abs(declared - probability)).toBeLessThanOrEqual(0.0006);
+
+        expect(Math.abs(declared)).toBeGreaterThan(0.001);
+      }
+    }
+  });
+});
+
+describe('ch06 normalApproxLegitimacy', () => {
+  const t = byId('ch06-gen-normal-approx-binomial-legitimacy');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('np, n(1-p) and the legitimacy verdict all match independent recomputation', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { n, p } = inst.params as Record<string, number>;
+
+      const npVal = n * p;
+
+      const nq = n * (1 - p);
+
+      expectNumericParts(inst.parts, [npVal, nq], 0.06);
+
+      expectMaterialNumericParts(inst.parts);
+
+      const tfPart = inst.parts.find((p2) => p2.kind === 'tf');
+
+      expect(tfPart?.kind).toBe('tf');
+
+      if (tfPart?.kind === 'tf') expect(tfPart.answer).toBe(npVal >= 5 && nq >= 5);
+    }
+  });
+});
+
+describe('ch06 normalApproxCorrectionComparison', () => {
+  const t = byId('ch06-gen-normal-approx-binomial-correction-comparison');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('both the corrected and uncorrected probabilities match independent recomputation', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { n, p, x0 } = inst.params as Record<string, number>;
+
+      const mu = n * p;
+
+      const sigma = Math.sqrt(n * p * (1 - p));
+
+      const zCorrected = Math.round(((x0 - 0.5 - mu) / sigma) * 100) / 100;
+
+      const zUncorrected = Math.round(((x0 - mu) / sigma) * 100) / 100;
+
+      const probCorrected = independentNormalCdf(zCorrected);
+
+      const probUncorrected = independentNormalCdf(zUncorrected);
+
+      expectNumericParts(inst.parts, [probCorrected, probUncorrected], 0.0005);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch06 areasForwardLookup', () => {
+  const t = byId('ch06-gen-areas-forward-lookup');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the mcq choice at the declared answer index matches an independently-integrated Phi difference', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { z1, z2 } = inst.params as Record<string, number>;
+
+      const area = independentNormalCdf(z2) - independentNormalCdf(z1);
+
+      const part = inst.parts[0];
+
+      expect(part.kind).toBe('mcq');
+
+      if (part.kind === 'mcq') {
+        expect(part.choices.length).toBe(4);
+
+        const declared = Number.parseFloat(part.choices[part.answer]);
+
+        expect(Math.abs(declared - area)).toBeLessThanOrEqual(0.0006);
+      }
+    }
+  });
+});
+
+describe('ch06 areasSymmetryFact', () => {
+  const t = byId('ch06-gen-areas-symmetry-fact');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('P(Z>z) matches an independently-integrated Phi, and the symmetry tf is always true', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { z } = inst.params as Record<string, number>;
+
+      expect(z).toBeGreaterThanOrEqual(0.5 - 1e-9);
+
+      expect(z).toBeLessThanOrEqual(2.8 + 1e-9);
+
+      const probRight = 1 - independentNormalCdf(z);
+
+      expectNumericParts(inst.parts, [probRight], 0.0005);
+
+      expectMaterialNumericParts(inst.parts);
+
+      const tfPart = inst.parts.find((p) => p.kind === 'tf');
+
+      expect(tfPart?.kind).toBe('tf');
+
+      if (tfPart?.kind === 'tf') expect(tfPart.answer).toBe(true);
+    }
+  });
+});
+
+describe('ch06 areasInverseSymmetric', () => {
+  const t = byId('ch06-gen-areas-inverse-symmetric');
+
+  const SMALL_SEEDS = 250;
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    const first = wordingOf(t.generate(mulberry32(0)).prompt);
+
+    for (let seed = 1; seed < SMALL_SEEDS; seed++) {
+      expect(wordingOf(t.generate(mulberry32(seed)).prompt)).toBe(first);
+    }
+  });
+
+  it('k matches an independently bisected Phi^-1 for P(-k<Z<k)=p', () => {
+    for (let seed = 0; seed < SMALL_SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { p } = inst.params as Record<string, number>;
+
+      const k = independentInvNormalCdf(0.5 + p / 2);
+
+      expectNumericParts(inst.parts, [k], 0.01);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
+describe('ch06 exponentialPoissonReverse', () => {
+  const t = byId('ch06-gen-exponential-poisson-reverse');
+
+  it('the fixed scenario prose does not vary across seeds, only the numbers', () => {
+    assertStableWording(t);
+  });
+
+  it('the mean matches 1/lambda and the Poisson probability matches an independently computed pmf', () => {
+    for (let seed = 0; seed < SEEDS; seed++) {
+      const inst = t.generate(mulberry32(seed));
+
+      const { lambda, k, t: time } = inst.params as Record<string, number>;
+
+      const meanWait = 1 / lambda;
+
+      const lambdaT = lambda * time;
+
+      let factorialK = 1;
+
+      for (let i = 2; i <= k; i++) factorialK *= i;
+
+      const poissonProb = (Math.exp(-lambdaT) * lambdaT ** k) / factorialK;
+
+      expectNumericParts(inst.parts, [meanWait, poissonProb], 0.001);
+
+      expectMaterialNumericParts(inst.parts);
+    }
+  });
+});
+
 describe('ch06 exponentialPoissonEquivalence', () => {
   const t = byId('ch06-gen-exponential-poisson-equivalence');
 
