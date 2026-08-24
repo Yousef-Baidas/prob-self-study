@@ -214,6 +214,52 @@ const chaptersHref = route('chapters');
       border-radius: var(--radius-sm);
     }
 
+    /* A fenced block that is NOT wrapped in InCode.astro. Shiki gives it a
+       theme background of its own, so unlike the aside version this one keeps
+       it — otherwise the block would be indistinguishable from body text. The
+       inline-code chip rule above still has to be undone token by token. */
+    .prose :global(pre.astro-code) {
+      margin-block: var(--space-lg);
+
+      padding: var(--space-md);
+
+      border: 1px solid var(--color-border);
+
+      border-radius: var(--radius-md);
+
+      font-size: var(--font-size-label);
+
+      line-height: 1.65;
+
+      overflow-x: auto;
+    }
+
+    .prose :global(pre.astro-code code) {
+      background: none;
+
+      padding: 0;
+
+      font-size: inherit;
+    }
+
+    .prose :global(pre.astro-code),
+    .prose :global(pre.astro-code span) {
+      color: var(--shiki-light);
+    }
+
+    .prose :global(pre.astro-code) {
+      background-color: var(--shiki-light-bg);
+    }
+
+    :global(:root[data-theme='dark']) .prose :global(pre.astro-code),
+    :global(:root[data-theme='dark']) .prose :global(pre.astro-code span) {
+      color: var(--shiki-dark);
+    }
+
+    :global(:root[data-theme='dark']) .prose :global(pre.astro-code) {
+      background-color: var(--shiki-dark-bg);
+    }
+
     .prose :global(hr) {
       border: 0;
 

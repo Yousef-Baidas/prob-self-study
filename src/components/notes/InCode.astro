@@ -1,0 +1,105 @@
+---
+// The code lens. Notation.astro answers "what symbol does the book use for the
+// thing we just named"; this answers "what would the thing we just named look
+// like if you had to run it". Same role, different alphabet — so it takes the
+// same shape: an aside with an eyebrow, sitting after the prose that named the
+// idea rather than in place of it.
+//
+// The body is a slot, not a string prop, so authors write a normal fenced code
+// block inside it in MDX and Shiki highlights it. Passing source as a prop
+// would mean shipping unhighlighted text and hand-escaping every backtick.
+//
+// Usage in an .mdx notes file:
+//
+//   <InCode title="Expected value is a weighted sum">
+//   ```ts
+//   const mean = (values: number[], mass: number[]) =>
+//     values.reduce((total, x, i) => total + x * mass[i], 0);
+//   ```
+//   </InCode>
+
+interface Props {
+  /** What the snippet demonstrates. Written as a claim, not a label. */
+  title?: string;
+
+  /** One sentence under the code — a caveat, or the line to actually look at. */
+  note?: string;
+}
+
+const { title = 'The same idea as code', note } = Astro.props;
+---
+
+<aside class="in-code">
+  <p class="in-code-eyebrow eyebrow">{title}</p>
+
+  <div class="in-code-body">
+    <slot />
+  </div>
+
+  {note && <p class="in-code-note">{note}</p>}
+
+  <style>
+    .in-code {
+      margin-block: var(--space-lg);
+
+      padding: var(--space-md) var(--space-lg);
+
+      background: var(--color-surface);
+
+      border: 1px solid var(--color-border);
+
+      border-radius: var(--radius-md);
+    }
+
+    .in-code-eyebrow {
+      margin: 0 0 var(--space-sm);
+    }
+
+    /* Shiki emits .astro-code with its own background. Inside this aside the
+       surrounding box already supplies one, so the code sits flush on it and
+       only the gutter padding is ours. */
+    .in-code-body :global(pre.astro-code) {
+      margin: 0;
+
+      padding: var(--space-sm) 0;
+
+      background: transparent !important;
+
+      font-size: var(--font-size-label);
+
+      line-height: 1.65;
+
+      overflow-x: auto;
+    }
+
+    /* The inline-code chip styling in ChapterNotes.astro would otherwise paint
+       a rounded background behind every token of a fenced block. */
+    .in-code-body :global(pre.astro-code code) {
+      background: none;
+
+      padding: 0;
+
+      font-size: inherit;
+    }
+
+    /* defaultColor: false in astro.config.mjs means Shiki writes both palettes
+       onto every token and picks neither. These two rules are the pick. */
+    .in-code-body :global(pre.astro-code),
+    .in-code-body :global(pre.astro-code span) {
+      color: var(--shiki-light);
+    }
+
+    :global(:root[data-theme='dark']) .in-code-body :global(pre.astro-code),
+    :global(:root[data-theme='dark']) .in-code-body :global(pre.astro-code span) {
+      color: var(--shiki-dark);
+    }
+
+    .in-code-note {
+      margin: var(--space-xs) 0 0;
+
+      font-size: var(--font-size-label);
+
+      color: var(--color-text-muted);
+    }
+  </style>
+</aside>
